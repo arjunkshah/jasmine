@@ -54,6 +54,7 @@ function AppBody({
   onThemeToggle,
   themeForToggle,
   copied,
+  retrySandbox,
 }) {
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
@@ -300,8 +301,13 @@ function AppBody({
                 </div>
               )}
               {error && (
-                <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                  {error}
+                <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center justify-between gap-3 flex-wrap">
+                  <span>{error}</span>
+                  {error.toLowerCase().includes('sandbox') && (
+                    <button onClick={retrySandbox} className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium">
+                      Retry
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -421,6 +427,7 @@ function App() {
   const [deployUrl, setDeployUrl] = useState(null);
   const [sandboxId, setSandboxId] = useState(null);
   const [sandboxStarting, setSandboxStarting] = useState(false);
+  const [sandboxRetryTrigger, setSandboxRetryTrigger] = useState(0);
   const sandboxUpdateTimerRef = useRef(null);
   const lastSentFilesRef = useRef(0);
   const sandboxIdRef = useRef(null);
@@ -480,6 +487,12 @@ function App() {
 
   const sandboxStartedRef = useRef(false);
 
+  const retrySandbox = () => {
+    sandboxStartedRef.current = false;
+    setError('');
+    setSandboxRetryTrigger((t) => t + 1);
+  };
+
   useEffect(() => {
     if (showLanding || sandboxStartedRef.current) return;
     sandboxStartedRef.current = true;
@@ -494,17 +507,23 @@ function App() {
           setSandboxId(data.sandboxId);
           sandboxIdRef.current = data.sandboxId;
         } else if (data.error) {
-          setError(`Sandbox: ${data.error}`);
+          const msg = data.error.includes('E2B_API_KEY')
+            ? `Sandbox: ${data.error} Add E2B_API_KEY in Vercel → Project Settings → Environment Variables, then redeploy.`
+            : `Sandbox: ${data.error}`;
+          setError(msg);
           sandboxStartedRef.current = false;
         }
       } catch (e) {
-        setError(`Sandbox start failed: ${e.message}`);
+        const hint = typeof window !== 'undefined' && !window.location.hostname.includes('localhost')
+          ? ' Check /api/health on your deployment.'
+          : '';
+        setError(`Sandbox start failed: ${e.message}${hint}`);
         sandboxStartedRef.current = false;
       } finally {
         setSandboxStarting(false);
       }
     })();
-  }, [showLanding]);
+  }, [showLanding, sandboxRetryTrigger]);
 
   const generate = async () => {
     if (!prompt.trim()) {
@@ -808,6 +827,7 @@ function App() {
     downloadProject,
     themeForToggle: theme,
     copied,
+    retrySandbox,
   };
 
   return (
