@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { generateWithGroq, generateWithGemini, extractNextProject } from './api';
+import { useState, useRef, useEffect } from 'react';
+import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject } from './api';
 import LandingPage from './LandingPage';
+import FileExplorer from './FileExplorer';
 
 const EXAMPLE_CARDS = [
   { label: 'Law firm', desc: 'Full site: home, about, practice areas, team, contact. Every page, every section.', prompt: 'Complete law firm website — home, about, practice areas grid, team bios, contact page. Trustworthy, Lora serif, navy and gold. Every page, every section, every animation.' },
@@ -15,8 +16,11 @@ function App() {
   const [prompt, setPrompt] = useState('');
   const [generatedHTML, setGeneratedHTML] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeView, setActiveView] = useState('code');
+  const [isEditing, setIsEditing] = useState(false);
+  const [rightTab, setRightTab] = useState('files');
   const [copied, setCopied] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
   const [provider, setProvider] = useState(() => localStorage.getItem('jasmine_provider') || 'groq');
   const [error, setError] = useState('');
   const [streamingRaw, setStreamingRaw] = useState('');
@@ -33,6 +37,9 @@ function App() {
   });
 
   const textareaRef = useRef(null);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
@@ -72,7 +79,7 @@ function App() {
     setGeneratedHTML('');
     setGeneratedProject(null);
     setDeployUrl(null);
-    setActiveView('preview');
+    setChatMessages([{ role: 'user', content: prompt }]);
     setShowLanding(false);
 
     try {
@@ -80,10 +87,9 @@ function App() {
       const result = await generateFn(key, prompt, (chunk) => setStreamingRaw(chunk));
 
       const project = extractNextProject(result);
-      if (project) {
-        setGeneratedProject(project);
-      }
+      if (project) setGeneratedProject(project);
       setGeneratedHTML(result);
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your Next.js project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }]);
 
       setHistory(prev => [{
         prompt: prompt.slice(0, 100),
@@ -126,11 +132,46 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  const sendChatMessage = async () => {
+    const msg = chatInput.trim();
+    if (!msg || isEditing) return;
+    const key = provider === 'groq' ? import.meta.env.VITE_GROQ_API_KEY : import.meta.env.VITE_GEMINI_API_KEY;
+    if (!key) { setError('API key required'); return; }
+
+    setChatMessages((prev) => [...prev, { role: 'user', content: msg }]);
+    setChatInput('');
+    setIsEditing(true);
+    setError('');
+    setStreamingRaw('');
+
+    const currentCode = generatedHTML || streamingRaw;
+    if (!currentCode) {
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'Generate first.' }]);
+      setIsEditing(false);
+      return;
+    }
+
+    try {
+      const editFn = provider === 'groq' ? editWithGroq : editWithGemini;
+      const result = await editFn(key, currentCode, msg, (chunk) => setStreamingRaw(chunk));
+      const project = extractNextProject(result);
+      if (project?.files) setGeneratedProject((prev) => ({ files: { ...(prev?.files || {}), ...project.files } }));
+      setGeneratedHTML(result);
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'Done. Check the Files tab.' }]);
+      setRightTab('files');
+    } catch (err) {
+      setError(err.message);
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
   const loadFromHistory = (item) => {
     setGeneratedHTML(item.html);
     setGeneratedProject(item.project || null);
     setPrompt(item.prompt);
-    setActiveView('code');
+    setChatMessages([{ role: 'user', content: item.prompt }, { role: 'assistant', content: 'Loaded.' }]);
     setShowLanding(false);
   };
 
@@ -149,8 +190,10 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(project),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Deploy failed');
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error(text || 'Deploy failed'); }
+      if (!res.ok) throw new Error(data.error || text || 'Deploy failed');
       setDeployUrl(data.url);
     } catch (err) {
       setError(err.message);
@@ -203,8 +246,61 @@ function App() {
           />
         ) : (
           <>
-            <div className={`flex border-r ${borderCl} transition-all duration-300 ${hasOutput ? 'w-[400px] flex-col' : 'flex-1 min-w-0 flex-col sm:flex-row'}`}>
-              <div className={`flex-1 flex flex-col min-w-0 ${hasOutput ? 'p-5' : 'p-6 sm:p-8 sm:max-w-[520px]'}`}>
+            <div className={`flex border-r ${borderCl} transition-all duration-300 ${hasOutput ? 'w-[360px] flex-shrink-0 flex-col' : 'flex-1 min-w-0 flex-col sm:flex-row'}`}>
+              <div className={`flex-1 flex flex-col min-w-0 ${hasOutput ? 'flex overflow-hidden' : 'p-6 sm:p-8 sm:max-w-[520px]'}`}>
+                {hasOutput ? (
+                  <>
+                    <div className={`flex-none px-4 py-3 border-b ${borderCl}`}>
+                      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Chat</p>
+                      <p className="text-sm text-text-secondary mt-0.5">Ask to edit your design</p>
+                      {history.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1">History</p>
+                          <div className="space-y-1 max-h-24 overflow-y-auto">
+                            {history.slice(0, 5).map((item, i) => (
+                              <button key={i} onClick={() => loadFromHistory(item)} className={`w-full text-left px-2 py-1.5 rounded-lg text-xs text-text-secondary hover:text-text-primary truncate border ${ghostCl}`}>
+                                {item.prompt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                      {chatMessages.map((m, i) => (
+                        <div key={i} className={`text-sm ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
+                          <div className={`inline-block max-w-[90%] px-3 py-2 rounded-xl ${m.role === 'user' ? (isLight ? 'bg-zinc-200 text-zinc-900' : 'bg-white/10 text-text-primary') : (isLight ? 'bg-zinc-100 border border-zinc-200 text-zinc-600' : 'bg-white/[0.04] border border-white/[0.06] text-text-secondary')}`}>
+                            {m.content}
+                          </div>
+                        </div>
+                      ))}
+                      {isEditing && (
+                        <div className="text-left">
+                          <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl ${isLight ? 'bg-zinc-100' : 'bg-white/[0.04]'} text-text-muted text-sm`}>
+                            <i className="ph ph-circle-notch animate-spin-slow"></i>
+                            <span>Applying edit...</span>
+                          </div>
+                        </div>
+                      )}
+                      <div ref={chatEndRef} />
+                    </div>
+                    <div className={`flex-none p-4 border-t ${borderCl}`}>
+                      <div className="flex gap-2">
+                        <input
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendChatMessage())}
+                          placeholder="Make the header darker..."
+                          className={`flex-1 px-4 py-2.5 rounded-xl text-sm border ${borderCl} text-text-primary placeholder:text-text-muted focus:outline-none ${isLight ? 'bg-zinc-50' : 'bg-white/[0.04]'}`}
+                        />
+                        <button onClick={sendChatMessage} disabled={!chatInput.trim() || isEditing} className="btn-premium px-4 py-2.5 text-sm text-[#0a0a0b] disabled:opacity-40">
+                          <i className="ph ph-paper-plane-tilt"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
                 {!hasOutput && (
                   <div className="mb-4">
                     <h1 className="text-2xl sm:text-[2rem] font-extrabold tracking-[-0.04em] leading-[1.1] text-text-primary mb-2">
@@ -285,7 +381,7 @@ function App() {
                   </div>
                 </div>
 
-                {hasOutput && history.length > 0 && (
+                {!hasOutput && history.length > 0 && (
                   <div className="mt-6 flex-1 overflow-y-auto">
                     <p className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.08em] mb-2">History</p>
                     <div className="space-y-1">
@@ -301,6 +397,8 @@ function App() {
                       ))}
                     </div>
                   </div>
+                )}
+                  </>
                 )}
               </div>
 
@@ -340,54 +438,94 @@ function App() {
             {hasOutput && (
               <div className="flex-1 flex flex-col min-w-0">
                 <div className={`flex-none flex items-center justify-between px-5 h-14 border-b ${borderCl} bg-surface-raised/80 backdrop-blur-xl`}>
-                  <div className="flex items-center gap-1">
-                    <span className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-text-primary">
-                      <i className="ph ph-code"></i>
-                      Code
-                    </span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setRightTab('files')}
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${rightTab === 'files' ? 'bg-surface-overlay text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
+                    >
+                      <i className="ph ph-folder"></i>
+                      Files
+                    </button>
+                    <button
+                      onClick={() => setRightTab('preview')}
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${rightTab === 'preview' ? 'bg-surface-overlay text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
+                    >
+                      <i className="ph ph-eye"></i>
+                      Preview
+                    </button>
                   </div>
-
                   <div className="flex items-center gap-2">
                     {generatedProject?.files && (
                       <button
                         onClick={deployToSandbox}
                         disabled={deploying}
                         className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary disabled:opacity-50`}
-                        title="Deploy to E2B sandbox (run npm run server first)"
+                        title="Deploy to E2B"
                       >
                         {deploying ? <i className="ph ph-circle-notch text-lg animate-spin-slow"></i> : <i className="ph ph-rocket-launch text-lg"></i>}
                       </button>
                     )}
-                    <button onClick={copyCode} className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Copy code">
+                    <button onClick={copyCode} className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Copy">
                       {copied ? <i className="ph ph-check text-lg text-emerald-400"></i> : <i className="ph ph-copy text-lg"></i>}
                     </button>
-                    <button onClick={downloadHTML} className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Download project">
+                    <button onClick={downloadHTML} className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Download">
                       <i className="ph ph-download-simple text-lg"></i>
                     </button>
                   </div>
                 </div>
 
                 <div className="flex-1 relative min-h-0 bg-[#0a0a0b]">
-                  {isGenerating && !generatedHTML && (
-                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                  {isGenerating && !generatedHTML && rightTab === 'files' && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-[#0a0a0b]">
                       <div className="flex flex-col items-center gap-6">
                         <div className="w-14 h-14 rounded-2xl bg-jasmine-400/10 flex items-center justify-center border border-jasmine-400/20">
                           <i className="ph ph-circle-notch text-2xl text-jasmine-400 animate-spin-slow"></i>
                         </div>
-                        <div className="text-center">
-                          <p className="text-[15px] font-semibold text-text-primary tracking-[-0.02em]">Crafting your full Next.js project</p>
-                          <p className="text-[13px] text-text-muted mt-1 tracking-[-0.01em]">Every page, every section, every animation — may take 1–2 min</p>
-                        </div>
+                        <p className="text-[15px] font-semibold text-text-primary">Crafting your project</p>
+                        <p className="text-[13px] text-text-muted">Tokens streaming...</p>
                       </div>
                     </div>
                   )}
 
-                  <div className="absolute inset-0 overflow-auto">
-                    <pre className="p-6 text-[13px] font-mono text-text-secondary leading-relaxed whitespace-pre-wrap break-words tracking-[-0.01em]">
-                      <code>{generatedHTML || streamingRaw || 'No code generated yet.'}</code>
-                      {isGenerating && <span className="inline-block w-2 h-4 ml-0.5 bg-jasmine-400 animate-pulse" aria-hidden />}
-                    </pre>
-                  </div>
+                  {rightTab === 'files' && (
+                    <div className="absolute inset-0">
+                      <FileExplorer
+                        files={generatedProject?.files}
+                        streamingRaw={streamingRaw || generatedHTML}
+                        isStreaming={isGenerating || isEditing}
+                      />
+                    </div>
+                  )}
+
+                  {rightTab === 'preview' && (
+                    <div className="absolute inset-0 flex items-center justify-center p-8 overflow-auto">
+                      {generatedProject?.files ? (
+                        <div className="text-center max-w-md">
+                          <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
+                          <p className="text-text-primary font-semibold mb-2">Next.js project generated</p>
+                          <p className="text-sm text-text-muted mb-4">
+                            Deploy to E2B to preview. Run <code className="px-1.5 py-0.5 rounded bg-white/10 text-xs">npm run server</code> first, then click the rocket icon.
+                          </p>
+                          <p className="text-xs text-text-muted mb-4">{Object.keys(generatedProject.files).length} files</p>
+                          {deployUrl ? (
+                            <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="btn-premium inline-flex items-center gap-2 text-[#0a0a0b]">
+                              Open preview <i className="ph ph-arrow-square-out"></i>
+                            </a>
+                          ) : (
+                            <button onClick={deployToSandbox} disabled={deploying} className="btn-premium inline-flex items-center gap-2 text-[#0a0a0b] disabled:opacity-50">
+                              {deploying ? <i className="ph ph-circle-notch animate-spin-slow"></i> : <i className="ph ph-rocket-launch"></i>}
+                              {deploying ? 'Deploying...' : 'Deploy to preview'}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center text-text-muted">
+                          <p className="mb-2">{(isGenerating || isEditing) ? 'Generating...' : 'No project yet.'}</p>
+                          <p className="text-sm">Switch to Files to see code.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
