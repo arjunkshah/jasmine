@@ -18,8 +18,7 @@ Runs Vite + API server together. Open http://localhost:5173.
    - `VITE_GROQ_API_KEY` — [Groq](https://console.groq.com/) (at least one AI key required)
    - `VITE_GEMINI_API_KEY` — [Google AI](https://aistudio.google.com/apikey)
    - `E2B_API_KEY` — [E2B](https://e2b.dev/dashboard) (required for sandbox preview)
-3. Deploy. API routes at `/api/sandbox/start`, `/api/sandbox/update` run as serverless functions.
-4. **Note:** Sandbox creation takes ~15–30s. Vercel Hobby plan has a 10s function limit; use Pro (60s) for sandbox to work.
+3. Deploy. API routes at `/api/sandbox/start`, `/api/sandbox/update` run as serverless functions (maxDuration: 60s).
 
 ## Features
 
