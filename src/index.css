@@ -11,7 +11,7 @@
   --color-text-primary: #fafafa;
   --color-text-secondary: #a1a1aa;
   --color-text-muted: #71717a;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Figtree', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
 }
 
@@ -34,17 +34,20 @@ html.light {
 
 html {
   scroll-behavior: smooth;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Figtree', system-ui, -apple-system, sans-serif;
 }
 
 body {
   background: var(--color-surface);
   color: var(--color-text-primary);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Figtree', system-ui, -apple-system, sans-serif;
+  --font-stretch: 96%;
+  font-stretch: 96%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.011em;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 /* Blur-to-reveal animation — article principle */
@@ -52,7 +55,7 @@ body {
   from {
     opacity: 0;
     filter: blur(12px);
-    transform: translateY(16px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -63,7 +66,7 @@ body {
 
 .reveal {
   opacity: 0;
-  animation: blurReveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: blurReveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .reveal-delay-1 { animation-delay: 0.05s; }
@@ -107,54 +110,64 @@ html.light .prompt-container:focus-within {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
-/* Monochrome CTA — black/white */
+/* Premium CTA — gradient inner shadow, thick border, outer shadow (anti-AI-slop) */
 .btn-premium {
   padding: 14px 28px;
-  border-radius: 8px;
+  border-radius: 9999px;
   font-weight: 600;
   font-size: 0.9375rem;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   background: #fafafa;
   color: #09090b;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  transition: all 0.2s ease;
+  border: 3px solid #ffffff;
+  box-shadow:
+    inset 0 -4px 12px rgba(0, 0, 0, 0.08),
+    0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html.light .btn-premium {
   background: #09090b;
   color: #fafafa;
   border-color: #09090b;
+  box-shadow:
+    inset 0 -4px 12px rgba(0, 0, 0, 0.25),
+    0 4px 20px rgba(0, 0, 0, 0.12);
 }
 
 .btn-premium:hover:not(:disabled) {
-  opacity: 0.92;
-  transform: translateY(-1px);
+  transform: scale(1.03);
+  filter: brightness(1.05);
 }
 
 .btn-premium:active:not(:disabled) {
-  transform: translateY(0);
+  transform: scale(0.99);
 }
 
 .btn-outline {
   padding: 14px 28px;
-  border-radius: 8px;
+  border-radius: 9999px;
   font-weight: 600;
   font-size: 0.9375rem;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   background: transparent;
   color: #fafafa;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.2s ease;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html.light .btn-outline {
   color: #18181b;
   border-color: #d4d4d8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .btn-outline:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 html.light .btn-outline:hover:not(:disabled) {
@@ -162,13 +175,19 @@ html.light .btn-outline:hover:not(:disabled) {
   background: rgba(0, 0, 0, 0.02);
 }
 
-/* Secondary / ghost buttons — depth */
+/* Secondary / ghost buttons — depth with inset */
 .btn-ghost {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   transition: background 0.2s, border-color 0.2s;
+}
+
+html.light .btn-ghost {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: #e4e4e7;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .btn-ghost:hover {

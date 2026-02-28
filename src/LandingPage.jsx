@@ -45,7 +45,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           <p className="text-text-muted text-sm font-medium tracking-[0.08em] uppercase mb-6">
             Trusted by 10,000+ designers building better products
           </p>
-          <h1 className="text-[3rem] md:text-[4rem] lg:text-[5rem] font-extrabold tracking-[-0.04em] leading-[1.05] text-text-primary mb-6">
+          <h1 className="text-[3rem] md:text-[4rem] lg:text-[5rem] font-extrabold tracking-[-0.04em] leading-[1.1] text-text-primary mb-6">
             Your Ideas Deserve Better Frontends.
           </h1>
           <p className="text-lg md:text-xl text-text-secondary leading-[1.6] max-w-2xl mx-auto mb-12 tracking-[-0.01em]">

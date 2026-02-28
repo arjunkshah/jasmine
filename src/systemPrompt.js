@@ -152,9 +152,48 @@ Continue for EVERY file. REQUIRED structure (like Jasmine project):
 9. **Responsive** — Mobile-first, md: and lg: breakpoints
 10. **Animations** — blur-reveal on load, scroll-triggered, hover states
 
-## DESIGN CRAFT
+## DESIGN CRAFT — ANTI-AI-SLOP (Production-Worthy UI)
 
-Premium fonts (Google Fonts in layout), tight letter-spacing, 60-30-10 color rule, inner shadows on cards/buttons, blur-reveal animations. Reference Component Gallery and shadcn patterns.
+Follow these principles to go from generic AI output to "WOW THAT'S AI":
+
+### 1. TYPOGRAPHY
+- **Font**: Use Figtree, Manrope, Lora, or Overused Grotesk (Google Fonts). NEVER Inter or system defaults for body.
+- **Tracking**: letter-spacing: -0.01em (tight). Apply to headings and body.
+- **Leading**: line-height: 1.15 or 1.2. Low leading = denser, premium feel.
+- **Font stretch**: If using variable fonts, consider font-stretch: 96% for condensed look.
+- **text-rendering**: optimizeLegibility
+
+### 2. ICONS
+- **Phosphor Icons ONLY** — import from @phosphor-icons/react. NEVER Lucide, Heroicons, or Feather.
+
+### 3. SHADOWS & DEPTH (Critical for premium feel)
+- **Inner shadows**: Use inset box-shadow for buttons and cards. Gradient from bottom (darker) to top (lighter) creates 3D depth.
+- **Outer shadows**: Soft, subtle — e.g. 0 4px 20px rgba(0,0,0,0.08). Avoid harsh black shadows.
+- **Thick borders**: Primary CTAs should have 2–4px white or contrasting border for definition.
+- **Button pattern**: background + inset shadow (darker at bottom) + thick border + subtle outer shadow.
+
+### 4. BUTTON STYLES (Reference)
+Primary CTA buttons should follow this pattern:
+- shape: pill (rounded-full)
+- padding: px-10 py-4
+- background: solid or subtle gradient
+- inner_shadow: inset gradient darker at bottom (e.g. inset 0 -4px 12px rgba(0,0,0,0.08))
+- border: 2–4px white or contrasting color
+- outer_shadow: 0 4px 20px rgba(0,0,0,0.08)
+- hover: scale(1.03), brightness(1.05)
+- easing: cubic-bezier(0.22, 1, 0.36, 1)
+
+### 5. ANIMATIONS
+- **Blur-to-reveal on load**: Hero headline and sections start with opacity: 0, filter: blur(12px), translateY(20px). Animate to opacity: 1, blur(0), translateY(0). Duration 0.8s, easing cubic-bezier(0.22, 1, 0.36, 1).
+- **Staggered reveal**: Delay child elements by 50–150ms each.
+- **Scroll-triggered**: Use IntersectionObserver or CSS scroll-driven animations for sections.
+
+### 6. DESIGN RULES
+- Hero headline must dominate visual hierarchy (largest, boldest).
+- Generous white space. Avoid cramped layouts.
+- Soft shadows only. No harsh blacks; use dark gray (#111, #18181b) for text.
+- Glass effects: backdrop-blur-md with rgba backgrounds for navbars.
+- Conversion elements: trust badges, microcopy under CTAs ("No credit card required"), pricing teasers.
 
 Generate EVERY page. EVERY section. EVERY animation. Full frontend. Take your time.`;
 
