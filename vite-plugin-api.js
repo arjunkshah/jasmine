@@ -1,20 +1,16 @@
 /**
  * Vite plugin: handle /api routes before Vite's module resolution.
- * Runs first so /api/* is not served as modules.
- * Sandbox config from open-lovable: https://github.com/firecrawl/open-lovable
+ * open-lovable E2B approach: Vite + React, port 5173, no build step.
  */
 import 'dotenv/config';
 import express from 'express';
 import { checkE2B, createSandbox, connectSandbox, writeFiles } from './server/sandbox.js';
+import { getBoilerplate } from './api/lib/e2b.js';
 import { sandboxConfig } from './api/lib/sandbox-config.js';
 
-const BOILERPLATE_PACKAGE = JSON.stringify({
-  name: 'jasmine-app',
-  version: '0.1.0',
-  private: true,
-  scripts: { dev: 'next dev', build: 'next build', start: 'next start' },
-  dependencies: { next: '^14.2.0', react: '^18.2.0', 'react-dom': '^18.2.0', '@phosphor-icons/react': '^2.1.6' },
-}, null, 2);
+const cfg = sandboxConfig.e2b;
+const port = cfg.vitePort ?? cfg.nextPort ?? 5173;
+const BOILERPLATE_PACKAGE = getBoilerplate('dark')['package.json'];
 
 const sendJson = (res, data) => {
   res.setHeader('Content-Type', 'application/json');
@@ -34,14 +30,15 @@ export function apiPlugin() {
     return (await import('./api/generate-image.js')).default(req, res);
   });
   api.post('/sandbox/start', async (req, res) => {
-    console.log('[api] POST /api/sandbox/start');
+    const theme = (req.body?.theme === 'light' || req.body?.theme === 'dark') ? req.body.theme : 'dark';
+    console.log('[api] POST /api/sandbox/start theme=', theme);
     const err = checkE2B();
     if (err) {
       console.warn('[api] E2B not configured:', err.error);
       return res.status(500).json(err);
     }
     try {
-      const { sandboxId, url } = await createSandbox();
+      const { sandboxId, url } = await createSandbox({ theme });
       console.log('[api] sandbox/start ok sandboxId=', sandboxId, 'url=', url);
       sendJson(res, { success: true, sandboxId, url });
     } catch (e) {
@@ -72,15 +69,9 @@ export function apiPlugin() {
       await writeFiles(sandbox, files);
       if (!files['package.json']) await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
       await sandbox.commands.run('npm install');
-      const cfg = sandboxConfig.e2b;
-      await sandbox.commands.run('pkill -f "next" 2>/dev/null || true');
-      const buildResult = await sandbox.commands.run('npx next build');
-      if (buildResult.exitCode !== 0) {
-        console.error('next build failed:', buildResult.stderr?.slice(0, 500));
-        res.statusCode = 500;
-        return sendJson(res, { error: 'Build failed' });
-      }
-      await sandbox.commands.run(`npx next start --port ${cfg.nextPort} --hostname 0.0.0.0`, { background: true });
+      await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+      await new Promise((r) => setTimeout(r, 1500));
+      await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
       await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
       console.log('[api] sandbox/update ok');
       sendJson(res, { success: true });
@@ -103,18 +94,13 @@ export function apiPlugin() {
       return sendJson(res, { error: 'Missing files object' });
     }
     try {
-      const { sandbox, url } = await createSandbox({ withBoilerplate: false });
+      const { sandbox, url } = await createSandbox({ theme: 'dark' });
       await writeFiles(sandbox, files);
       if (!files['package.json']) await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
       await sandbox.commands.run('npm install');
-      const cfg = sandboxConfig.e2b;
-      const buildResult = await sandbox.commands.run('npx next build');
-      if (buildResult.exitCode !== 0) {
-        console.error('next build failed:', buildResult.stderr?.slice(0, 500));
-        res.statusCode = 500;
-        return sendJson(res, { error: 'Build failed' });
-      }
-      await sandbox.commands.run(`npx next start --port ${cfg.nextPort} --hostname 0.0.0.0`, { background: true });
+      await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+      await new Promise((r) => setTimeout(r, 1500));
+      await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
       await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
       console.log('[api] deploy ok sandboxId=', sandbox.sandboxId, 'url=', url);
       sendJson(res, { success: true, sandboxId: sandbox.sandboxId, url, message: 'Preview ready.' });

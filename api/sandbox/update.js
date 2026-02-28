@@ -1,4 +1,8 @@
-import { BOILERPLATE, checkE2B } from '../lib/e2b.js';
+/**
+ * E2B sandbox update — open-lovable approach: Vite + React
+ * Write files → npm install (if package.json changed) → restart Vite. No build step.
+ */
+import { getBoilerplate, checkE2B } from '../lib/e2b.js';
 import { sandboxConfig } from '../lib/sandbox-config.js';
 
 export const config = { maxDuration: 120 };
@@ -8,6 +12,7 @@ export default async function handler(req, res) {
   const log = (...args) => console.log('[sandbox/update]', `+${Date.now() - t0}ms`, ...args);
   const logErr = (...args) => console.error('[sandbox/update]', `+${Date.now() - t0}ms`, ...args);
   const cfg = sandboxConfig.e2b;
+  const port = cfg.vitePort ?? cfg.nextPort ?? 5173;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -17,8 +22,7 @@ export default async function handler(req, res) {
 
   const { sandboxId, files } = req.body || {};
   const fileCount = files ? Object.keys(files).length : 0;
-  const filePaths = files ? Object.keys(files).slice(0, 10) : [];
-  log('POST /api/sandbox/update | sandboxId:', sandboxId, '| fileCount:', fileCount, '| files:', filePaths.join(', '), fileCount > 10 ? '...' : '');
+  log('POST /api/sandbox/update | sandboxId:', sandboxId, '| fileCount:', fileCount);
 
   const err = checkE2B();
   if (err) {
@@ -49,14 +53,18 @@ export default async function handler(req, res) {
       logErr('Connect failed:', msg);
       throw e;
     }
+
     log('Writing', fileCount, 'files...');
     for (const [path, content] of Object.entries(files)) {
       await sandbox.files.write(path, typeof content === 'string' ? content : String(content));
     }
+
     if (!files['package.json']) {
       log('No package.json in payload, writing default');
+      const BOILERPLATE = getBoilerplate('dark');
       await sandbox.files.write('package.json', BOILERPLATE['package.json']);
     }
+
     log('Running npm install...');
     const installResult = await sandbox.commands.run('npm install');
     if (installResult.exitCode !== 0) {
@@ -64,18 +72,16 @@ export default async function handler(req, res) {
     } else {
       log('npm install done');
     }
-    log('Stopping existing next, running npx next build...');
-    await sandbox.commands.run('pkill -f "next" 2>/dev/null || true');
-    const buildResult = await sandbox.commands.run('npx next build');
-    if (buildResult.exitCode !== 0) {
-      logErr('next build failed:', buildResult.exitCode, 'stderr:', buildResult.stderr?.slice(0, 800));
-      return res.status(500).json({ error: 'Build failed. Check sandbox logs.' });
-    }
-    log('Build done, starting next on port', cfg.nextPort, '...');
-    await sandbox.commands.run(`npx next start --port ${cfg.nextPort} --hostname 0.0.0.0`, { background: true });
-    const url = `https://${sandbox.getHost(cfg.nextPort)}`;
+
+    log('Restarting Vite (kill + start)...');
+    await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+    await new Promise((r) => setTimeout(r, 1500));
+    await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
+
+    const url = `https://${sandbox.getHost(port)}`;
     log('URL:', url, '| waiting', cfg.startupDelayMs, 'ms');
     await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+
     const updatePollAttempts = Math.min(20, cfg.maxPollAttempts);
     for (let i = 0; i < updatePollAttempts; i++) {
       try {
@@ -91,6 +97,7 @@ export default async function handler(req, res) {
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
+
     const elapsed = Date.now() - t0;
     log('Success in', elapsed, 'ms');
     return res.status(200).json({ success: true });

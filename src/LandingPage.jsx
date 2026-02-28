@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const BENTO_ITEMS = [
-  { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'describe anything', desc: 'law firms, restaurants, saas, portfolios. one prompt. full next.js project.' },
+  { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'describe anything', desc: 'law firms, restaurants, saas, portfolios. one prompt. full react project.' },
   { span: '', icon: 'ph-lightning', title: 'kimi k2', desc: 'blazing fast via groq' },
   { span: '', icon: 'ph-palette', title: 'gemini', desc: 'creative depth' },
   { span: 'md:col-span-2', icon: 'ph-sparkle', title: 'anti-ai-slop craft', desc: 'premium typography, phosphor icons, blur-reveal.' },
@@ -23,7 +23,7 @@ const TESTIMONIALS = [
 ];
 
 const MARQUEE_ITEMS = [
-  { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nextjs/nextjs-original.svg', label: 'next.js' },
+  { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vitejs/vitejs-original.svg', label: 'vite' },
   { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg', label: 'react' },
   { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg', label: 'typescript' },
   { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/tailwindcss/tailwindcss-original.svg', label: 'tailwind' },
@@ -46,8 +46,8 @@ const HORIZONTAL_FEATURES = [
 ];
 
 const FAQ_ITEMS = [
-  { q: 'what can i build?', a: 'full next.js sites for law firms, restaurants, saas, portfolios, agencies — anything you can describe. jasmine crafts production-ready projects with src/, typescript, tailwind.' },
-  { q: 'how does it work?', a: 'describe your site in one prompt. jasmine uses kimi k2 or gemini to generate a complete next.js project. edit in real time, then copy, download, or deploy to e2b sandbox.' },
+  { q: 'what can i build?', a: 'full react sites for law firms, restaurants, saas, portfolios, agencies — anything you can describe. jasmine crafts production-ready projects with vite, react, tailwind.' },
+  { q: 'how does it work?', a: 'describe your site in one prompt. jasmine uses kimi k2 or gemini to generate a complete react project. edit in real time, then copy, download, or deploy to e2b sandbox.' },
   { q: 'is it really free?', a: 'yes. generate and export as many projects as you want. no signup, no credit card required.' },
   { q: 'can i use the output commercially?', a: 'absolutely. the code you generate is yours.' },
 ];
@@ -131,7 +131,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
   }, []);
 
   const isLight = theme === 'light';
-  const cardCl = isLight ? 'bg-white border border-zinc-200/60' : 'bg-white/[0.02] border border-white/[0.06]';
+  const cardCl = isLight ? 'bg-white border border-zinc-200/60 card-3d' : 'bg-white/[0.02] border border-white/[0.06] card-3d';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
 
   return (
@@ -146,7 +146,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 design anything.
               </h1>
               <p className="text-base md:text-lg text-text-secondary leading-[1.6] max-w-lg mb-12">
-                describe the website you want. jasmine crafts a full next.js project — every page, every section. production-ready.
+                describe the website you want. jasmine crafts a full react project — every page, every section. production-ready.
               </p>
               <div className="flex flex-wrap gap-3">
                 <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-5 py-2.5">
@@ -155,7 +155,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 </button>
                 <button
                   onClick={() => onSelectPrompt(EXAMPLE_CARDS[0].prompt)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-medium border border-white/10 text-text-primary hover:bg-white/[0.03] transition-colors"
+                  className="btn-ghost flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-text-primary"
                 >
                   try law firm
                 </button>
@@ -173,7 +173,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
 └── ...
 `}
                 </pre>
-                <p className="text-xs text-text-muted mt-4">next.js · typescript · tailwind</p>
+                <p className="text-xs text-text-muted mt-4">vite · react · tailwind</p>
               </div>
             </div>
           </div>
@@ -441,7 +441,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           <div className="flex items-center gap-6 text-xs text-text-muted">
             <span>ai website designer</span>
             <span>·</span>
-            <span>next.js · typescript · tailwind</span>
+            <span>vite · react · tailwind</span>
           </div>
         </div>
       </footer>

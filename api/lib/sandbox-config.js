@@ -1,7 +1,7 @@
 /**
- * Sandbox configuration — patterns from open-lovable
+ * Sandbox configuration — open-lovable E2B approach
  * @see https://github.com/firecrawl/open-lovable (config/app.config.ts, lib/sandbox/providers/e2b-provider.ts)
- * Central config for E2B sandbox timeouts, ports, and startup behavior.
+ * Vite port 5173 — no build step, instant hot-reload, fewer timeouts.
  */
 export const sandboxConfig = {
   e2b: {
@@ -10,10 +10,14 @@ export const sandboxConfig = {
     get timeoutMs() {
       return this.timeoutMinutes * 60 * 1000;
     },
-    /** Next.js production server port */
-    nextPort: 3000,
-    /** Initial delay (ms) after starting next start before first health check */
-    startupDelayMs: 5000,
+    /** Vite dev server port — E2B URL format: {port}-{sandboxId}.e2b.app */
+    vitePort: 5173,
+    /** Alias for compatibility */
+    get nextPort() {
+      return this.vitePort;
+    },
+    /** Initial delay (ms) after starting vite before first health check */
+    startupDelayMs: 8000,
     /** Max poll attempts for server readiness (1 attempt per second) */
     maxPollAttempts: 30,
     /** Timeout per fetch during polling (ms) */

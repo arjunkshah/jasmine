@@ -1,7 +1,14 @@
 import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt';
 
-export async function generateWithGroq(apiKey, prompt, onChunk) {
-  const userContent = enhanceUserPrompt(prompt);
+function buildContextBlock(files) {
+  if (!files?.length) return '';
+  const blocks = files.map((f) => `---FILE:${f.name}---\n${typeof f.content === 'string' ? f.content : ''}`).join('\n\n');
+  return `\n\nADDITIONAL CONTEXT (user-uploaded files — use for reference):\n\n${blocks}\n\n`;
+}
+
+export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = []) {
+  const contextBlock = buildContextBlock(contextFiles);
+  const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -29,8 +36,9 @@ export async function generateWithGroq(apiKey, prompt, onChunk) {
   return streamResponse(response, onChunk);
 }
 
-export async function editWithGroq(apiKey, currentCode, userMessage, onChunk) {
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, contextFiles = []) {
+  const contextBlock = buildContextBlock(contextFiles);
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -52,8 +60,9 @@ export async function editWithGroq(apiKey, currentCode, userMessage, onChunk) {
   return streamResponse(response, onChunk);
 }
 
-export async function editWithGemini(apiKey, currentCode, userMessage, onChunk) {
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, contextFiles = []) {
+  const contextBlock = buildContextBlock(contextFiles);
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
@@ -73,8 +82,9 @@ export async function editWithGemini(apiKey, currentCode, userMessage, onChunk) 
   return streamGeminiResponse(response, onChunk);
 }
 
-export async function generateWithGemini(apiKey, prompt, onChunk) {
-  const userContent = enhanceUserPrompt(prompt);
+export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles = []) {
+  const contextBlock = buildContextBlock(contextFiles);
+  const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
@@ -186,7 +196,7 @@ export function extractHTML(text) {
   return text;
 }
 
-/** Parse Next.js multi-file output. Returns { files: { path: content } } or null. */
+/** Parse multi-file output (---FILE:path---). Returns { files: { path: content } } or null. */
 export function extractNextProject(text) {
   const files = {};
   const regex = /---FILE:([^\n-]+)---\s*```(?:\w+)?\s*\n([\s\S]*?)```/g;
@@ -248,24 +258,3 @@ export async function replaceImagePlaceholders(text, apiBase = '') {
   return result;
 }
 
-/** Parse JSON export and extract project files. Supports { files: {...} } or raw { path: content }. */
-export function parseProjectFromJson(jsonStr) {
-  try {
-    const parsed = JSON.parse(jsonStr);
-    if (!parsed || typeof parsed !== 'object') return null;
-    let files = parsed.files;
-    if (!files || typeof files !== 'object') {
-      files = parsed;
-    }
-    const result = {};
-    for (const [path, content] of Object.entries(files)) {
-      if (path && (typeof content === 'string' || typeof content === 'number' || typeof content === 'boolean')) {
-        result[path] = String(content);
-      }
-    }
-    if (Object.keys(result).length > 0) return { files: result };
-    return null;
-  } catch {
-    return null;
-  }
-}

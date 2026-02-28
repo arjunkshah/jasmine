@@ -29,7 +29,11 @@ async function main() {
   // 2. Sandbox start
   try {
     console.log('\nTesting POST /api/sandbox/start (may take 15–30s)...');
-    const r = await fetch(`${BASE}/api/sandbox/start`, { method: 'POST' });
+    const r = await fetch(`${BASE}/api/sandbox/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: 'dark' }),
+    });
     const j = await r.json();
     if (j.success && j.url) {
       console.log('✓ Sandbox created:', j.sandboxId?.slice(0, 12) + '...');

@@ -20,12 +20,31 @@ export async function downloadProjectAsZip(project, fallbackRaw = '') {
       name: 'jasmine-app',
       version: '0.1.0',
       private: true,
-      scripts: { dev: 'next dev', build: 'next build', start: 'next start' },
-      dependencies: { next: '^14.2.0', react: '^18.2.0', 'react-dom': '^18.2.0' },
+      type: 'module',
+      scripts: { dev: 'vite --host', build: 'vite build', preview: 'vite preview' },
+      dependencies: { react: '^18.2.0', 'react-dom': '^18.2.0' },
+      devDependencies: { '@vitejs/plugin-react': '^4.0.0', vite: '^4.3.9', tailwindcss: '^3.3.0', postcss: '^8.4.31', autoprefixer: '^10.4.16' },
     };
     zip.file('package.json', JSON.stringify(pkg, null, 2));
-    zip.file('app/page.tsx', `export default function Page() {\n  return (\n    <main className="min-h-screen p-8">\n      <p className="text-zinc-600">Generated content saved to <code className="bg-zinc-100 px-1 rounded">output.txt</code> in the project root.</p>\n    </main>\n  );\n}\n`);
-    zip.file('app/layout.tsx', `export const metadata = { title: 'Jasmine App' };\nexport default function RootLayout({ children }) { return <html lang="en"><body>{children}</body></html>; }\n`);
+    zip.file('index.html', `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Jasmine App</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>`);
+    zip.file('src/main.jsx', `import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
+import './index.css'
+ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);
+`);
+    zip.file('src/App.jsx', `export default function App() {
+  return (
+    <main className="min-h-screen p-8">
+      <p className="text-zinc-600">Generated content saved to <code className="bg-zinc-100 px-1 rounded">output.txt</code> in the project root.</p>
+    </main>
+  );
+}
+`);
+    zip.file('src/index.css', `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+`);
   } else {
     throw new Error('No project to download');
   }

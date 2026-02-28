@@ -1,9 +1,8 @@
 /**
- * Deploy project files to E2B sandbox — per E2B docs & open-lovable patterns.
- * Creates sandbox, writes files, npm install, next build, next start.
- * Uses production build (not dev) for reliable preview.
+ * Deploy project files to E2B sandbox — open-lovable approach: Vite + React
+ * Creates sandbox, writes files, npm install, npm run dev. No build step.
  */
-import { BOILERPLATE, checkE2B } from './lib/e2b.js';
+import { getBoilerplate, checkE2B } from './lib/e2b.js';
 import { sandboxConfig } from './lib/sandbox-config.js';
 
 export const config = { maxDuration: 120 };
@@ -13,6 +12,7 @@ export default async function handler(req, res) {
   const log = (...args) => console.log('[deploy]', `+${Date.now() - t0}ms`, ...args);
   const logErr = (...args) => console.error('[deploy]', `+${Date.now() - t0}ms`, ...args);
   const cfg = sandboxConfig.e2b;
+  const port = cfg.vitePort ?? cfg.nextPort ?? 5173;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -49,6 +49,7 @@ export default async function handler(req, res) {
       await sandbox.files.write(filePath, typeof content === 'string' ? content : String(content));
     }
     if (!files['package.json']) {
+      const BOILERPLATE = getBoilerplate('dark');
       await sandbox.files.write('package.json', BOILERPLATE['package.json']);
     }
     log('Running npm install...');
@@ -57,15 +58,9 @@ export default async function handler(req, res) {
       logErr('npm install failed:', installResult.exitCode, installResult.stderr?.slice(0, 500));
       return res.status(500).json({ error: 'Build failed. Check logs.' });
     }
-    log('Running npx next build...');
-    const buildResult = await sandbox.commands.run('npx next build');
-    if (buildResult.exitCode !== 0) {
-      logErr('next build failed:', buildResult.exitCode, buildResult.stderr?.slice(0, 800));
-      return res.status(500).json({ error: 'Build failed. Check logs.' });
-    }
-    log('Starting next on port', cfg.nextPort, '...');
-    await sandbox.commands.run(`npx next start --port ${cfg.nextPort} --hostname 0.0.0.0`, { background: true });
-    const url = `https://${sandbox.getHost(cfg.nextPort)}`;
+    log('Starting Vite on port', port, '...');
+    await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
+    const url = `https://${sandbox.getHost(port)}`;
     log('Waiting', cfg.startupDelayMs, 'ms before poll...');
     await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
     for (let i = 0; i < Math.min(20, cfg.maxPollAttempts); i++) {

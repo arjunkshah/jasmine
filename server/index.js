@@ -1,15 +1,15 @@
 /**
- * E2B Sandbox API — deploys generated Next.js projects to E2B sandbox
+ * E2B Sandbox API — open-lovable approach: Vite + React
  *
- * Follows E2B documentation: https://e2b.dev/docs
- *
- * Run: npm run dev:all (starts both server + Vite) or npm run server
+ * Run: npm run server (standalone) or use vite-plugin-api (dev)
  * Requires: E2B_API_KEY in .env (get key at https://e2b.dev/dashboard)
  */
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { checkE2B, createSandbox, connectSandbox, writeFiles } from './sandbox.js';
+import { getBoilerplate } from '../api/lib/e2b.js';
+import { sandboxConfig } from '../api/lib/sandbox-config.js';
 
 dotenv.config();
 
@@ -20,24 +20,17 @@ app.use(express.json({ limit: '10mb' }));
 app.get('/', (req, res) => res.json({ ok: true, message: 'Jasmine E2B API', e2bConfigured: !!process.env.E2B_API_KEY, endpoints: ['POST /api/sandbox/start', 'POST /api/sandbox/update'] }));
 app.get('/api', (req, res) => res.json({ ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update'] }));
 
-const BOILERPLATE_PACKAGE = JSON.stringify({
-  name: 'jasmine-app',
-  version: '0.1.0',
-  private: true,
-  scripts: { dev: 'next dev', build: 'next build', start: 'next start' },
-  dependencies: { next: '^14.2.0', react: '^18.2.0', 'react-dom': '^18.2.0' },
-}, null, 2);
+const cfg = sandboxConfig.e2b;
+const port = cfg.vitePort ?? cfg.nextPort ?? 5173;
+const BOILERPLATE_PACKAGE = getBoilerplate('dark')['package.json'];
 
-/**
- * POST /api/sandbox/start
- * Start sandbox with boilerplate — per E2B docs quickstart
- */
 app.post('/api/sandbox/start', async (req, res) => {
   const err = checkE2B();
   if (err) return res.status(500).json(err);
+  const theme = (req.body?.theme === 'light' || req.body?.theme === 'dark') ? req.body.theme : 'dark';
 
   try {
-    const { sandboxId, url } = await createSandbox();
+    const { sandboxId, url } = await createSandbox({ theme });
     res.json({ success: true, sandboxId, url });
   } catch (e) {
     const msg = e.message || e.toString?.() || 'Sandbox start failed';
@@ -46,10 +39,6 @@ app.post('/api/sandbox/start', async (req, res) => {
   }
 });
 
-/**
- * POST /api/sandbox/update
- * Update files in existing sandbox — per E2B docs filesystem/read-write
- */
 app.post('/api/sandbox/update', async (req, res) => {
   const err = checkE2B();
   if (err) return res.status(500).json(err);
@@ -63,12 +52,14 @@ app.post('/api/sandbox/update', async (req, res) => {
     const sandbox = await connectSandbox(sandboxId);
     await writeFiles(sandbox, files);
 
-    const hasPackageJson = !!files['package.json'];
-    if (!hasPackageJson) {
+    if (!files['package.json']) {
       await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
     }
-    // Always run npm install: install new deps when package.json was written, or ensure deps are in sync
     await sandbox.commands.run('npm install');
+    await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+    await new Promise((r) => setTimeout(r, 1500));
+    await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
+    await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
 
     res.json({ success: true });
   } catch (e) {
@@ -77,10 +68,6 @@ app.post('/api/sandbox/update', async (req, res) => {
   }
 });
 
-/**
- * POST /api/deploy
- * Legacy — full deploy (creates new sandbox, writes all files)
- */
 app.post('/api/deploy', async (req, res) => {
   const err = checkE2B();
   if (err) return res.status(500).json(err);
@@ -91,20 +78,23 @@ app.post('/api/deploy', async (req, res) => {
   }
 
   try {
-    const { sandbox, url } = await createSandbox({ withBoilerplate: false });
+    const { sandbox, url } = await createSandbox({ theme: 'dark' });
     await writeFiles(sandbox, files);
 
     if (!files['package.json']) {
       await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
     }
     await sandbox.commands.run('npm install');
-    await sandbox.commands.run('npx next dev --port 3000 --hostname 0.0.0.0', { background: true });
+    await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+    await new Promise((r) => setTimeout(r, 1500));
+    await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
+    await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
 
     res.json({
       success: true,
       sandboxId: sandbox.sandboxId,
       url,
-      message: 'Deploying... Preview may take 1–2 minutes.',
+      message: 'Preview ready.',
     });
   } catch (e) {
     console.error('E2B deploy:', e);

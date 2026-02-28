@@ -1,6 +1,6 @@
 # Jasmine
 
-AI-powered Next.js project generator. Describe your app, get a full project with streaming preview.
+AI-powered React project generator. Describe your app, get a full Vite + React project with streaming preview. Uses the [open-lovable](https://github.com/firecrawl/open-lovable) E2B approach: Vite dev server, no build step, instant hot-reload.
 
 ## Local development
 
@@ -22,12 +22,11 @@ Open http://localhost:5173.
 3. Deploy. API routes: `/api/sandbox/start`, `/api/sandbox/update`, `/api/deploy`, `/api/generate-image`.
 4. **Verify:** Visit `https://your-app.vercel.app/api/health` — `e2bConfigured: true` means E2B is ready.
 
-### E2B sandbox (per [e2b.dev/docs](https://e2b.dev/docs))
+### E2B sandbox (open-lovable approach)
 
-- **Sandbox lifecycle:** [e2b.dev/docs/sandbox](https://e2b.dev/docs/sandbox)
-- **Connect to sandbox:** [e2b.dev/docs/sandbox/connect](https://e2b.dev/docs/sandbox/connect)
-- **Filesystem:** [e2b.dev/docs/filesystem/read-write](https://e2b.dev/docs/filesystem/read-write)
-- Uses `base` template, `next build` + `next start`, `getHost(port)` for preview URL.
+- **Vite + React** — No build step. `npm install` → `npm run dev`. Port 5173.
+- **Hot-reload** — File writes trigger instant preview updates.
+- Uses `base` template, `getHost(5173)` for preview URL.
 - Config: `api/lib/sandbox-config.js` (timeout, port, poll attempts).
 
 ### Sandbox not starting on Vercel?
@@ -47,7 +46,7 @@ firebase deploy --only firestore   # or npm run firebase:deploy
 
 ## Features
 
-- **Generate** — Describe your app, get a full Next.js project
+- **Generate** — Describe your app, get a full Vite + React project
 - **Token streaming** — See code as it’s generated
 - **Sandbox preview** — Live E2B preview (starts on Generate)
 - **Auth** — Sign in with Email or Google to save projects

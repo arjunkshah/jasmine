@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, parseProjectFromJson, projectToRaw, replaceImagePlaceholders } from './api';
+import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, replaceImagePlaceholders } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
@@ -41,18 +41,14 @@ function AppBody({
   generatedProject,
   streamingRaw,
   generatedHTML,
-  showImportJson,
-  setShowImportJson,
-  importJsonInput,
-  setImportJsonInput,
-  importJsonError,
-  setImportJsonError,
   textareaRef,
   chatEndRef,
   generate,
   handleKeyDown,
   sendChatMessage,
-  loadFromJson,
+  contextFiles,
+  setContextFiles,
+  fileInputRef,
   copyCode,
   downloadProject,
   onThemeToggle,
@@ -74,8 +70,30 @@ function AppBody({
   const ghostCl = isLight ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200' : 'btn-ghost';
   const inputCl = isLight ? 'bg-zinc-50 border-zinc-200 focus:border-jasmine-400' : 'input-premium';
 
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+    const read = (f) => new Promise((resolve) => {
+      if (f.size > 100 * 1024) return resolve(null);
+      const r = new FileReader();
+      r.onload = () => resolve({ name: f.name, content: r.result });
+      r.readAsText(f);
+    });
+    const results = (await Promise.all(files.map(read))).filter(Boolean);
+    setContextFiles((prev) => [...prev, ...results].slice(0, 5));
+  };
+
   return (
     <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt,.md,.json,.csv,.ts,.tsx,.js,.jsx,.css,.html,.yaml,.yml"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+      />
       <header className={`flex-none border-b ${borderCl} bg-surface z-50`}>
         <div className="flex items-center justify-between px-6 h-16">
           <div className="flex items-center gap-3">
@@ -98,13 +116,6 @@ function AppBody({
           </div>
 
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => { setShowImportJson(true); setImportJsonError(''); setImportJsonInput(''); }}
-              className="p-2 text-text-muted hover:text-text-primary transition-colors"
-              title="Import from JSON"
-            >
-              <i className="ph ph-file-json text-lg"></i>
-            </button>
             {onThemeToggle ? (
               <button
                 onClick={onThemeToggle}
@@ -147,50 +158,11 @@ function AppBody({
         </div>
       </header>
 
-      {showImportJson && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowImportJson(false)}>
-          <div className={`w-full max-w-2xl rounded-2xl border ${borderCl} ${isLight ? 'bg-white' : 'bg-surface-raised'} shadow-2xl p-6`} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                <i className="ph ph-file-json text-jasmine-400"></i>
-                Import from JSON
-              </h2>
-              <button onClick={() => setShowImportJson(false)} className="p-2 text-text-muted hover:text-text-primary rounded-lg">
-                <i className="ph ph-x text-lg"></i>
-              </button>
-            </div>
-            <p className="text-sm text-text-secondary mb-3">
-              Paste JSON from a previous download. Expected format: <code className="px-1.5 py-0.5 rounded bg-white/10 text-xs">{`{ "files": { "path": "content", ... } }`}</code>
-            </p>
-            <textarea
-              value={importJsonInput}
-              onChange={e => { setImportJsonInput(e.target.value); setImportJsonError(''); }}
-              placeholder='{"files":{"app/page.tsx":"export default..."}}'
-              rows={12}
-              className={`w-full px-4 py-3 rounded-xl text-sm font-mono border ${borderCl} ${isLight ? 'bg-zinc-50' : 'bg-black/30'} text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-jasmine-400/30 resize-none`}
-            />
-            {importJsonError && (
-              <p className="mt-2 text-sm text-red-400">{importJsonError}</p>
-            )}
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setShowImportJson(false)} className={`px-4 py-2 rounded-xl font-semibold text-sm ${ghostCl}`}>
-                Cancel
-              </button>
-              <button onClick={loadFromJson} className="btn-premium px-4 py-2 rounded-md text-sm">
-                <i className="ph ph-upload-simple mr-2"></i>
-                Load project
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex-1 flex min-h-0">
         {showLanding && !hasOutput ? (
           <LandingPage
             onStartDesigning={onStartDesigning}
             onSelectPrompt={onSelectPrompt}
-            onImportJson={() => { setShowImportJson(true); setImportJsonError(''); setImportJsonInput(''); }}
             theme={theme}
           />
         ) : (
@@ -222,7 +194,28 @@ function AppBody({
                       <div ref={chatEndRef} />
                     </div>
                     <div className={`flex-none p-4 border-t ${borderCl}`}>
+                      {contextFiles.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {contextFiles.map((f, i) => (
+                            <span key={i} className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${isLight ? 'bg-zinc-100 text-zinc-700' : 'bg-white/10 text-text-secondary'}`}>
+                              <i className="ph ph-file-text"></i>
+                              {f.name}
+                              <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary">
+                                <i className="ph ph-x text-sm"></i>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className={`p-2.5 rounded-xl border ${borderCl} ${isLight ? 'text-zinc-600 hover:bg-zinc-50' : 'text-text-muted hover:bg-white/[0.04]'}`}
+                          title="Attach files as context"
+                        >
+                          <i className="ph ph-paperclip"></i>
+                        </button>
                         <input
                           value={chatInput}
                           onChange={(e) => setChatInput(e.target.value)}
@@ -248,7 +241,7 @@ function AppBody({
                       what will you design today?
                     </h1>
                     <p className="text-text-secondary text-center mb-4 text-base">
-                      describe it. one prompt. full next.js project.
+                      describe it. one prompt. full react project.
                     </p>
                     {(deployUrl || sandboxStarting) && (
                       <div className="mb-6 flex items-center justify-center gap-2">
@@ -275,8 +268,30 @@ function AppBody({
                       rows={4}
                       className="w-full px-5 py-4 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none leading-[1.5] tracking-[-0.01em]"
                     />
+                    {contextFiles.length > 0 && (
+                      <div className={`px-4 py-2 border-t ${borderCl} flex flex-wrap gap-2`}>
+                        {contextFiles.map((f, i) => (
+                          <span key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-zinc-100 text-zinc-700' : 'bg-white/10 text-text-secondary'}`}>
+                            <i className="ph ph-file-text"></i>
+                            {f.name}
+                            <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary">
+                              <i className="ph ph-x text-sm"></i>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                       <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-zinc-600 hover:bg-zinc-100' : 'text-text-muted hover:bg-white/[0.06]'}`}
+                          title="Attach files as context for the AI (txt, md, json, etc.)"
+                        >
+                          <i className="ph ph-paperclip"></i>
+                          Attach
+                        </button>
                         <div className={`flex items-center rounded-lg p-0.5 border ${borderCl} ${isLight ? 'bg-zinc-100/80' : 'bg-white/[0.04]'}`}>
                           <button
                             onClick={() => setProvider('groq')}
@@ -431,7 +446,7 @@ function AppBody({
                         <div className="flex-1 flex items-center justify-center p-8">
                           <div className="text-center max-w-md">
                             <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
-                            <p className="text-text-primary font-semibold mb-2">Next.js project generated</p>
+                            <p className="text-text-primary font-semibold mb-2">Project generated</p>
                             <p className="text-sm text-text-muted mb-4">
                               Sandbox is starting… Preview will appear here.
                             </p>
@@ -484,9 +499,7 @@ function App() {
   const [previewRetryKey, setPreviewRetryKey] = useState(0);
   const sandboxIdRef = useRef(null);
   const pendingSandboxApplyRef = useRef(null);
-  const [showImportJson, setShowImportJson] = useState(false);
-  const [importJsonInput, setImportJsonInput] = useState('');
-  const [importJsonError, setImportJsonError] = useState('');
+  const [contextFiles, setContextFiles] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingAfterAuth, setPendingAfterAuth] = useState(null);
@@ -497,6 +510,7 @@ function App() {
 
   const textareaRef = useRef(null);
   const chatEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
 
@@ -646,7 +660,11 @@ function App() {
     setError('');
     try {
       const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
+      const res = await fetch(`${apiBase}/api/sandbox/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme }),
+      });
       const data = await parseJsonResponse(res);
       if (data.success && data.sandboxId && data.url) {
         setDeployUrl(data.url);
@@ -667,7 +685,7 @@ function App() {
     } finally {
       setSandboxStarting(false);
     }
-  }, []);
+  }, [theme]);
 
   const sandboxStartedRef = useRef(false);
 
@@ -708,7 +726,11 @@ function App() {
       try {
         const apiBase = import.meta.env.VITE_API_URL || '';
         console.log('[Jasmine] POST /api/sandbox/start', apiBase || '(same origin)');
-        const res = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
+        const res = await fetch(`${apiBase}/api/sandbox/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme }),
+        });
         const data = await parseJsonResponse(res);
         console.log('[Jasmine] sandbox/start', res.status, data?.success ? `ok sandboxId=${data.sandboxId} url=${data.url}` : `error=${data?.error}`);
         if (data.success && data.url) {
@@ -734,7 +756,7 @@ function App() {
         setSandboxStarting(false);
       }
     })();
-  }, [showLanding, sandboxRetryTrigger]);
+  }, [showLanding, sandboxRetryTrigger, theme]);
 
   const generate = async () => {
     if (!prompt.trim()) {
@@ -777,7 +799,11 @@ function App() {
       if (!currentSandboxId && !sandboxStarting) {
         try {
           console.log('[Jasmine] POST /api/sandbox/start (generate flow)');
-          const startRes = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
+          const startRes = await fetch(`${apiBase}/api/sandbox/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ theme }),
+          });
           const startData = await parseJsonResponse(startRes);
           console.log('[Jasmine] sandbox/start (generate)', startRes.status, startData?.success ? `ok sandboxId=${startData.sandboxId}` : `error=${startData?.error}`);
           if (startData.success && startData.url) {
@@ -795,7 +821,7 @@ function App() {
       const onChunk = (chunk) => setStreamingRaw(chunk);
 
       const generateFn = provider === 'groq' ? generateWithGroq : generateWithGemini;
-      let result = await generateFn(key, prompt, onChunk);
+      let result = await generateFn(key, prompt, onChunk, contextFiles);
 
       const project = extractNextProject(result);
       if (project?.files) {
@@ -834,9 +860,9 @@ function App() {
       }
 
       console.log('[Jasmine] generate complete', project ? Object.keys(project.files).length + ' files' : 'no project');
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your Next.js project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }]);
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }]);
       if (firebaseConfigured && user && project?.files) {
-        const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your Next.js project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }];
+        const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }];
         try {
           await saveProject({ files: project.files, html: result, chatMessages: finalMessages });
           listProjects(user.uid).then(setProjects).catch(() => {});
@@ -898,7 +924,7 @@ function App() {
 
     try {
       const editFn = provider === 'groq' ? editWithGroq : editWithGemini;
-      const result = await editFn(key, currentCode, msg, (chunk) => setStreamingRaw(chunk));
+      const result = await editFn(key, currentCode, msg, (chunk) => setStreamingRaw(chunk), contextFiles);
       const project = extractNextProject(result);
       if (project?.files) {
         const apiBase = import.meta.env.VITE_API_URL || '';
@@ -930,41 +956,6 @@ function App() {
       setChatMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
     } finally {
       setIsEditing(false);
-    }
-  };
-
-  const loadFromJson = () => {
-    setImportJsonError('');
-    const project = parseProjectFromJson(importJsonInput.trim());
-    if (!project?.files) {
-      setImportJsonError('Invalid JSON. Expected { "files": { "path": "content", ... } }');
-      return;
-    }
-    setGeneratedProject(project);
-    setGeneratedHTML(projectToRaw(project));
-    setStreamingRaw('');
-    setChatMessages([{ role: 'user', content: 'Imported from JSON' }, { role: 'assistant', content: `Loaded ${Object.keys(project.files).length} files. You can edit, deploy, or download.` }]);
-    setShowLanding(false);
-    setShowImportJson(false);
-    setImportJsonInput('');
-    setRightTab('files');
-    if (project?.files) {
-      if (sandboxId) {
-        (async () => {
-          try {
-            const apiBase = import.meta.env.VITE_API_URL || '';
-            await fetch(`${apiBase}/api/sandbox/update`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sandboxId, files: project.files }),
-            });
-          } catch (e) {
-            console.warn('Sandbox update failed:', e.message);
-          }
-        })();
-      } else {
-        pendingSandboxApplyRef.current = project.files;
-      }
     }
   };
 
@@ -1036,19 +1027,15 @@ function App() {
     generatedProject,
     streamingRaw,
     generatedHTML,
-  showImportJson,
-  setShowImportJson,
-  importJsonInput,
-    setImportJsonInput,
-    importJsonError,
-    setImportJsonError,
-    textareaRef,
-    chatEndRef,
-    generate,
-    handleKeyDown,
-    sendChatMessage,
-    loadFromJson,
-    copyCode,
+  textareaRef,
+  chatEndRef,
+  generate,
+  handleKeyDown,
+  sendChatMessage,
+  contextFiles,
+  setContextFiles,
+  fileInputRef,
+  copyCode,
     downloadProject,
     themeForToggle: theme,
     copied,
