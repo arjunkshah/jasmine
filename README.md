@@ -27,6 +27,7 @@ Runs Vite + API server together. Open http://localhost:5173.
 - **E2B dashboard:** At [e2b.dev/dashboard](https://e2b.dev/dashboard), ensure you have a project and the API key is active. Create a project if the dashboard prompts you.
 - **Redeploy** after adding env vars — Vercel bakes them at build time for `VITE_*`; serverless functions get them at runtime.
 - **FUNCTION_INVOCATION_FAILED:** Check Vercel → Project → Logs (or Deployments → select deployment → Functions) for the actual error. Common causes: missing E2B_API_KEY, function timeout, or memory limit.
+- **Verify API:** Visit `https://your-app.vercel.app/api/ping` (should return `{"ok":true}`) and `https://your-app.vercel.app/api/health` (should show `e2bConfigured: true`).
 
 ## Features
 
