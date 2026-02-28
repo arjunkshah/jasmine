@@ -493,9 +493,12 @@ function App() {
           setDeployUrl(data.url);
           setSandboxId(data.sandboxId);
           sandboxIdRef.current = data.sandboxId;
+        } else if (data.error) {
+          setError(`Sandbox: ${data.error}`);
+          sandboxStartedRef.current = false;
         }
       } catch (e) {
-        console.warn('Sandbox start failed:', e.message);
+        setError(`Sandbox start failed: ${e.message}`);
         sandboxStartedRef.current = false;
       } finally {
         setSandboxStarting(false);

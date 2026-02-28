@@ -17,7 +17,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-app.get('/', (req, res) => res.json({ ok: true, message: 'Jasmine E2B API', endpoints: ['POST /api/sandbox/start', 'POST /api/sandbox/update'] }));
+app.get('/', (req, res) => res.json({ ok: true, message: 'Jasmine E2B API', e2bConfigured: !!process.env.E2B_API_KEY, endpoints: ['POST /api/sandbox/start', 'POST /api/sandbox/update'] }));
 app.get('/api', (req, res) => res.json({ ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update'] }));
 
 const BOILERPLATE_PACKAGE = JSON.stringify({
@@ -40,8 +40,9 @@ app.post('/api/sandbox/start', async (req, res) => {
     const { sandboxId, url } = await createSandbox();
     res.json({ success: true, sandboxId, url });
   } catch (e) {
-    console.error('E2B sandbox/start:', e);
-    res.status(500).json({ error: e.message || 'Sandbox start failed' });
+    const msg = e.message || e.toString?.() || 'Sandbox start failed';
+    console.error('E2B sandbox/start:', msg, e);
+    res.status(500).json({ error: msg });
   }
 });
 
