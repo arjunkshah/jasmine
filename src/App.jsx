@@ -59,6 +59,7 @@ function AppBody({
   themeForToggle,
   copied,
   retrySandbox,
+  retryPreviewUpdate,
   sidebarOpen,
   onToggleSidebar,
   user,
@@ -339,11 +340,15 @@ function AppBody({
               {error && (
                 <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center justify-between gap-3 flex-wrap">
                   <span>{error}</span>
-                  {error.toLowerCase().includes('sandbox') && (
+                  {error.toLowerCase().includes('preview update') ? (
+                    <button onClick={retryPreviewUpdate} className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium">
+                      Retry
+                    </button>
+                  ) : error.toLowerCase().includes('sandbox') ? (
                     <button onClick={retrySandbox} className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium">
                       Retry
                     </button>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>
@@ -672,6 +677,29 @@ function App() {
     setSandboxRetryTrigger((t) => t + 1);
   };
 
+  const retryPreviewUpdate = useCallback(async () => {
+    const files = generatedProject?.files;
+    const sid = sandboxId;
+    if (!sid || !files || Object.keys(files).length === 0) return;
+    setError('');
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${apiBase}/api/sandbox/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandboxId: sid, files }),
+      });
+      if (res.ok) {
+        setPreviewRetryKey((k) => k + 1);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data?.error || 'Preview update failed. Try again.');
+      }
+    } catch (e) {
+      setError(e?.message || 'Preview update failed. Try again.');
+    }
+  }, [generatedProject?.files, sandboxId]);
+
   useEffect(() => {
     if (showLanding || sandboxStartedRef.current) return;
     sandboxStartedRef.current = true;
@@ -781,14 +809,27 @@ function App() {
       setGeneratedHTML(result);
 
       if (currentSandboxId && project?.files) {
-        try {
-          await fetch(`${apiBase}/api/sandbox/update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sandboxId: currentSandboxId, files: project.files }),
-          });
-        } catch (e) {
-          console.warn('[Jasmine] final sandbox update failed:', e?.message);
+        let updated = false;
+        for (let attempt = 0; attempt < 2 && !updated; attempt++) {
+          try {
+            const updRes = await fetch(`${apiBase}/api/sandbox/update`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sandboxId: currentSandboxId, files: project.files }),
+            });
+            if (updRes.ok) {
+              updated = true;
+            } else if (updRes.status === 504 && attempt < 1) {
+              console.warn('[Jasmine] sandbox/update 504, retrying...');
+              await new Promise((r) => setTimeout(r, 3000));
+            } else {
+              setError('Preview update failed. Click Retry to apply your code.');
+            }
+          } catch (e) {
+            console.warn('[Jasmine] sandbox update failed:', e?.message);
+            if (attempt < 1) await new Promise((r) => setTimeout(r, 3000));
+            else setError('Preview update failed. Click Retry to apply your code.');
+          }
         }
       }
 
@@ -796,7 +837,15 @@ function App() {
       setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your Next.js project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }]);
       if (firebaseConfigured && user && project?.files) {
         const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your Next.js project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }];
-        saveProject({ files: project.files, html: result, chatMessages: finalMessages });
+        try {
+          await saveProject({ files: project.files, html: result, chatMessages: finalMessages });
+          listProjects(user.uid).then(setProjects).catch(() => {});
+        } catch (e) {
+          setProjects((prev) => {
+            const entry = { id: `temp-${Date.now()}`, name: prompt?.slice(0, 50) || 'Untitled', prompt, files: project.files, ...project };
+            return [entry, ...prev.filter((p) => !p.id?.startsWith('temp-'))];
+          });
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -1004,6 +1053,7 @@ function App() {
     themeForToggle: theme,
     copied,
     retrySandbox,
+    retryPreviewUpdate,
     sidebarOpen,
     onToggleSidebar: () => setSidebarOpen((o) => !o),
     user,
