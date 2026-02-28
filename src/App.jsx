@@ -353,17 +353,24 @@ function AppBody({
                 </div>
               )}
               {error && (
-                <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center justify-between gap-3 flex-wrap">
-                  <span>{error}</span>
-                  {error.toLowerCase().includes('preview update') ? (
-                    <button onClick={retryPreviewUpdate} className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium">
-                      Retry
-                    </button>
-                  ) : error.toLowerCase().includes('sandbox') ? (
-                    <button onClick={retrySandbox} className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium">
-                      Retry
-                    </button>
-                  ) : null}
+                <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <span>{error}</span>
+                    {error.toLowerCase().includes('preview update') ? (
+                      <button onClick={retryPreviewUpdate} className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium">
+                        Retry
+                      </button>
+                    ) : error.toLowerCase().includes('sandbox') ? (
+                      <button onClick={retrySandbox} className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium">
+                        Retry
+                      </button>
+                    ) : null}
+                  </div>
+                  {error.toLowerCase().includes('sandbox') && hasOutput && (
+                    <p className="text-emerald-400/90 text-xs">
+                      Your project is ready — download the ZIP and run <code className="bg-white/10 px-1 rounded">npm install && npm run dev</code> locally.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

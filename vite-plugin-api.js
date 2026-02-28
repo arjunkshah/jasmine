@@ -68,11 +68,15 @@ export function apiPlugin() {
       console.log('[api] Connected, writing', fileCount, 'files...');
       await writeFiles(sandbox, files);
       if (!files['package.json']) await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
-      await sandbox.commands.run('npm install');
-      await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
-      await new Promise((r) => setTimeout(r, 1500));
-      await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
-      await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+      if (process.env.E2B_TEMPLATE_ID) {
+        console.log('[api] Custom template: files written → hot-reload');
+      } else {
+        await sandbox.commands.run('npm install');
+        await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+        await new Promise((r) => setTimeout(r, 1500));
+        await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
+        await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+      }
       console.log('[api] sandbox/update ok');
       sendJson(res, { success: true });
     } catch (e) {
@@ -97,11 +101,15 @@ export function apiPlugin() {
       const { sandbox, url } = await createSandbox({ theme: 'dark' });
       await writeFiles(sandbox, files);
       if (!files['package.json']) await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
-      await sandbox.commands.run('npm install');
-      await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
-      await new Promise((r) => setTimeout(r, 1500));
-      await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
-      await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+      if (process.env.E2B_TEMPLATE_ID) {
+        await new Promise((r) => setTimeout(r, 3000));
+      } else {
+        await sandbox.commands.run('npm install');
+        await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+        await new Promise((r) => setTimeout(r, 1500));
+        await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
+        await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+      }
       console.log('[api] deploy ok sandboxId=', sandbox.sandboxId, 'url=', url);
       sendJson(res, { success: true, sandboxId: sandbox.sandboxId, url, message: 'Preview ready.' });
     } catch (e) {

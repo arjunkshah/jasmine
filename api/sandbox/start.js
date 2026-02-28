@@ -34,6 +34,13 @@ export default async function handler(req, res) {
   const templateId = process.env.E2B_TEMPLATE_ID || 'base';
   const useCustomTemplate = !!process.env.E2B_TEMPLATE_ID;
 
+  if (!useCustomTemplate) {
+    logErr('E2B_TEMPLATE_ID not set — base template has no Node.js, preview will fail');
+    return res.status(500).json({
+      error: 'Preview requires E2B_TEMPLATE_ID. Run: npm run e2b:build. Then set E2B_TEMPLATE_ID=jasmine-vite in .env (local) or Vercel env vars (deployed).',
+    });
+  }
+
   try {
     log('Importing E2B SDK...');
     const e2b = await import('e2b/dist/index.mjs');
@@ -66,8 +73,9 @@ export default async function handler(req, res) {
     }
 
     const url = `https://${sandbox.getHost(port)}`;
-    log('URL:', url, '| waiting', cfg.startupDelayMs, 'ms before first poll');
-    await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+    const delayMs = useCustomTemplate ? 5000 : cfg.startupDelayMs;
+    log('URL:', url, '| waiting', delayMs, 'ms before first poll');
+    await new Promise((r) => setTimeout(r, delayMs));
 
     for (let i = 0; i < cfg.maxPollAttempts; i++) {
       try {
@@ -91,6 +99,31 @@ export default async function handler(req, res) {
     const elapsed = Date.now() - t0;
     logErr('Failed after', elapsed, 'ms:', e?.message || e?.toString?.(), e);
     const msg = e?.message || e?.toString?.() || 'Sandbox start failed';
+    const isRetryable = msg.includes('timeout') || msg.includes('ETIMEDOUT') || msg.includes('504') || msg.includes('ECONNREFUSED');
+    if (isRetryable) {
+      log('Retrying sandbox start...');
+      try {
+        const e2b = await import('e2b/dist/index.mjs');
+        const { Sandbox } = e2b;
+        const sandbox = await Sandbox.create(templateId, { apiKey: process.env.E2B_API_KEY, timeoutMs: cfg.timeoutMs });
+        for (const [path, content] of Object.entries(BOILERPLATE)) await sandbox.files.write(path, content);
+        if (!useCustomTemplate) {
+          await sandbox.commands.run('npm install');
+          await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
+        }
+        const url = `https://${sandbox.getHost(port)}`;
+        await new Promise((r) => setTimeout(r, useCustomTemplate ? 5000 : cfg.startupDelayMs));
+        for (let i = 0; i < cfg.maxPollAttempts; i++) {
+          try {
+            const r = await fetch(url, { signal: AbortSignal.timeout(cfg.pollFetchTimeoutMs) });
+            if (r.ok) return res.status(200).json({ success: true, sandboxId: sandbox.sandboxId, url });
+          } catch (_) {}
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      } catch (retryErr) {
+        logErr('Retry failed:', retryErr?.message);
+      }
+    }
     return res.status(500).json({ error: msg });
   }
 }

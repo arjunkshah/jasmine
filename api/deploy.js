@@ -26,6 +26,12 @@ export default async function handler(req, res) {
     logErr('E2B not configured:', err.error);
     return res.status(500).json(err);
   }
+  if (!process.env.E2B_TEMPLATE_ID) {
+    logErr('E2B_TEMPLATE_ID not set');
+    return res.status(500).json({
+      error: 'Set E2B_TEMPLATE_ID=jasmine-vite. Run: npm run e2b:build, then add to Vercel env vars.',
+    });
+  }
 
   const { files } = req.body || {};
   if (!files || typeof files !== 'object') {

@@ -30,9 +30,12 @@ export async function createSandbox(opts = {}) {
   const log = (...args) => console.log('[sandbox]', ...args);
   const err = checkE2B();
   if (err) throw new Error(err.error);
+  if (!process.env.E2B_TEMPLATE_ID) {
+    throw new Error('E2B_TEMPLATE_ID required. Run: npm run e2b:build. Then set E2B_TEMPLATE_ID=jasmine-vite in .env');
+  }
 
   log('Creating sandbox timeoutMs=', opts.timeoutMs ?? cfg.timeoutMs);
-  const sandbox = await Sandbox.create('base', {
+  const sandbox = await Sandbox.create(process.env.E2B_TEMPLATE_ID, {
     apiKey: E2B_API_KEY,
     timeoutMs: opts.timeoutMs ?? cfg.timeoutMs,
   });
@@ -46,14 +49,9 @@ export async function createSandbox(opts = {}) {
     await sandbox.files.write(path, content);
   }
 
-  log('npm install...');
-  await sandbox.commands.run('npm install');
-
-  log('Starting Vite on port', port);
-  await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
-
   const url = `https://${sandbox.getHost(port)}`;
-  await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+  log('Custom template: Vite already running, boilerplate written → hot-reload');
+  await new Promise((r) => setTimeout(r, 5000));
 
   for (let i = 0; i < cfg.maxPollAttempts; i++) {
     try {
