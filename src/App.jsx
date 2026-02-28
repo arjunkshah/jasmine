@@ -4,6 +4,15 @@ import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
 
+async function parseJsonResponse(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(text?.slice(0, 100) || `Request failed: ${res.status}`);
+  }
+}
+
 function AppBody({
   theme,
   showLanding,
@@ -465,7 +474,7 @@ function App() {
       try {
         const apiBase = import.meta.env.VITE_API_URL || '';
         const res = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         if (data.success && data.url) {
           setDeployUrl(data.url);
           setSandboxId(data.sandboxId);
@@ -521,7 +530,7 @@ function App() {
       if (!currentSandboxId && !sandboxStarting) {
         try {
           const startRes = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
-          const startData = await startRes.json();
+          const startData = await parseJsonResponse(startRes);
           if (startData.success && startData.url) {
             setDeployUrl(startData.url);
             currentSandboxId = startData.sandboxId;
