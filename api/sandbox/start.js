@@ -31,12 +31,15 @@ export default async function handler(req, res) {
     return res.status(500).json(err);
   }
 
+  const templateId = process.env.E2B_TEMPLATE_ID || 'base';
+  const useCustomTemplate = !!process.env.E2B_TEMPLATE_ID;
+
   try {
     log('Importing E2B SDK...');
     const e2b = await import('e2b/dist/index.mjs');
     const { Sandbox } = e2b;
-    log('Creating sandbox (base, timeoutMs:', cfg.timeoutMs, ')...');
-    const sandbox = await Sandbox.create('base', {
+    log('Creating sandbox (template:', templateId, ', timeoutMs:', cfg.timeoutMs, ')...');
+    const sandbox = await Sandbox.create(templateId, {
       apiKey: process.env.E2B_API_KEY,
       timeoutMs: cfg.timeoutMs,
     });
@@ -48,16 +51,19 @@ export default async function handler(req, res) {
       await sandbox.files.write(path, content);
     }
 
-    log('Running npm install...');
-    const installResult = await sandbox.commands.run('npm install');
-    if (installResult.exitCode !== 0) {
-      logErr('npm install failed:', installResult.exitCode, 'stderr:', installResult.stderr?.slice(0, 500));
+    if (useCustomTemplate) {
+      log('Custom template: Vite already running, boilerplate written → hot-reload');
     } else {
-      log('npm install done');
+      log('Running npm install...');
+      const installResult = await sandbox.commands.run('npm install');
+      if (installResult.exitCode !== 0) {
+        logErr('npm install failed:', installResult.exitCode, 'stderr:', installResult.stderr?.slice(0, 500));
+      } else {
+        log('npm install done');
+      }
+      log('Starting Vite dev server on port', port, '...');
+      await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
     }
-
-    log('Starting Vite dev server on port', port, '...');
-    await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
 
     const url = `https://${sandbox.getHost(port)}`;
     log('URL:', url, '| waiting', cfg.startupDelayMs, 'ms before first poll');

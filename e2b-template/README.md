@@ -1,11 +1,13 @@
-# E2B Next.js Template for Jasmine
+# E2B Vite Template for Jasmine
 
-Per [E2B docs](https://e2b.dev/docs/template/examples/nextjs): a custom template with Next.js 14, Tailwind, and `@phosphor-icons/react` pre-installed. The dev server starts automatically.
+Custom E2B template with Node.js 20, Vite, React, Tailwind, and `@phosphor-icons/react` pre-installed.
+
+**Fixes:** "no service on port 5173" — the base template may not have Node.js.
 
 **Benefits:**
-- Faster sandbox creation (no `npm install` or `next build` on each start)
-- Fewer 504s (no long build step)
-- `sandbox.files.write()` → hot-reload → users see changes instantly
+- Node + Vite pre-installed
+- No `npm install` on each sandbox start
+- `sandbox.files.write()` → hot-reload → instant preview
 
 ## One-time setup
 
@@ -14,8 +16,6 @@ Per [E2B docs](https://e2b.dev/docs/template/examples/nextjs): a custom template
 npm run e2b:build
 ```
 
-Then add `E2B_TEMPLATE_ID=jasmine-nextjs` to:
+Then add `E2B_TEMPLATE_ID=jasmine-vite` to:
 - **Local:** `.env`
 - **Vercel:** Project → Settings → Environment Variables
-
-After that, sandboxes use the custom template. Code applies via `files.write()` and hot-reloads automatically.

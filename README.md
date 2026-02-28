@@ -24,9 +24,13 @@ Open http://localhost:5173.
 
 ### E2B sandbox (open-lovable approach)
 
-- **Vite + React** — No build step. `npm install` → `npm run dev`. Port 5173.
+- **Vite + React** — No build step. Port 5173.
 - **Hot-reload** — File writes trigger instant preview updates.
-- Uses `base` template, `getHost(5173)` for preview URL.
+- **Important:** The `base` template may not have Node.js. If you see "no service on port 5173", build the custom template:
+  ```bash
+  npm run e2b:build   # Creates jasmine-vite template with Node + Vite
+  ```
+  Then set `E2B_TEMPLATE_ID=jasmine-vite` in Vercel → Environment Variables.
 - Config: `api/lib/sandbox-config.js` (timeout, port, poll attempts).
 
 ### Sandbox not starting on Vercel?

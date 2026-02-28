@@ -9,7 +9,7 @@ import 'dotenv/config';
 import { Template, defaultBuildLogger } from 'e2b';
 import { template } from './template.mts';
 
-const TEMPLATE_NAME = 'jasmine-nextjs';
+const TEMPLATE_NAME = 'jasmine-vite';
 
 async function main() {
   console.log(`Building E2B template "${TEMPLATE_NAME}"...`);

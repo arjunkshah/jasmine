@@ -13,6 +13,7 @@ export default async function handler(req, res) {
   const logErr = (...args) => console.error('[sandbox/update]', `+${Date.now() - t0}ms`, ...args);
   const cfg = sandboxConfig.e2b;
   const port = cfg.vitePort ?? cfg.nextPort ?? 5173;
+  const useCustomTemplate = !!process.env.E2B_TEMPLATE_ID;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -65,18 +66,21 @@ export default async function handler(req, res) {
       await sandbox.files.write('package.json', BOILERPLATE['package.json']);
     }
 
-    log('Running npm install...');
-    const installResult = await sandbox.commands.run('npm install');
-    if (installResult.exitCode !== 0) {
-      logErr('npm install failed:', installResult.exitCode, 'stderr:', installResult.stderr?.slice(0, 500));
+    if (useCustomTemplate) {
+      log('Custom template: files written → Vite hot-reload, no restart');
     } else {
-      log('npm install done');
+      log('Running npm install...');
+      const installResult = await sandbox.commands.run('npm install');
+      if (installResult.exitCode !== 0) {
+        logErr('npm install failed:', installResult.exitCode, 'stderr:', installResult.stderr?.slice(0, 500));
+      } else {
+        log('npm install done');
+      }
+      log('Restarting Vite (kill + start)...');
+      await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+      await new Promise((r) => setTimeout(r, 1500));
+      await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
     }
-
-    log('Restarting Vite (kill + start)...');
-    await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
-    await new Promise((r) => setTimeout(r, 1500));
-    await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
 
     const url = `https://${sandbox.getHost(port)}`;
     log('URL:', url, '| waiting', cfg.startupDelayMs, 'ms');
