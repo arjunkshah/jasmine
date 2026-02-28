@@ -1,7 +1,7 @@
 import { Sandbox } from 'e2b';
 import { BOILERPLATE, checkE2B } from '../lib/e2b.js';
 
-export const config = { maxDuration: 30 };
+export const config = { maxDuration: 60 };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,8 +25,8 @@ export default async function handler(req, res) {
     }
     if (!files['package.json']) {
       await sandbox.files.write('package.json', BOILERPLATE['package.json']);
-      await sandbox.commands.run('npm install');
     }
+    await sandbox.commands.run('npm install');
     return res.status(200).json({ success: true });
   } catch (e) {
     console.error('E2B sandbox/update:', e);
