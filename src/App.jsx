@@ -926,6 +926,43 @@ function App() {
   const ghostCl = isLight ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200' : 'btn-ghost';
   const inputCl = isLight ? 'bg-zinc-50 border-zinc-200 focus:border-jasmine-400' : 'input-premium';
 
+  const goToDesigner = useCallback(() => {
+    setShowLanding(false);
+    setTimeout(() => textareaRef.current?.focus(), 100);
+  }, []);
+
+  const handleStartDesigning = useCallback(() => {
+    if (firebaseConfigured && !user) {
+      setPendingAfterAuth(goToDesigner);
+      setShowAuthModal(true);
+    } else {
+      goToDesigner();
+    }
+  }, [firebaseConfigured, user, goToDesigner]);
+
+  const handleSelectPrompt = useCallback((p) => {
+    if (firebaseConfigured && !user) {
+      setPrompt(p);
+      setPendingAfterAuth(goToDesigner);
+      setShowAuthModal(true);
+    } else {
+      setPrompt(p);
+      goToDesigner();
+    }
+  }, [firebaseConfigured, user, goToDesigner]);
+
+  const handleAuthSuccess = useCallback(() => {
+    if (pendingAfterAuth) {
+      pendingAfterAuth();
+      setPendingAfterAuth(null);
+    }
+  }, [pendingAfterAuth]);
+
+  const handleAuthModalClose = useCallback(() => {
+    setPendingAfterAuth(null);
+    setShowAuthModal(false);
+  }, []);
+
   const appBodyProps = {
     theme,
     showLanding,
@@ -989,43 +1026,6 @@ function App() {
       </div>
     );
   }
-
-  const goToDesigner = useCallback(() => {
-    setShowLanding(false);
-    setTimeout(() => textareaRef.current?.focus(), 100);
-  }, []);
-
-  const handleStartDesigning = useCallback(() => {
-    if (firebaseConfigured && !user) {
-      setPendingAfterAuth(goToDesigner);
-      setShowAuthModal(true);
-    } else {
-      goToDesigner();
-    }
-  }, [firebaseConfigured, user, goToDesigner]);
-
-  const handleSelectPrompt = useCallback((p) => {
-    if (firebaseConfigured && !user) {
-      setPrompt(p);
-      setPendingAfterAuth(goToDesigner);
-      setShowAuthModal(true);
-    } else {
-      setPrompt(p);
-      goToDesigner();
-    }
-  }, [firebaseConfigured, user, goToDesigner]);
-
-  const handleAuthSuccess = useCallback(() => {
-    if (pendingAfterAuth) {
-      pendingAfterAuth();
-      setPendingAfterAuth(null);
-    }
-  }, [pendingAfterAuth]);
-
-  const handleAuthModalClose = useCallback(() => {
-    setPendingAfterAuth(null);
-    setShowAuthModal(false);
-  }, []);
 
   return (
     <div className={`h-screen flex flex-col overflow-hidden font-sans ${base}`}>
