@@ -34,7 +34,7 @@ function TreeItem({ name, value, path, selectedPath, onSelect, depth = 0 }) {
       <button
         onClick={() => onSelect(path, value)}
         className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm truncate ${
-                isSelected ? 'bg-white/10 text-text-primary font-medium' : 'text-text-secondary hover:bg-white/[0.04]'
+                isSelected ? 'bg-zinc-800 text-zinc-100 font-medium' : 'text-zinc-400 hover:bg-zinc-800/50'
               }`}
         style={{ paddingLeft: 12 + depth * 12 }}
       >
@@ -55,7 +55,7 @@ function TreeItem({ name, value, path, selectedPath, onSelect, depth = 0 }) {
     <div>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm text-text-secondary hover:bg-white/[0.06]"
+        className="w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm text-zinc-400 hover:bg-zinc-800/50"
         style={{ paddingLeft: 12 + depth * 12 }}
       >
         <i className={`ph ph-caret-${open ? 'down' : 'right'} text-xs shrink-0`}></i>
@@ -103,7 +103,7 @@ export default function FileExplorer({ files, streamingRaw, isStreaming, onSelec
 
   return (
     <div className="flex h-full">
-      <div className="w-56 flex-shrink-0 border-r border-white/[0.06] overflow-y-auto py-2">
+      <div className="w-56 flex-shrink-0 border-r border-zinc-800 overflow-y-auto py-2">
         {hasFiles ? (
           <TreeItem
             name="."
@@ -113,19 +113,19 @@ export default function FileExplorer({ files, streamingRaw, isStreaming, onSelec
             onSelect={handleSelect}
           />
         ) : (
-          <div className="px-4 py-6 text-sm text-text-muted">
+          <div className="px-4 py-6 text-sm text-zinc-500">
             {isStreaming ? 'Parsing files...' : 'No files yet'}
           </div>
         )}
       </div>
       <div className="flex-1 overflow-auto">
         {selectedPath ? (
-          <pre className="p-4 text-[13px] font-mono text-text-secondary leading-relaxed whitespace-pre-wrap break-words">
+          <pre className="p-4 text-[13px] font-mono text-zinc-400 leading-relaxed whitespace-pre-wrap break-words">
             <code>{selectedContent}</code>
             {isStreaming && selectedPath && <span className="inline-block w-2 h-4 ml-0.5 bg-white/80 animate-pulse" aria-hidden />}
           </pre>
         ) : (
-          <div className="flex items-center justify-center h-full text-text-muted text-sm">
+          <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
             {hasFiles ? 'Select a file' : (isStreaming ? 'Streaming...' : 'Generate a project')}
           </div>
         )}
