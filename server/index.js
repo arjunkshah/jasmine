@@ -17,6 +17,9 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+app.get('/', (req, res) => res.json({ ok: true, message: 'Jasmine E2B API', endpoints: ['POST /api/sandbox/start', 'POST /api/sandbox/update'] }));
+app.get('/api', (req, res) => res.json({ ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update'] }));
+
 const BOILERPLATE_PACKAGE = JSON.stringify({
   name: 'jasmine-app',
   version: '0.1.0',
