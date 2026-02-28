@@ -208,6 +208,46 @@ export function projectToRaw(project) {
     .join('\n\n');
 }
 
+const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;
+
+/**
+ * Replace {{IMAGE:prompt}} placeholders with AI-generated images.
+ * Calls /api/generate-image for each unique prompt. Returns replaced text.
+ */
+export async function replaceImagePlaceholders(text, apiBase = '') {
+  if (!text || typeof text !== 'string') return text;
+  const matches = [...text.matchAll(IMAGE_PLACEHOLDER_REGEX)];
+  if (matches.length === 0) return text;
+
+  let result = text;
+  const seen = new Set();
+
+  for (const match of matches) {
+    const full = match[0];
+    const prompt = match[1].trim();
+    if (seen.has(full)) continue;
+    seen.add(full);
+
+    try {
+      const res = await fetch(`${apiBase}/api/generate-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      if (data.image) {
+        result = result.split(full).join(data.image);
+      } else {
+        result = result.split(full).join(`https://placehold.co/800x600?text=${encodeURIComponent(prompt.slice(0, 30))}`);
+      }
+    } catch (e) {
+      console.warn('[Jasmine] image gen failed:', prompt?.slice(0, 50), e?.message);
+      result = result.split(full).join(`https://placehold.co/800x600?text=${encodeURIComponent(prompt.slice(0, 30))}`);
+    }
+  }
+  return result;
+}
+
 /** Parse JSON export and extract project files. Supports { files: {...} } or raw { path: content }. */
 export function parseProjectFromJson(jsonStr) {
   try {

@@ -84,10 +84,16 @@ Primary CTA: pill (rounded-full), px-10 py-4, solid/gradient bg, inset shadow (d
 - **Staggered**: 50–150ms delay per child
 - **Scroll-triggered**: IntersectionObserver or CSS scroll-driven
 
-### 7. IMAGES
-- Use placeholder images: https://picsum.photos/800/600 or https://placehold.co/800x600
-- Or descriptive alt text with gradient/pattern fallbacks
-- Hero images: high-quality, relevant to the product
+### 7. IMAGES — AI-GENERATED & PLACEHOLDERS
+
+**For custom visuals** (hero, logo, illustration, product mockup): use \`{{IMAGE:descriptive prompt}}\` in src or url().
+- Example: \`src="{{IMAGE:modern SaaS hero illustration, gradient background, abstract blue shapes}}"\`
+- Example: \`backgroundImage: url("{{IMAGE:law firm office, professional, navy and gold accents}}")\`
+- Our system replaces these with AI-generated images. Use for: hero images, logos, illustrations, product mockups.
+- Be specific: "restaurant food photography, warm lighting" not "food image".
+
+**For generic placeholders**: use https://placehold.co/800x600 or https://picsum.photos/800/600.
+**Fallback**: gradient/pattern backgrounds with descriptive alt text.
 `;
 
 /** Next.js only — proper project structure matching Jasmine (src/, TypeScript, Tailwind) */
@@ -250,6 +256,8 @@ CRITICAL: Make MINIMAL, TARGETED edits. Only change what the user asked for.
 
 Phosphor Icons: import { CheckIcon, StarIcon } from '@phosphor-icons/react'. NEVER import { Icon }.
 Component exports: ensure every imported component is exported (export default or export { X }).
+
+Images: Use {{IMAGE:descriptive prompt}} for custom visuals (hero, logo, illustration). System replaces with AI-generated images.
 
 Output format (same as generation):
 ---FILE:path/to/file.tsx---

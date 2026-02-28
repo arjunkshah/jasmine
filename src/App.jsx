@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, parseProjectFromJson, projectToRaw } from './api';
+import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, parseProjectFromJson, projectToRaw, replaceImagePlaceholders } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
 import AuthModal from './components/AuthModal';
 import ProjectSidebar from './components/ProjectSidebar';
-import ImageGeneratorModal from './components/ImageGeneratorModal';
 import { useAuth } from './contexts/AuthContext';
 import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
 
@@ -44,8 +43,6 @@ function AppBody({
   generatedHTML,
   showImportJson,
   setShowImportJson,
-  showImageGenerator,
-  setShowImageGenerator,
   importJsonInput,
   setImportJsonInput,
   importJsonError,
@@ -100,13 +97,6 @@ function AppBody({
           </div>
 
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => setShowImageGenerator(true)}
-              className="p-2 text-text-muted hover:text-text-primary transition-colors"
-              title="Generate image (Gemini)"
-            >
-              <i className="ph ph-image text-lg"></i>
-            </button>
             <button
               onClick={() => { setShowImportJson(true); setImportJsonError(''); setImportJsonInput(''); }}
               className="p-2 text-text-muted hover:text-text-primary transition-colors"
@@ -490,7 +480,6 @@ function App() {
   const sandboxIdRef = useRef(null);
   const pendingSandboxApplyRef = useRef(null);
   const [showImportJson, setShowImportJson] = useState(false);
-  const [showImageGenerator, setShowImageGenerator] = useState(false);
   const [importJsonInput, setImportJsonInput] = useState('');
   const [importJsonError, setImportJsonError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -778,9 +767,16 @@ function App() {
       const onChunk = (chunk) => setStreamingRaw(chunk);
 
       const generateFn = provider === 'groq' ? generateWithGroq : generateWithGemini;
-      const result = await generateFn(key, prompt, onChunk);
+      let result = await generateFn(key, prompt, onChunk);
 
       const project = extractNextProject(result);
+      if (project?.files) {
+        const replaced = {};
+        for (const [path, content] of Object.entries(project.files)) {
+          replaced[path] = await replaceImagePlaceholders(String(content), apiBase);
+        }
+        project.files = replaced;
+      }
       if (project) setGeneratedProject(project);
       setGeneratedHTML(result);
 
@@ -856,11 +852,15 @@ function App() {
       const result = await editFn(key, currentCode, msg, (chunk) => setStreamingRaw(chunk));
       const project = extractNextProject(result);
       if (project?.files) {
-        const mergedFiles = { ...(generatedProject?.files || {}), ...project.files };
+        const apiBase = import.meta.env.VITE_API_URL || '';
+        const replaced = {};
+        for (const [path, content] of Object.entries(project.files)) {
+          replaced[path] = await replaceImagePlaceholders(String(content), apiBase);
+        }
+        const mergedFiles = { ...(generatedProject?.files || {}), ...replaced };
         setGeneratedProject({ files: mergedFiles });
         if (sandboxId) {
           try {
-            const apiBase = import.meta.env.VITE_API_URL || '';
             await fetch(`${apiBase}/api/sandbox/update`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -989,8 +989,6 @@ function App() {
     generatedHTML,
   showImportJson,
   setShowImportJson,
-  showImageGenerator,
-  setShowImageGenerator,
   importJsonInput,
     setImportJsonInput,
     importJsonError,
@@ -1055,13 +1053,6 @@ function App() {
           onSignUp={signUp}
           onGoogle={signInWithGoogle}
           theme={theme}
-        />
-      )}
-      {showImageGenerator && (
-        <ImageGeneratorModal
-          onClose={() => setShowImageGenerator(false)}
-          theme={theme}
-          initialPrompt={prompt}
         />
       )}
     </div>
