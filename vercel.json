@@ -8,6 +8,7 @@
   "functions": {
     "api/sandbox/start.js": { "maxDuration": 120 },
     "api/sandbox/update.js": { "maxDuration": 120 },
-    "api/deploy.js": { "maxDuration": 120 }
+    "api/deploy.js": { "maxDuration": 120 },
+    "api/generate-image.js": { "maxDuration": 60 }
   }
 }
