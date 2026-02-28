@@ -14,10 +14,13 @@ export default nextConfig;
 `,
   'src/app/page.tsx': `export default function Page() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-zinc-900 text-zinc-100">
-      <div className="text-center">
-        <p className="text-lg opacity-80">Generating your project...</p>
-        <p className="text-sm text-zinc-500 mt-2">Code will appear as it streams</p>
+    <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100">
+      <div className="text-center max-w-sm">
+        <div className="w-12 h-12 mx-auto mb-6 rounded-xl bg-amber-500/20 flex items-center justify-center animate-pulse">
+          <span className="text-2xl">✦</span>
+        </div>
+        <h1 className="text-xl font-medium tracking-tight text-zinc-100">Building your project</h1>
+        <p className="text-sm text-zinc-500 mt-2">Jasmine is crafting your site. Preview will update when ready.</p>
       </div>
     </main>
   );
