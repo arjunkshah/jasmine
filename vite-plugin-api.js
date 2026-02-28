@@ -1,17 +1,19 @@
 /**
  * Vite plugin: handle /api routes before Vite's module resolution.
  * Runs first so /api/* is not served as modules.
+ * Sandbox config from open-lovable: https://github.com/firecrawl/open-lovable
  */
 import 'dotenv/config';
 import express from 'express';
 import { checkE2B, createSandbox, connectSandbox, writeFiles } from './server/sandbox.js';
+import { sandboxConfig } from './api/lib/sandbox-config.js';
 
 const BOILERPLATE_PACKAGE = JSON.stringify({
   name: 'jasmine-app',
   version: '0.1.0',
   private: true,
   scripts: { dev: 'next dev', build: 'next build', start: 'next start' },
-  dependencies: { next: '^14.2.0', react: '^18.2.0', 'react-dom': '^18.2.0' },
+  dependencies: { next: '^14.2.0', react: '^18.2.0', 'react-dom': '^18.2.0', '@phosphor-icons/react': '^2.1.6' },
 }, null, 2);
 
 const sendJson = (res, data) => {
@@ -29,42 +31,64 @@ export function apiPlugin() {
   api.get('/ping', (req, res) => sendJson(res, { ok: true, message: 'API works' }));
   api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/health'] }));
   api.post('/sandbox/start', async (req, res) => {
+    console.log('[api] POST /api/sandbox/start');
     const err = checkE2B();
-    if (err) return res.status(500).json(err);
+    if (err) {
+      console.warn('[api] E2B not configured:', err.error);
+      return res.status(500).json(err);
+    }
     try {
       const { sandboxId, url } = await createSandbox();
+      console.log('[api] sandbox/start ok sandboxId=', sandboxId, 'url=', url);
       sendJson(res, { success: true, sandboxId, url });
     } catch (e) {
       const msg = e.message || e.toString?.() || 'Sandbox start failed';
-      console.error('E2B sandbox/start:', msg, e);
+      console.error('[api] sandbox/start failed:', msg, e);
       res.statusCode = 500;
       sendJson(res, { error: msg });
     }
   });
   api.post('/sandbox/update', async (req, res) => {
+    const { sandboxId, files } = req.body || {};
+    const fileCount = files ? Object.keys(files).length : 0;
+    console.log('[api] POST /api/sandbox/update sandboxId=', sandboxId, 'fileCount=', fileCount);
     const err = checkE2B();
     if (err) {
+      console.warn('[api] E2B not configured:', err.error);
       res.statusCode = 500;
       return sendJson(res, err);
     }
-    const { sandboxId, files } = req.body || {};
     if (!sandboxId || !files || typeof files !== 'object') {
+      console.warn('[api] Bad request: sandboxId=', !!sandboxId, 'files=', !!files);
       res.statusCode = 400;
       return sendJson(res, { error: 'Missing sandboxId or files' });
     }
     try {
       const sandbox = await connectSandbox(sandboxId);
+      console.log('[api] Connected, writing', fileCount, 'files...');
       await writeFiles(sandbox, files);
       if (!files['package.json']) await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
       await sandbox.commands.run('npm install');
+      const cfg = sandboxConfig.e2b;
+      await sandbox.commands.run('pkill -f "next" 2>/dev/null || true');
+      const buildResult = await sandbox.commands.run('npx next build');
+      if (buildResult.exitCode !== 0) {
+        console.error('next build failed:', buildResult.stderr?.slice(0, 500));
+        res.statusCode = 500;
+        return sendJson(res, { error: 'Build failed' });
+      }
+      await sandbox.commands.run(`npx next start --port ${cfg.nextPort} --hostname 0.0.0.0`, { background: true });
+      await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+      console.log('[api] sandbox/update ok');
       sendJson(res, { success: true });
     } catch (e) {
-      console.error('E2B sandbox/update:', e);
+      console.error('[api] sandbox/update failed:', e?.message, e);
       res.statusCode = 500;
       sendJson(res, { error: e.message || 'Sandbox update failed' });
     }
   });
   api.post('/deploy', async (req, res) => {
+    console.log('[api] POST /api/deploy');
     const err = checkE2B();
     if (err) {
       res.statusCode = 500;
@@ -80,10 +104,19 @@ export function apiPlugin() {
       await writeFiles(sandbox, files);
       if (!files['package.json']) await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
       await sandbox.commands.run('npm install');
-      await sandbox.commands.run('npx next dev --port 3000 --hostname 0.0.0.0', { background: true });
-      sendJson(res, { success: true, sandboxId: sandbox.sandboxId, url, message: 'Deploying... Preview may take 1–2 minutes.' });
+      const cfg = sandboxConfig.e2b;
+      const buildResult = await sandbox.commands.run('npx next build');
+      if (buildResult.exitCode !== 0) {
+        console.error('next build failed:', buildResult.stderr?.slice(0, 500));
+        res.statusCode = 500;
+        return sendJson(res, { error: 'Build failed' });
+      }
+      await sandbox.commands.run(`npx next start --port ${cfg.nextPort} --hostname 0.0.0.0`, { background: true });
+      await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+      console.log('[api] deploy ok sandboxId=', sandbox.sandboxId, 'url=', url);
+      sendJson(res, { success: true, sandboxId: sandbox.sandboxId, url, message: 'Preview ready.' });
     } catch (e) {
-      console.error('E2B deploy:', e);
+      console.error('[api] deploy failed:', e?.message, e);
       res.statusCode = 500;
       sendJson(res, { error: e.message || 'Deploy failed' });
     }

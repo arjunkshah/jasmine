@@ -16,12 +16,11 @@
  */
 import 'dotenv/config';
 import { Sandbox } from 'e2b';
+import { sandboxConfig } from '../api/lib/sandbox-config.js';
 
 const E2B_API_KEY = process.env.E2B_API_KEY;
 const E2B_TEMPLATE_ID = process.env.E2B_TEMPLATE_ID || 'base';
-
-/** Default sandbox timeout: 5 minutes (per E2B docs). Max 1h Base / 24h Pro. */
-const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
+const cfg = sandboxConfig.e2b;
 
 const BOILERPLATE = {
   'package.json': JSON.stringify({
@@ -29,9 +28,13 @@ const BOILERPLATE = {
     version: '0.1.0',
     private: true,
     scripts: { dev: 'next dev', build: 'next build', start: 'next start' },
-    dependencies: { next: '^14.2.0', react: '^18.2.0', 'react-dom': '^18.2.0' },
+    dependencies: { next: '^14.2.0', react: '^18.2.0', 'react-dom': '^18.2.0', '@phosphor-icons/react': '^2.1.6', tailwindcss: '^3.4.0', postcss: '^8.4.0', autoprefixer: '^10.4.0' },
   }, null, 2),
-  'app/page.tsx': `export default function Page() {
+  'next.config.mjs': `/** @type {import('next').NextConfig} */
+const nextConfig = {};
+export default nextConfig;
+`,
+  'src/app/page.tsx': `export default function Page() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-zinc-900 text-zinc-100">
       <div className="text-center">
@@ -42,7 +45,8 @@ const BOILERPLATE = {
   );
 }
 `,
-  'app/layout.tsx': `export const metadata = { title: 'Jasmine App' };
+  'src/app/layout.tsx': `import './globals.css';
+export const metadata = { title: 'Jasmine App' };
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
@@ -50,6 +54,16 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+`,
+  'src/app/globals.css': `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+`,
+  'tailwind.config.ts': `import type { Config } from 'tailwindcss';
+const config: Config = { content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'], theme: { extend: {} }, plugins: [] };
+export default config;
+`,
+  'postcss.config.mjs': `export default { plugins: { tailwindcss: {}, autoprefixer: {} } };
 `,
 };
 
@@ -74,35 +88,49 @@ export function checkE2B() {
  * @param {boolean} [opts.withBoilerplate=true] - For 'base' only: write boilerplate and start dev server
  */
 export async function createSandbox(opts = {}) {
+  const log = (...args) => console.log('[sandbox]', ...args);
   const err = checkE2B();
   if (err) throw new Error(err.error);
 
   const useCustomTemplate = E2B_TEMPLATE_ID !== 'base';
+  log('Creating sandbox template=', E2B_TEMPLATE_ID, 'timeoutMs=', opts.timeoutMs ?? cfg.timeoutMs);
   const sandbox = await Sandbox.create(E2B_TEMPLATE_ID, {
     apiKey: E2B_API_KEY,
-    timeoutMs: opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    timeoutMs: opts.timeoutMs ?? cfg.timeoutMs,
   });
+  log('Sandbox created:', sandbox.sandboxId);
 
   const withBoilerplate = !useCustomTemplate && opts.withBoilerplate !== false;
 
   if (withBoilerplate) {
+    log('Writing boilerplate, npm install, next build...');
     for (const [path, content] of Object.entries(BOILERPLATE)) {
       await sandbox.files.write(path, content);
     }
     await sandbox.commands.run('npm install');
-    await sandbox.commands.run('npx next dev --port 3000 --hostname 0.0.0.0', { background: true });
-    const url = `https://${sandbox.getHost(3000)}`;
-    // Wait for Next.js dev server to be ready (up to 45s)
-    for (let i = 0; i < 45; i++) {
+    const buildResult = await sandbox.commands.run('npx next build');
+    if (buildResult.exitCode !== 0) {
+      console.error('[sandbox] next build failed:', buildResult.stderr?.slice(0, 500));
+      throw new Error('Build failed');
+    }
+    log('Starting next on port', cfg.nextPort);
+    await sandbox.commands.run(`npx next start --port ${cfg.nextPort} --hostname 0.0.0.0`, { background: true });
+    const url = `https://${sandbox.getHost(cfg.nextPort)}`;
+    await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+    for (let i = 0; i < cfg.maxPollAttempts; i++) {
       try {
-        const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
-        if (r.ok) break;
+        const r = await fetch(url, { signal: AbortSignal.timeout(cfg.pollFetchTimeoutMs) });
+        if (r.ok) {
+          log('Server ready after', i + 1, 'poll(s)');
+          break;
+        }
       } catch (_) {}
       await new Promise((r) => setTimeout(r, 1000));
     }
   }
 
-  const url = `https://${sandbox.getHost(3000)}`;
+  const url = `https://${sandbox.getHost(cfg.nextPort)}`;
+  log('createSandbox done url=', url);
   return { sandbox, sandboxId: sandbox.sandboxId, url };
 }
 
@@ -113,7 +141,7 @@ export async function createSandbox(opts = {}) {
 export async function connectSandbox(sandboxId) {
   const err = checkE2B();
   if (err) throw new Error(err.error);
-
+  console.log('[sandbox] Connecting to', sandboxId);
   return Sandbox.connect(sandboxId, { apiKey: E2B_API_KEY });
 }
 
@@ -122,6 +150,8 @@ export async function connectSandbox(sandboxId) {
  * Per docs: sandbox.files.write(path, content) or files.write([{ path, data }, ...])
  */
 export async function writeFiles(sandbox, files) {
+  const paths = Object.keys(files);
+  console.log('[sandbox] writeFiles', paths.length, 'files:', paths.slice(0, 5).join(', '), paths.length > 5 ? '...' : '');
   for (const [path, content] of Object.entries(files)) {
     await sandbox.files.write(path, typeof content === 'string' ? content : String(content));
   }

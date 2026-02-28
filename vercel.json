@@ -6,8 +6,8 @@
     { "source": "/((?!api).*)", "destination": "/index.html" }
   ],
   "functions": {
-    "api/sandbox/start.js": { "maxDuration": 60 },
-    "api/sandbox/update.js": { "maxDuration": 60 },
+    "api/sandbox/start.js": { "maxDuration": 120 },
+    "api/sandbox/update.js": { "maxDuration": 120 },
     "api/deploy.js": { "maxDuration": 120 }
   }
 }

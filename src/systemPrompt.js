@@ -144,13 +144,21 @@ Continue for EVERY file. REQUIRED structure (like Jasmine project):
 1. **src/ directory** — All app code in src/ (like Jasmine). app/ lives in src/app/.
 2. **TypeScript** — .tsx for components, proper types.
 3. **Tailwind** — Use Tailwind classes. tailwind.config content: ['./src/**/*.{js,ts,jsx,tsx,mdx}']
-4. **Phosphor Icons** — import { Icon } from '@phosphor-icons/react'
+4. **Phosphor Icons** — import specific icons by name: import { HouseIcon, CheckIcon, ArrowRightIcon } from '@phosphor-icons/react'. Use <CheckIcon size={24} />. NEVER import { Icon } — that does not exist.
 5. **next/link** for navigation, **next/image** for images
 6. **"use client"** only where needed (interactivity, hooks)
 7. **Paths** — Use @/ for imports: import { Header } from '@/components/Header'
 8. **No placeholder content** — Real copy, no Lorem Ipsum
 9. **Responsive** — Mobile-first, md: and lg: breakpoints
 10. **Animations** — blur-reveal on load, scroll-triggered, hover states
+
+## COMMON ERRORS TO AVOID (Code must WORK — no runtime errors)
+
+- **Phosphor Icons**: NEVER \`import { Icon }\` — use \`import { CheckIcon, StarIcon, HouseIcon }\` etc. Each icon is a named export with "Icon" suffix. Browse https://phosphoricons.com for valid names.
+- **Component exports**: Every component file MUST have \`export default\` or \`export function\`. If you import \`<Header />\`, Header.tsx must \`export default function Header\` or \`export { Header }\`.
+- **Import paths**: Use \`@/components/X\` for src/components/X.tsx. Never relative paths like \`../../components\` when @/ is available.
+- **package.json**: MUST include \`@phosphor-icons/react\` in dependencies. All used packages must be listed.
+- **"use client"**: Add at top of any file using useState, useEffect, onClick, or other client hooks. Layout and static pages can stay server components.
 
 ## DESIGN CRAFT — ANTI-AI-SLOP (Production-Worthy UI)
 
@@ -164,7 +172,7 @@ Follow these principles to go from generic AI output to "WOW THAT'S AI":
 - **text-rendering**: optimizeLegibility
 
 ### 2. ICONS
-- **Phosphor Icons ONLY** — import from @phosphor-icons/react. NEVER Lucide, Heroicons, or Feather.
+- **Phosphor Icons ONLY** — import specific icons: import { CheckIcon, StarIcon, ArrowRightIcon } from '@phosphor-icons/react'. Each icon is a named export with "Icon" suffix (e.g. HouseIcon, UserIcon). NEVER import { Icon } — it does not exist.
 
 ### 3. SHADOWS & DEPTH (Critical for premium feel)
 - **Inner shadows**: Use inset box-shadow for buttons and cards. Gradient from bottom (darker) to top (lighter) creates 3D depth.
@@ -195,7 +203,15 @@ Primary CTA buttons should follow this pattern:
 - Glass effects: backdrop-blur-md with rgba backgrounds for navbars.
 - Conversion elements: trust badges, microcopy under CTAs ("No credit card required"), pricing teasers.
 
-Generate EVERY page. EVERY section. EVERY animation. Full frontend. Take your time.`;
+Generate EVERY page. EVERY section. EVERY animation. Full frontend. Take your time.
+
+## BEFORE OUTPUT — VALIDATION CHECKLIST
+
+Before emitting each file, verify:
+1. All icon imports use real Phosphor names (CheckIcon, StarIcon, ArrowRightIcon) — never \`Icon\`
+2. Every imported component exists and is exported from its file
+3. package.json includes @phosphor-icons/react and every npm package you use
+4. No Lucide, Heroicons, or Feather — Phosphor ONLY`;
 
 /** Wraps user prompt with full-frontend emphasis. */
 export function enhanceUserPrompt(prompt) {
@@ -209,6 +225,9 @@ CRITICAL: Make MINIMAL, TARGETED edits. Only change what the user asked for.
 - If they want to change one line → output ONLY that file with just that line changed
 - If they want to change one component → output ONLY that file
 - Never regenerate the entire project. Output ONLY the files you actually modified.
+
+Phosphor Icons: import specific icons by name, e.g. import { CheckIcon, StarIcon } from '@phosphor-icons/react'. NEVER import { Icon }.
+Component exports: ensure every imported component is exported (export default or export { X }).
 
 Output format (same as generation):
 ---FILE:path/to/file.tsx---

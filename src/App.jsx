@@ -34,6 +34,8 @@ function AppBody({
   loadFromHistory,
   deployUrl,
   sandboxStarting,
+  previewRetryKey,
+  setPreviewRetryKey,
   generatedProject,
   streamingRaw,
   generatedHTML,
@@ -362,13 +364,23 @@ function AppBody({
                     <div className="absolute inset-0 flex flex-col">
                       {deployUrl ? (
                         <>
-                          <div className="flex-none flex items-center justify-between px-3 py-2 border-b border-zinc-800">
+                          <div className="flex-none flex items-center justify-between px-3 py-2 border-b border-zinc-800 gap-2">
                             <span className="text-xs text-text-muted">Live preview</span>
-                            <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1">
-                              Open in new tab <i className="ph ph-arrow-square-out text-sm"></i>
-                            </a>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewRetryKey((k) => k + 1)}
+                                className="text-xs text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1"
+                              >
+                                Retry <i className="ph ph-arrow-clockwise text-sm"></i>
+                              </button>
+                              <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1">
+                                Open <i className="ph ph-arrow-square-out text-sm"></i>
+                              </a>
+                            </div>
                           </div>
                           <iframe
+                            key={previewRetryKey}
                             src={deployUrl}
                             title="Preview"
                             className="flex-1 w-full min-h-0 border-0 bg-white"
@@ -428,6 +440,7 @@ function App() {
   const [sandboxId, setSandboxId] = useState(null);
   const [sandboxStarting, setSandboxStarting] = useState(false);
   const [sandboxRetryTrigger, setSandboxRetryTrigger] = useState(0);
+  const [previewRetryKey, setPreviewRetryKey] = useState(0);
   const sandboxUpdateTimerRef = useRef(null);
   const lastSentFilesRef = useRef(0);
   const sandboxIdRef = useRef(null);
@@ -463,9 +476,10 @@ function App() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sandboxId, files }),
           });
-          if (!res.ok) console.warn('[Jasmine] sandbox/update', res.status);
+          if (!res.ok) console.warn('[Jasmine] sandbox/update (pending apply)', res.status);
+          else console.log('[Jasmine] sandbox/update (pending apply) ok');
         } catch (e) {
-          console.warn('[Jasmine] Sandbox update failed:', e.message);
+          console.warn('[Jasmine] sandbox update (pending apply) failed:', e?.message);
         }
       })();
     }
@@ -505,12 +519,13 @@ function App() {
         console.log('[Jasmine] POST /api/sandbox/start', apiBase || '(same origin)');
         const res = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
         const data = await parseJsonResponse(res);
-        console.log('[Jasmine] sandbox/start response', res.status, data?.success ? 'ok' : data?.error);
+        console.log('[Jasmine] sandbox/start', res.status, data?.success ? `ok sandboxId=${data.sandboxId} url=${data.url}` : `error=${data?.error}`);
         if (data.success && data.url) {
           setDeployUrl(data.url);
           setSandboxId(data.sandboxId);
           sandboxIdRef.current = data.sandboxId;
         } else if (data.error) {
+          console.warn('[Jasmine] sandbox/start error:', data.error);
           const msg = data.error.includes('E2B_API_KEY')
             ? `Sandbox: ${data.error} Add E2B_API_KEY in Vercel → Project Settings → Environment Variables, then redeploy.`
             : `Sandbox: ${data.error}`;
@@ -518,7 +533,7 @@ function App() {
           sandboxStartedRef.current = false;
         }
       } catch (e) {
-        console.error('[Jasmine] sandbox/start failed:', e);
+        console.error('[Jasmine] sandbox/start failed:', e?.message, e);
         const hint = typeof window !== 'undefined' && !window.location.hostname.includes('localhost')
           ? ' Check /api/health on your deployment.'
           : '';
@@ -573,13 +588,14 @@ function App() {
           console.log('[Jasmine] POST /api/sandbox/start (generate flow)');
           const startRes = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
           const startData = await parseJsonResponse(startRes);
+          console.log('[Jasmine] sandbox/start (generate)', startRes.status, startData?.success ? `ok sandboxId=${startData.sandboxId}` : `error=${startData?.error}`);
           if (startData.success && startData.url) {
             setDeployUrl(startData.url);
             currentSandboxId = startData.sandboxId;
             setSandboxId(currentSandboxId);
           }
         } catch (e) {
-          console.warn('Sandbox start skipped:', e.message);
+          console.warn('[Jasmine] sandbox start skipped:', e?.message);
         }
       }
 
@@ -600,9 +616,14 @@ function App() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ sandboxId: currentSandboxId, files: project.files }),
             });
-            if (!updRes.ok) console.warn('[Jasmine] sandbox/update', updRes.status, await updRes.text().catch(() => ''));
+            if (!updRes.ok) {
+              const errText = await updRes.text().catch(() => '');
+              console.warn('[Jasmine] sandbox/update failed', updRes.status, errText?.slice(0, 200));
+            } else {
+              console.log('[Jasmine] sandbox/update ok', fileCount, 'files');
+            }
           } catch (e) {
-            console.warn('Sandbox update failed:', e.message);
+            console.warn('[Jasmine] sandbox update failed:', e?.message);
           }
           sandboxUpdateTimerRef.current = null;
         }, 400);
@@ -633,10 +654,11 @@ function App() {
             body: JSON.stringify({ sandboxId: currentSandboxId, files: project.files }),
           });
         } catch (e) {
-          console.warn('Final sandbox update failed:', e.message);
+          console.warn('[Jasmine] final sandbox update failed:', e?.message);
         }
       }
 
+      console.log('[Jasmine] generate complete', project ? Object.keys(project.files).length + ' files' : 'no project');
       setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your Next.js project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }]);
 
       setHistory(prev => [{
@@ -712,11 +734,12 @@ function App() {
               body: JSON.stringify({ sandboxId, files: mergedFiles }),
             });
           } catch (e) {
-            console.warn('Sandbox update failed:', e.message);
+            console.warn('[Jasmine] sandbox update (edit) failed:', e?.message);
           }
         }
       }
       setGeneratedHTML(result);
+      console.log('[Jasmine] edit complete', project?.files ? Object.keys(project.files).length + ' files' : '');
       setChatMessages((prev) => [...prev, { role: 'assistant', content: 'Done. Check the Files tab.' }]);
       setRightTab('files');
     } catch (err) {
@@ -817,6 +840,8 @@ function App() {
     loadFromHistory,
     deployUrl,
     sandboxStarting,
+    previewRetryKey,
+    setPreviewRetryKey,
     generatedProject,
     streamingRaw,
     generatedHTML,
