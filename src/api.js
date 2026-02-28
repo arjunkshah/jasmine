@@ -199,3 +199,33 @@ export function extractNextProject(text) {
   if (Object.keys(files).length > 0) return { files };
   return null;
 }
+
+/** Convert project files to ---FILE:path--- format for edit API. */
+export function projectToRaw(project) {
+  if (!project?.files || typeof project.files !== 'object') return '';
+  return Object.entries(project.files)
+    .map(([path, content]) => `---FILE:${path}---\n\`\`\`\n${typeof content === 'string' ? content : String(content)}\n\`\`\``)
+    .join('\n\n');
+}
+
+/** Parse JSON export and extract project files. Supports { files: {...} } or raw { path: content }. */
+export function parseProjectFromJson(jsonStr) {
+  try {
+    const parsed = JSON.parse(jsonStr);
+    if (!parsed || typeof parsed !== 'object') return null;
+    let files = parsed.files;
+    if (!files || typeof files !== 'object') {
+      files = parsed;
+    }
+    const result = {};
+    for (const [path, content] of Object.entries(files)) {
+      if (path && (typeof content === 'string' || typeof content === 'number' || typeof content === 'boolean')) {
+        result[path] = String(content);
+      }
+    }
+    if (Object.keys(result).length > 0) return { files: result };
+    return null;
+  } catch {
+    return null;
+  }
+}

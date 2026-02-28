@@ -1,13 +1,15 @@
 /**
  * E2B Sandbox API — deploys generated Next.js projects to E2B sandbox
- * Run: npm run server (from project root)
- * Requires: E2B_API_KEY in .env
  *
- * Get E2B key: https://e2b.dev/dashboard
+ * Follows E2B documentation: https://e2b.dev/docs
+ *
+ * Run: npm run dev:all (starts both server + Vite) or npm run server
+ * Requires: E2B_API_KEY in .env (get key at https://e2b.dev/dashboard)
  */
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { checkE2B, createSandbox, connectSandbox, writeFiles } from './sandbox.js';
 
 dotenv.config();
 
@@ -15,14 +17,69 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-const E2B_API_KEY = process.env.E2B_API_KEY;
+const BOILERPLATE_PACKAGE = JSON.stringify({
+  name: 'jasmine-app',
+  version: '0.1.0',
+  private: true,
+  scripts: { dev: 'next dev', build: 'next build', start: 'next start' },
+  dependencies: { next: '^14.2.0', react: '^18.2.0', 'react-dom': '^18.2.0' },
+}, null, 2);
 
-app.post('/api/deploy', async (req, res) => {
-  if (!E2B_API_KEY) {
-    return res.status(500).json({
-      error: 'E2B_API_KEY not set. Add E2B_API_KEY=your_key to .env. Get key at https://e2b.dev/dashboard',
-    });
+/**
+ * POST /api/sandbox/start
+ * Start sandbox with boilerplate — per E2B docs quickstart
+ */
+app.post('/api/sandbox/start', async (req, res) => {
+  const err = checkE2B();
+  if (err) return res.status(500).json(err);
+
+  try {
+    const { sandboxId, url } = await createSandbox();
+    res.json({ success: true, sandboxId, url });
+  } catch (e) {
+    console.error('E2B sandbox/start:', e);
+    res.status(500).json({ error: e.message || 'Sandbox start failed' });
   }
+});
+
+/**
+ * POST /api/sandbox/update
+ * Update files in existing sandbox — per E2B docs filesystem/read-write
+ */
+app.post('/api/sandbox/update', async (req, res) => {
+  const err = checkE2B();
+  if (err) return res.status(500).json(err);
+
+  const { sandboxId, files } = req.body;
+  if (!sandboxId || !files || typeof files !== 'object') {
+    return res.status(400).json({ error: 'Missing sandboxId or files' });
+  }
+
+  try {
+    const sandbox = await connectSandbox(sandboxId);
+    await writeFiles(sandbox, files);
+
+    const hasPackageJson = !!files['package.json'];
+    if (!hasPackageJson) {
+      await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
+    }
+    // Always run npm install: install new deps when package.json was written, or ensure deps are in sync
+    await sandbox.commands.run('npm install');
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('E2B sandbox/update:', e);
+    res.status(500).json({ error: e.message || 'Sandbox update failed' });
+  }
+});
+
+/**
+ * POST /api/deploy
+ * Legacy — full deploy (creates new sandbox, writes all files)
+ */
+app.post('/api/deploy', async (req, res) => {
+  const err = checkE2B();
+  if (err) return res.status(500).json(err);
 
   const { files } = req.body;
   if (!files || typeof files !== 'object') {
@@ -30,44 +87,24 @@ app.post('/api/deploy', async (req, res) => {
   }
 
   try {
-    const { Sandbox } = await import('e2b');
-
-    const sandbox = await Sandbox.create('base', {
-      apiKey: E2B_API_KEY,
-    });
-
-    // Write each file
-    for (const [filePath, content] of Object.entries(files)) {
-      await sandbox.files.write(filePath, typeof content === 'string' ? content : String(content));
-    }
+    const { sandbox, url } = await createSandbox({ withBoilerplate: false });
+    await writeFiles(sandbox, files);
 
     if (!files['package.json']) {
-      const pkg = {
-        name: 'jasmine-app',
-        version: '0.1.0',
-        private: true,
-        scripts: { dev: 'next dev', build: 'next build', start: 'next start' },
-        dependencies: { next: '^14.2.0', react: '^18.2.0', 'react-dom': '^18.2.0' },
-      };
-      await sandbox.files.write('package.json', JSON.stringify(pkg, null, 2));
+      await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
     }
-
     await sandbox.commands.run('npm install');
-    await sandbox.process.start({
-      cmd: 'npx next dev --port 3000 --hostname 0.0.0.0',
-    });
-
-    const previewUrl = `https://${sandbox.getHost(3000)}`;
+    await sandbox.commands.run('npx next dev --port 3000 --hostname 0.0.0.0', { background: true });
 
     res.json({
       success: true,
       sandboxId: sandbox.sandboxId,
-      url: previewUrl,
+      url,
       message: 'Deploying... Preview may take 1–2 minutes.',
     });
-  } catch (err) {
-    console.error('E2B deploy error:', err);
-    res.status(500).json({ error: err.message || 'Deploy failed' });
+  } catch (e) {
+    console.error('E2B deploy:', e);
+    res.status(500).json({ error: e.message || 'Deploy failed' });
   }
 });
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { extractNextProject } from './api';
 
 /** Build tree from file paths: { 'src/app/page.tsx': '...' } -> { src: { app: { 'page.tsx': content } } } */
@@ -92,6 +92,21 @@ export default function FileExplorer({ files, streamingRaw, isStreaming, onSelec
   }, [files, streamingRaw]);
 
   const tree = useMemo(() => buildTree(project), [project]);
+  const prevFileCountRef = useRef(0);
+
+  // Auto-open the file currently being streamed (last complete file)
+  useEffect(() => {
+    const keys = Object.keys(project);
+    const count = keys.length;
+    if (isStreaming && count > 0 && count > prevFileCountRef.current) {
+      prevFileCountRef.current = count;
+      const lastPath = keys[keys.length - 1];
+      const content = project[lastPath];
+      setSelectedPath(lastPath);
+      setSelectedContent(typeof content === 'string' ? content : String(content));
+    }
+    if (!isStreaming) prevFileCountRef.current = count;
+  }, [project, isStreaming]);
 
   const handleSelect = (path, content) => {
     setSelectedPath(path);
@@ -100,6 +115,7 @@ export default function FileExplorer({ files, streamingRaw, isStreaming, onSelec
   };
 
   const hasFiles = Object.keys(project).length > 0;
+  const showRawStream = isStreaming && !hasFiles && (streamingRaw || '').trim().length > 0;
 
   return (
     <div className="flex h-full">
@@ -123,6 +139,11 @@ export default function FileExplorer({ files, streamingRaw, isStreaming, onSelec
           <pre className="p-4 text-[13px] font-mono text-zinc-400 leading-relaxed whitespace-pre-wrap break-words">
             <code>{selectedContent}</code>
             {isStreaming && selectedPath && <span className="inline-block w-2 h-4 ml-0.5 bg-white/80 animate-pulse" aria-hidden />}
+          </pre>
+        ) : showRawStream ? (
+          <pre className="p-4 text-[13px] font-mono text-zinc-400 leading-relaxed whitespace-pre-wrap break-words">
+            <code>{(streamingRaw || '').trim()}</code>
+            <span className="inline-block w-2 h-4 ml-0.5 bg-jasmine-400 animate-pulse" aria-hidden />
           </pre>
         ) : (
           <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
