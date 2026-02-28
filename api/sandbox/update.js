@@ -18,7 +18,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { Sandbox } = await import('e2b');
+    const e2b = await import('e2b/dist/index.mjs');
+    const { Sandbox } = e2b;
     const sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
     for (const [path, content] of Object.entries(files)) {
       await sandbox.files.write(path, typeof content === 'string' ? content : String(content));
