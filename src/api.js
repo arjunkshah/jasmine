@@ -1,4 +1,4 @@
-import { SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt';
+import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt';
 
 export async function generateWithGroq(apiKey, prompt, onChunk) {
   const userContent = enhanceUserPrompt(prompt);
@@ -17,7 +17,7 @@ export async function generateWithGroq(apiKey, prompt, onChunk) {
       ],
       stream: true,
       temperature: 0.7,
-      max_tokens: 32000,
+      max_tokens: 16384,
     }),
   });
 
@@ -27,6 +27,50 @@ export async function generateWithGroq(apiKey, prompt, onChunk) {
   }
 
   return streamResponse(response, onChunk);
+}
+
+export async function editWithGroq(apiKey, currentCode, userMessage, onChunk) {
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'moonshotai/kimi-k2-instruct',
+      messages: [
+        { role: 'system', content: EDIT_SYSTEM_PROMPT },
+        { role: 'user', content: prompt },
+      ],
+      stream: true,
+      temperature: 0.5,
+      max_tokens: 16384,
+    }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Groq API error: ${response.status}`);
+  }
+  return streamResponse(response, onChunk);
+}
+
+export async function editWithGemini(apiKey, currentCode, userMessage, onChunk) {
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: EDIT_SYSTEM_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.5, maxOutputTokens: 16384 },
+      }),
+    }
+  );
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Gemini API error: ${response.status}`);
+  }
+  return streamGeminiResponse(response, onChunk);
 }
 
 export async function generateWithGemini(apiKey, prompt, onChunk) {
