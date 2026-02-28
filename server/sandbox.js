@@ -14,6 +14,7 @@
  *   npx tsx e2b-template/build.mts
  *   Then set E2B_TEMPLATE_ID=jasmine-nextjs in .env
  */
+import 'dotenv/config';
 import { Sandbox } from 'e2b';
 
 const E2B_API_KEY = process.env.E2B_API_KEY;
