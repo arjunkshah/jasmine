@@ -196,10 +196,7 @@ export function extractNextProject(text) {
     const content = match[2].trim();
     if (path && content) files[path] = content;
   }
-  if (Object.keys(files).length > 0) {
-    console.log('[Jasmine] extractNextProject found', Object.keys(files).length, 'files:', Object.keys(files).slice(0, 8).join(', '), Object.keys(files).length > 8 ? '...' : '');
-    return { files };
-  }
+  if (Object.keys(files).length > 0) return { files };
   return null;
 }
 

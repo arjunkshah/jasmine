@@ -13,7 +13,7 @@ export const sandboxConfig = {
     /** Next.js production server port */
     nextPort: 3000,
     /** Initial delay (ms) after starting next start before first health check */
-    startupDelayMs: 10000,
+    startupDelayMs: 5000,
     /** Max poll attempts for server readiness (1 attempt per second) */
     maxPollAttempts: 30,
     /** Timeout per fetch during polling (ms) */

@@ -14,13 +14,16 @@
     "server": "node server/index.js",
     "dev:all": "npm run dev",
     "e2b:build": "npx tsx e2b-template/build.mts",
-    "test:server": "node scripts/test-server.mjs"
+    "test:server": "node scripts/test-server.mjs",
+    "firebase:deploy": "firebase deploy --only firestore"
   },
   "dependencies": {
+    "@google/genai": "^1.43.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "e2b": "^2.13.0",
     "express": "^5.2.1",
+    "firebase": "^12.10.0",
     "jszip": "^3.10.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

@@ -1,10 +1,18 @@
+/**
+ * Deploy project files to E2B sandbox — per E2B docs & open-lovable patterns.
+ * Creates sandbox, writes files, npm install, next build, next start.
+ * Uses production build (not dev) for reliable preview.
+ */
 import { BOILERPLATE, checkE2B } from './lib/e2b.js';
+import { sandboxConfig } from './lib/sandbox-config.js';
 
 export const config = { maxDuration: 120 };
 
 export default async function handler(req, res) {
-  const log = (...args) => console.log('[deploy]', ...args);
-  const logErr = (...args) => console.error('[deploy]', ...args);
+  const t0 = Date.now();
+  const log = (...args) => console.log('[deploy]', `+${Date.now() - t0}ms`, ...args);
+  const logErr = (...args) => console.error('[deploy]', `+${Date.now() - t0}ms`, ...args);
+  const cfg = sandboxConfig.e2b;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -30,23 +38,52 @@ export default async function handler(req, res) {
     log('Importing E2B SDK...');
     const e2b = await import('e2b/dist/index.mjs');
     const { Sandbox } = e2b;
-    log('Creating sandbox...');
-    const sandbox = await Sandbox.create('base', { apiKey: process.env.E2B_API_KEY });
+    log('Creating sandbox (base, timeoutMs:', cfg.timeoutMs, ')...');
+    const sandbox = await Sandbox.create('base', {
+      apiKey: process.env.E2B_API_KEY,
+      timeoutMs: cfg.timeoutMs,
+    });
+    log('Sandbox created:', sandbox.sandboxId);
+    log('Writing files...');
     for (const [filePath, content] of Object.entries(files)) {
       await sandbox.files.write(filePath, typeof content === 'string' ? content : String(content));
     }
     if (!files['package.json']) {
       await sandbox.files.write('package.json', BOILERPLATE['package.json']);
     }
-    await sandbox.commands.run('npm install');
-    await sandbox.commands.run('npx next dev --port 3000 --hostname 0.0.0.0', { background: true });
-    const previewUrl = `https://${sandbox.getHost(3000)}`;
-    log('Success, sandboxId:', sandbox.sandboxId);
+    log('Running npm install...');
+    const installResult = await sandbox.commands.run('npm install');
+    if (installResult.exitCode !== 0) {
+      logErr('npm install failed:', installResult.exitCode, installResult.stderr?.slice(0, 500));
+      return res.status(500).json({ error: 'Build failed. Check logs.' });
+    }
+    log('Running npx next build...');
+    const buildResult = await sandbox.commands.run('npx next build');
+    if (buildResult.exitCode !== 0) {
+      logErr('next build failed:', buildResult.exitCode, buildResult.stderr?.slice(0, 800));
+      return res.status(500).json({ error: 'Build failed. Check logs.' });
+    }
+    log('Starting next on port', cfg.nextPort, '...');
+    await sandbox.commands.run(`npx next start --port ${cfg.nextPort} --hostname 0.0.0.0`, { background: true });
+    const url = `https://${sandbox.getHost(cfg.nextPort)}`;
+    log('Waiting', cfg.startupDelayMs, 'ms before poll...');
+    await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+    for (let i = 0; i < Math.min(20, cfg.maxPollAttempts); i++) {
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(cfg.pollFetchTimeoutMs) });
+        if (r.ok) {
+          log('Server ready after', i + 1, 'poll(s)');
+          break;
+        }
+      } catch (_) {}
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    log('Success, sandboxId:', sandbox.sandboxId, 'url:', url);
     return res.status(200).json({
       success: true,
       sandboxId: sandbox.sandboxId,
-      url: previewUrl,
-      message: 'Deploying... Preview may take 1–2 minutes.',
+      url,
+      message: 'Preview ready.',
     });
   } catch (e) {
     logErr('Failed:', e?.message || e?.toString?.(), e);

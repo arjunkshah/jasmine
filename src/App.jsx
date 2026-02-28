@@ -1,8 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, parseProjectFromJson, projectToRaw } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
+import AuthModal from './components/AuthModal';
+import ProjectSidebar from './components/ProjectSidebar';
+import ImageGeneratorModal from './components/ImageGeneratorModal';
+import { useAuth } from './contexts/AuthContext';
+import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
 
 async function parseJsonResponse(res) {
   const text = await res.text();
@@ -30,8 +35,6 @@ function AppBody({
   provider,
   setProvider,
   error,
-  history,
-  loadFromHistory,
   deployUrl,
   sandboxStarting,
   previewRetryKey,
@@ -41,6 +44,8 @@ function AppBody({
   generatedHTML,
   showImportJson,
   setShowImportJson,
+  showImageGenerator,
+  setShowImageGenerator,
   importJsonInput,
   setImportJsonInput,
   importJsonError,
@@ -57,6 +62,14 @@ function AppBody({
   themeForToggle,
   copied,
   retrySandbox,
+  sidebarOpen,
+  onToggleSidebar,
+  user,
+  onSignInClick,
+  onSignOut,
+  firebaseConfigured,
+  onStartDesigning,
+  onSelectPrompt,
 }) {
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
@@ -68,6 +81,15 @@ function AppBody({
       <header className={`flex-none border-b ${borderCl} bg-surface z-50`}>
         <div className="flex items-center justify-between px-6 h-16">
           <div className="flex items-center gap-3">
+            {firebaseConfigured && (
+              <button
+                onClick={onToggleSidebar}
+                className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-primary`}
+                title={sidebarOpen ? 'Close projects' : 'Open projects'}
+              >
+                <i className={`ph ph-folder ${sidebarOpen ? 'ph-folder-open' : ''} text-lg`}></i>
+              </button>
+            )}
             <div className={`w-8 h-8 rounded-lg border ${borderCl} flex items-center justify-center`}>
               <i className="ph ph-sparkle text-sm text-text-primary"></i>
             </div>
@@ -78,6 +100,13 @@ function AppBody({
           </div>
 
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowImageGenerator(true)}
+              className="p-2 text-text-muted hover:text-text-primary transition-colors"
+              title="Generate image (Gemini)"
+            >
+              <i className="ph ph-image text-lg"></i>
+            </button>
             <button
               onClick={() => { setShowImportJson(true); setImportJsonError(''); setImportJsonInput(''); }}
               className="p-2 text-text-muted hover:text-text-primary transition-colors"
@@ -95,6 +124,33 @@ function AppBody({
               </button>
             ) : (
               <div className="w-9 h-9" aria-hidden />
+            )}
+            {firebaseConfigured && (
+              user ? (
+                <div className="relative group">
+                  <button className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.04]">
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover" />
+                    ) : (
+                      <span className="w-7 h-7 rounded-full bg-jasmine-400/20 flex items-center justify-center text-jasmine-400 text-sm font-medium">
+                        {(user.displayName || user.email)?.[0]?.toUpperCase() || '?'}
+                      </span>
+                    )}
+                    <span className="text-sm max-w-[120px] truncate hidden sm:inline">{user.displayName || user.email}</span>
+                    <i className="ph ph-caret-down text-xs"></i>
+                  </button>
+                  <div className={`absolute right-0 top-full mt-1 py-1 rounded-lg border ${borderCl} ${isLight ? 'bg-white' : 'bg-surface-raised'} shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all min-w-[140px]`}>
+                    <button onClick={onSignOut} className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.04] flex items-center gap-2">
+                      <i className="ph ph-sign-out"></i>
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={onSignInClick} className="btn-premium px-3 py-1.5 text-sm">
+                  Sign in
+                </button>
+              )
             )}
           </div>
         </div>
@@ -141,8 +197,8 @@ function AppBody({
       <div className="flex-1 flex min-h-0">
         {showLanding && !hasOutput ? (
           <LandingPage
-            onStartDesigning={() => { setShowLanding(false); setTimeout(() => textareaRef.current?.focus(), 100); }}
-            onSelectPrompt={(p) => { setPrompt(p); setShowLanding(false); setTimeout(() => textareaRef.current?.focus(), 100); }}
+            onStartDesigning={onStartDesigning}
+            onSelectPrompt={onSelectPrompt}
             onImportJson={() => { setShowImportJson(true); setImportJsonError(''); setImportJsonInput(''); }}
             theme={theme}
           />
@@ -155,18 +211,6 @@ function AppBody({
                     <div className={`flex-none px-4 py-3 border-b ${borderCl}`}>
                       <p className="text-xs text-text-muted tracking-wider">chat</p>
                       <p className="text-sm text-text-secondary mt-0.5">ask to edit your design</p>
-                      {history.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-[10px] text-text-muted tracking-wider mb-1">history</p>
-                          <div className="space-y-1 max-h-24 overflow-y-auto">
-                            {history.slice(0, 5).map((item, i) => (
-                              <button key={i} onClick={() => loadFromHistory(item)} className={`w-full text-left px-2 py-1.5 rounded-lg text-xs text-text-secondary hover:text-text-primary truncate border ${ghostCl}`}>
-                                {item.prompt}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                       {chatMessages.map((m, i) => (
@@ -348,7 +392,7 @@ function AppBody({
                   </div>
                 </div>
 
-                <div className="flex-1 relative min-h-0 bg-[#0a0a0b]">
+                <div className={`flex-1 relative min-h-0 ${isLight ? 'bg-zinc-50' : 'bg-surface-raised'}`}>
 
                   {rightTab === 'files' && (
                     <div className="absolute inset-0">
@@ -356,6 +400,7 @@ function AppBody({
                         files={generatedProject?.files}
                         streamingRaw={streamingRaw || generatedHTML}
                         isStreaming={isGenerating || isEditing}
+                        theme={theme}
                       />
                     </div>
                   )}
@@ -419,6 +464,7 @@ function AppBody({
 }
 
 function App() {
+  const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut, isConfigured: firebaseConfigured } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [generatedHTML, setGeneratedHTML] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -441,16 +487,19 @@ function App() {
   const [sandboxStarting, setSandboxStarting] = useState(false);
   const [sandboxRetryTrigger, setSandboxRetryTrigger] = useState(0);
   const [previewRetryKey, setPreviewRetryKey] = useState(0);
-  const sandboxUpdateTimerRef = useRef(null);
-  const lastSentFilesRef = useRef(0);
   const sandboxIdRef = useRef(null);
   const pendingSandboxApplyRef = useRef(null);
-  const [history, setHistory] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('jasmine_history') || '[]'); } catch { return []; }
-  });
   const [showImportJson, setShowImportJson] = useState(false);
+  const [showImageGenerator, setShowImageGenerator] = useState(false);
   const [importJsonInput, setImportJsonInput] = useState('');
   const [importJsonError, setImportJsonError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingAfterAuth, setPendingAfterAuth] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState(null);
+  const saveTimeoutRef = useRef(null);
 
   const textareaRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -494,12 +543,137 @@ function App() {
   }, [provider]);
 
   useEffect(() => {
-    localStorage.setItem('jasmine_history', JSON.stringify(history.slice(0, 20)));
-  }, [history]);
-
-  useEffect(() => {
     localStorage.setItem('jasmine_show_landing', String(showLanding));
   }, [showLanding]);
+
+  // Fetch projects when user logs in
+  useEffect(() => {
+    if (!firebaseConfigured || !user) {
+      setProjects([]);
+      return;
+    }
+    setLoadingProjects(true);
+    listProjects(user.uid)
+      .then(setProjects)
+      .catch((e) => console.warn('[Jasmine] listProjects failed:', e?.message))
+      .finally(() => setLoadingProjects(false));
+  }, [firebaseConfigured, user?.uid]);
+
+  const saveProject = useCallback(
+    async (data) => {
+      if (!firebaseConfigured || !user) return;
+      const payload = {
+        name: data.name || prompt?.slice(0, 50) || 'Untitled',
+        prompt: data.prompt ?? prompt,
+        files: data.files ?? generatedProject?.files ?? {},
+        html: data.html ?? generatedHTML,
+        chatMessages: data.chatMessages ?? chatMessages,
+        provider: data.provider ?? provider,
+      };
+      try {
+        if (currentProjectId) {
+          await updateProject(currentProjectId, payload);
+          setProjects((prev) =>
+            prev.map((p) => (p.id === currentProjectId ? { ...p, ...payload } : p))
+          );
+        } else if (payload.files && Object.keys(payload.files).length > 0) {
+          const id = await createProject(user.uid, payload);
+          setCurrentProjectId(id);
+          setProjects((prev) => [{ id, ...payload }, ...prev]);
+        }
+      } catch (e) {
+        console.warn('[Jasmine] saveProject failed:', e?.message);
+      }
+    },
+    [firebaseConfigured, user, currentProjectId, prompt, generatedProject, generatedHTML, chatMessages, provider]
+  );
+
+  const debouncedSave = useCallback(() => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveProject({});
+      saveTimeoutRef.current = null;
+    }, 1500);
+  }, [saveProject]);
+
+  const loadProject = useCallback(async (project) => {
+    const full = project.id ? await getProject(project.id) : project;
+    if (!full) return;
+    setPrompt(full.prompt || '');
+    setGeneratedProject(full.files ? { files: full.files } : null);
+    setGeneratedHTML(full.html || '');
+    setStreamingRaw('');
+    setChatMessages(full.chatMessages?.length ? full.chatMessages : [{ role: 'user', content: full.prompt || '' }, { role: 'assistant', content: 'Loaded.' }]);
+    setProvider(full.provider || 'groq');
+    setCurrentProjectId(full.id);
+    setShowLanding(false);
+    setRightTab('files');
+    setSidebarOpen(false);
+    if (full.files && Object.keys(full.files).length > 0) {
+      pendingSandboxApplyRef.current = full.files;
+    }
+  }, []);
+
+  const handleDeleteProject = useCallback(async (project) => {
+    if (!project?.id || !firebaseConfigured || !user) return;
+    if (!confirm(`Delete "${project.name || 'Untitled'}"?`)) return;
+    try {
+      await deleteProject(project.id);
+      setProjects((prev) => prev.filter((p) => p.id !== project.id));
+      if (currentProjectId === project.id) {
+        setCurrentProjectId(null);
+        setPrompt('');
+        setGeneratedProject(null);
+        setGeneratedHTML('');
+        setStreamingRaw('');
+        setChatMessages([]);
+        setShowLanding(true);
+      }
+    } catch (e) {
+      console.warn('[Jasmine] deleteProject failed:', e?.message);
+    }
+  }, [firebaseConfigured, user, currentProjectId]);
+
+  const handleNewProject = useCallback(() => {
+    setCurrentProjectId(null);
+    setPrompt('');
+    setGeneratedProject(null);
+    setGeneratedHTML('');
+    setStreamingRaw('');
+    setChatMessages([]);
+    setShowLanding(true);
+    setSidebarOpen(false);
+  }, []);
+
+  const spinUpSandbox = useCallback(async (project) => {
+    const files = project.files;
+    if (!files || Object.keys(files).length === 0) return;
+    setSandboxStarting(true);
+    setError('');
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
+      const data = await parseJsonResponse(res);
+      if (data.success && data.sandboxId && data.url) {
+        setDeployUrl(data.url);
+        setSandboxId(data.sandboxId);
+        const updRes = await fetch(`${apiBase}/api/sandbox/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sandboxId: data.sandboxId, files }),
+        });
+        if (!updRes.ok) console.warn('[Jasmine] sandbox/update failed:', updRes.status);
+        setPreviewRetryKey((k) => k + 1);
+        setRightTab('preview');
+      } else {
+        setError(data?.error || 'Sandbox start failed');
+      }
+    } catch (e) {
+      setError(e?.message || 'Sandbox failed');
+    } finally {
+      setSandboxStarting(false);
+    }
+  }, []);
 
   const sandboxStartedRef = useRef(false);
 
@@ -565,7 +739,7 @@ function App() {
     setStreamingRaw('');
     setGeneratedHTML('');
     setGeneratedProject(null);
-    lastSentFilesRef.current = 0;
+    setCurrentProjectId(null);
     setChatMessages([{ role: 'user', content: prompt }]);
     setShowLanding(false);
     setRightTab('files');
@@ -599,48 +773,12 @@ function App() {
         }
       }
 
-      const scheduleSandboxUpdate = (chunk) => {
-        if (!currentSandboxId) return;
-        const project = extractNextProject(chunk);
-        if (!project?.files) return;
-        const count = Object.keys(project.files).length;
-        if (count <= lastSentFilesRef.current) return;
-        lastSentFilesRef.current = count;
-        if (sandboxUpdateTimerRef.current) clearTimeout(sandboxUpdateTimerRef.current);
-        sandboxUpdateTimerRef.current = setTimeout(async () => {
-          try {
-            const fileCount = Object.keys(project.files).length;
-            console.log('[Jasmine] POST /api/sandbox/update', fileCount, 'files');
-            const updRes = await fetch(`${apiBase}/api/sandbox/update`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sandboxId: currentSandboxId, files: project.files }),
-            });
-            if (!updRes.ok) {
-              const errText = await updRes.text().catch(() => '');
-              console.warn('[Jasmine] sandbox/update failed', updRes.status, errText?.slice(0, 200));
-            } else {
-              console.log('[Jasmine] sandbox/update ok', fileCount, 'files');
-            }
-          } catch (e) {
-            console.warn('[Jasmine] sandbox update failed:', e?.message);
-          }
-          sandboxUpdateTimerRef.current = null;
-        }, 400);
-      };
-
-      const onChunk = (chunk) => {
-        setStreamingRaw(chunk);
-        scheduleSandboxUpdate(chunk);
-      };
+      // Only send sandbox update when generation completes (final update below).
+      // Streaming updates caused 20+ rebuilds per project, 504 timeouts, and port errors.
+      const onChunk = (chunk) => setStreamingRaw(chunk);
 
       const generateFn = provider === 'groq' ? generateWithGroq : generateWithGemini;
       const result = await generateFn(key, prompt, onChunk);
-
-      if (sandboxUpdateTimerRef.current) {
-        clearTimeout(sandboxUpdateTimerRef.current);
-        sandboxUpdateTimerRef.current = null;
-      }
 
       const project = extractNextProject(result);
       if (project) setGeneratedProject(project);
@@ -660,15 +798,10 @@ function App() {
 
       console.log('[Jasmine] generate complete', project ? Object.keys(project.files).length + ' files' : 'no project');
       setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your Next.js project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }]);
-
-      setHistory(prev => [{
-        prompt: prompt.slice(0, 100),
-        timestamp: Date.now(),
-        html: result,
-        project: project || null,
-        provider,
-      }, ...prev]);
-
+      if (firebaseConfigured && user && project?.files) {
+        const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your Next.js project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }];
+        saveProject({ files: project.files, html: result, chatMessages: finalMessages });
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -742,38 +875,12 @@ function App() {
       console.log('[Jasmine] edit complete', project?.files ? Object.keys(project.files).length + ' files' : '');
       setChatMessages((prev) => [...prev, { role: 'assistant', content: 'Done. Check the Files tab.' }]);
       setRightTab('files');
+      if (firebaseConfigured && user) debouncedSave();
     } catch (err) {
       setError(err.message);
       setChatMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
     } finally {
       setIsEditing(false);
-    }
-  };
-
-  const loadFromHistory = (item) => {
-    setGeneratedHTML(item.html);
-    const project = item.project || extractNextProject(item.html);
-    setGeneratedProject(project);
-    setPrompt(item.prompt);
-    setChatMessages([{ role: 'user', content: item.prompt }, { role: 'assistant', content: 'Loaded.' }]);
-    setShowLanding(false);
-    if (project?.files) {
-      if (sandboxId) {
-        (async () => {
-          try {
-            const apiBase = import.meta.env.VITE_API_URL || '';
-            await fetch(`${apiBase}/api/sandbox/update`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sandboxId, files: project.files }),
-            });
-          } catch (e) {
-            console.warn('Sandbox update failed:', e.message);
-          }
-        })();
-      } else {
-        pendingSandboxApplyRef.current = project.files;
-      }
     }
   };
 
@@ -836,8 +943,6 @@ function App() {
     provider,
     setProvider,
     error,
-    history,
-    loadFromHistory,
     deployUrl,
     sandboxStarting,
     previewRetryKey,
@@ -845,9 +950,11 @@ function App() {
     generatedProject,
     streamingRaw,
     generatedHTML,
-    showImportJson,
-    setShowImportJson,
-    importJsonInput,
+  showImportJson,
+  setShowImportJson,
+  showImageGenerator,
+  setShowImageGenerator,
+  importJsonInput,
     setImportJsonInput,
     importJsonError,
     setImportJsonError,
@@ -862,11 +969,101 @@ function App() {
     themeForToggle: theme,
     copied,
     retrySandbox,
+    sidebarOpen,
+    onToggleSidebar: () => setSidebarOpen((o) => !o),
+    user,
+    onSignInClick: () => setShowAuthModal(true),
+    onSignOut: signOut,
+    firebaseConfigured,
+    onStartDesigning: handleStartDesigning,
+    onSelectPrompt: handleSelectPrompt,
   };
+
+  if (authLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-surface text-text-primary">
+        <div className="flex flex-col items-center gap-3">
+          <i className="ph ph-circle-notch animate-spin text-3xl text-jasmine-400"></i>
+          <p className="text-sm text-text-muted">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const goToDesigner = useCallback(() => {
+    setShowLanding(false);
+    setTimeout(() => textareaRef.current?.focus(), 100);
+  }, []);
+
+  const handleStartDesigning = useCallback(() => {
+    if (firebaseConfigured && !user) {
+      setPendingAfterAuth(goToDesigner);
+      setShowAuthModal(true);
+    } else {
+      goToDesigner();
+    }
+  }, [firebaseConfigured, user, goToDesigner]);
+
+  const handleSelectPrompt = useCallback((p) => {
+    if (firebaseConfigured && !user) {
+      setPrompt(p);
+      setPendingAfterAuth(goToDesigner);
+      setShowAuthModal(true);
+    } else {
+      setPrompt(p);
+      goToDesigner();
+    }
+  }, [firebaseConfigured, user, goToDesigner]);
+
+  const handleAuthSuccess = useCallback(() => {
+    if (pendingAfterAuth) {
+      pendingAfterAuth();
+      setPendingAfterAuth(null);
+    }
+  }, [pendingAfterAuth]);
+
+  const handleAuthModalClose = useCallback(() => {
+    setPendingAfterAuth(null);
+    setShowAuthModal(false);
+  }, []);
 
   return (
     <div className={`h-screen flex flex-col overflow-hidden font-sans ${base}`}>
-      <AppBody {...appBodyProps} onThemeToggle={handleThemeToggle} />
+      <div className="flex-1 flex min-h-0">
+        {firebaseConfigured && (
+          <ProjectSidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            projects={projects}
+            onLoadProject={loadProject}
+            onDeleteProject={handleDeleteProject}
+            onNewProject={handleNewProject}
+            onSpinUpSandbox={spinUpSandbox}
+            loadingProjects={loadingProjects}
+            theme={theme}
+          />
+        )}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
+          <AppBody {...appBodyProps} onThemeToggle={handleThemeToggle} />
+        </div>
+      </div>
+      {showAuthModal && (
+        <AuthModal
+          onClose={handleAuthModalClose}
+          onSuccess={handleAuthSuccess}
+          onSignIn={signIn}
+          onSignUp={signUp}
+          onGoogle={signInWithGoogle}
+          theme={theme}
+        />
+      )}
+      {showImageGenerator && (
+        <ImageGeneratorModal
+          onClose={() => setShowImageGenerator(false)}
+          theme={theme}
+          initialPrompt={prompt}
+        />
+      )}
     </div>
   );
 }

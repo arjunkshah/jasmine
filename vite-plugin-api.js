@@ -29,7 +29,10 @@ export function apiPlugin() {
     sendJson(res, { ok: true, e2bConfigured: !err, e2bError: err?.error || null });
   });
   api.get('/ping', (req, res) => sendJson(res, { ok: true, message: 'API works' }));
-  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/health'] }));
+  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/generate-image', '/api/health'] }));
+  api.post('/generate-image', async (req, res) => {
+    return (await import('./api/generate-image.js')).default(req, res);
+  });
   api.post('/sandbox/start', async (req, res) => {
     console.log('[api] POST /api/sandbox/start');
     const err = checkE2B();

@@ -23,19 +23,23 @@ function buildTree(files) {
   return tree;
 }
 
-function TreeItem({ name, value, path, selectedPath, onSelect, depth = 0 }) {
+function TreeItem({ name, value, path, selectedPath, onSelect, depth = 0, isLight }) {
   const [open, setOpen] = useState(depth < 2);
   const isFile = typeof value === 'string';
   const isFolder = !isFile && value && typeof value === 'object';
+
+  const selectedCl = isLight ? 'bg-zinc-200/80 text-zinc-900' : 'bg-white/10 text-text-primary';
+  const hoverCl = isLight ? 'hover:bg-zinc-200/50' : 'hover:bg-white/[0.06]';
+  const textCl = isLight ? 'text-zinc-600' : 'text-zinc-400';
 
   if (isFile) {
     const isSelected = selectedPath === path;
     return (
       <button
         onClick={() => onSelect(path, value)}
-        className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm truncate ${
-                isSelected ? 'bg-zinc-800 text-zinc-100 font-medium' : 'text-zinc-400 hover:bg-zinc-800/50'
-              }`}
+        className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm truncate transition-colors ${
+          isSelected ? `${selectedCl} font-medium` : `${textCl} ${hoverCl}`
+        }`}
         style={{ paddingLeft: 12 + depth * 12 }}
       >
         <i className="ph ph-file text-base shrink-0 opacity-60"></i>
@@ -55,7 +59,7 @@ function TreeItem({ name, value, path, selectedPath, onSelect, depth = 0 }) {
     <div>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm text-zinc-400 hover:bg-zinc-800/50"
+        className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm ${textCl} ${hoverCl} transition-colors`}
         style={{ paddingLeft: 12 + depth * 12 }}
       >
         <i className={`ph ph-caret-${open ? 'down' : 'right'} text-xs shrink-0`}></i>
@@ -73,6 +77,7 @@ function TreeItem({ name, value, path, selectedPath, onSelect, depth = 0 }) {
               selectedPath={selectedPath}
               onSelect={onSelect}
               depth={depth + 1}
+              isLight={isLight}
             />
           ))}
         </div>
@@ -81,9 +86,43 @@ function TreeItem({ name, value, path, selectedPath, onSelect, depth = 0 }) {
   );
 }
 
-export default function FileExplorer({ files, streamingRaw, isStreaming, onSelectFile }) {
+function CodeViewer({ content, path, isStreaming, isLight }) {
+  const lines = content.split('\n');
+
+  const codeBg = isLight ? 'bg-zinc-100/80' : 'bg-black/30';
+  const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
+  const lineNumCl = isLight ? 'text-zinc-400' : 'text-zinc-500';
+  const codeCl = isLight ? 'text-zinc-800' : 'text-zinc-300';
+
+  return (
+    <div className={`h-full flex flex-col rounded-xl overflow-hidden ${codeBg} border ${borderCl}`}>
+      <div className={`flex-none px-4 py-2.5 rounded-t-xl border-b ${borderCl} ${isLight ? 'bg-zinc-200/50' : 'bg-white/[0.04]'}`}>
+        <div className="flex items-center gap-2">
+          <i className="ph ph-file-code text-sm text-jasmine-400"></i>
+          <span className="text-sm font-medium text-text-primary truncate">{path || 'output'}</span>
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto">
+        <div className="flex min-h-full">
+          <div className={`flex-none py-4 pl-4 pr-3 text-right select-none text-[13px] font-mono ${lineNumCl}`} aria-hidden>
+            {lines.map((_, i) => (
+              <div key={i} className="leading-[1.6]">{i + 1}</div>
+            ))}
+          </div>
+          <pre className={`flex-1 py-4 pr-4 pl-2 text-[13px] font-mono leading-[1.6] whitespace-pre-wrap break-words ${codeCl}`}>
+            <code>{content}</code>
+            {isStreaming && <span className="inline-block w-2 h-4 ml-0.5 bg-jasmine-400 animate-pulse" aria-hidden />}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function FileExplorer({ files, streamingRaw, isStreaming, onSelectFile, theme = 'dark' }) {
   const [selectedPath, setSelectedPath] = useState(null);
   const [selectedContent, setSelectedContent] = useState('');
+  const isLight = theme === 'light';
 
   const project = useMemo(() => {
     if (files && typeof files === 'object' && !Array.isArray(files)) return files;
@@ -117,9 +156,12 @@ export default function FileExplorer({ files, streamingRaw, isStreaming, onSelec
   const hasFiles = Object.keys(project).length > 0;
   const showRawStream = isStreaming && !hasFiles && (streamingRaw || '').trim().length > 0;
 
+  const sidebarBorder = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
+  const emptyCl = isLight ? 'text-zinc-500' : 'text-zinc-500';
+
   return (
     <div className="flex h-full">
-      <div className="w-56 flex-shrink-0 border-r border-zinc-800 overflow-y-auto py-2">
+      <div className={`w-56 flex-shrink-0 border-r ${sidebarBorder} overflow-y-auto py-2 ${isLight ? 'bg-white/50' : 'bg-surface-raised/50'}`}>
         {hasFiles ? (
           <TreeItem
             name="."
@@ -127,26 +169,31 @@ export default function FileExplorer({ files, streamingRaw, isStreaming, onSelec
             path=""
             selectedPath={selectedPath}
             onSelect={handleSelect}
+            isLight={isLight}
           />
         ) : (
-          <div className="px-4 py-6 text-sm text-zinc-500">
+          <div className={`px-4 py-6 text-sm ${emptyCl}`}>
             {isStreaming ? 'Parsing files...' : 'No files yet'}
           </div>
         )}
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto p-4">
         {selectedPath ? (
-          <pre className="p-4 text-[13px] font-mono text-zinc-400 leading-relaxed whitespace-pre-wrap break-words">
-            <code>{selectedContent}</code>
-            {isStreaming && selectedPath && <span className="inline-block w-2 h-4 ml-0.5 bg-white/80 animate-pulse" aria-hidden />}
-          </pre>
+          <CodeViewer
+            content={selectedContent}
+            path={selectedPath}
+            isStreaming={isStreaming}
+            isLight={isLight}
+          />
         ) : showRawStream ? (
-          <pre className="p-4 text-[13px] font-mono text-zinc-400 leading-relaxed whitespace-pre-wrap break-words">
-            <code>{(streamingRaw || '').trim()}</code>
-            <span className="inline-block w-2 h-4 ml-0.5 bg-jasmine-400 animate-pulse" aria-hidden />
-          </pre>
+          <CodeViewer
+            content={(streamingRaw || '').trim()}
+            path={null}
+            isStreaming={true}
+            isLight={isLight}
+          />
         ) : (
-          <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
+          <div className={`flex items-center justify-center h-full ${emptyCl} text-sm`}>
             {hasFiles ? 'Select a file' : (isStreaming ? 'Streaming...' : 'Generate a project')}
           </div>
         )}
