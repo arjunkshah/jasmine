@@ -353,25 +353,39 @@ function AppBody({
                   )}
 
                   {rightTab === 'preview' && (
-                    <div className="absolute inset-0 flex items-center justify-center p-8 overflow-auto">
-                      {generatedProject?.files ? (
-                        <div className="text-center max-w-md">
-                          <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
-                          <p className="text-text-primary font-semibold mb-2">Next.js project generated</p>
-                          <p className="text-sm text-text-muted mb-4">
-                            Code applies to your sandbox as it streams. Edits update live.
-                          </p>
-                          <p className="text-xs text-text-muted mb-4">{Object.keys(generatedProject.files).length} files</p>
-                          {deployUrl && (
-                            <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="btn-premium inline-flex items-center gap-2 text-[#0a0a0b]">
-                              Open preview <i className="ph ph-arrow-square-out"></i>
+                    <div className="absolute inset-0 flex flex-col">
+                      {deployUrl ? (
+                        <>
+                          <div className="flex-none flex items-center justify-between px-3 py-2 border-b border-zinc-800">
+                            <span className="text-xs text-text-muted">Live preview</span>
+                            <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1">
+                              Open in new tab <i className="ph ph-arrow-square-out text-sm"></i>
                             </a>
-                          )}
+                          </div>
+                          <iframe
+                            src={deployUrl}
+                            title="Preview"
+                            className="flex-1 w-full min-h-0 border-0 bg-white"
+                            sandbox="allow-scripts allow-same-origin"
+                          />
+                        </>
+                      ) : generatedProject?.files ? (
+                        <div className="flex-1 flex items-center justify-center p-8">
+                          <div className="text-center max-w-md">
+                            <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
+                            <p className="text-text-primary font-semibold mb-2">Next.js project generated</p>
+                            <p className="text-sm text-text-muted mb-4">
+                              Sandbox is starting… Preview will appear here.
+                            </p>
+                            <p className="text-xs text-text-muted">{Object.keys(generatedProject.files).length} files</p>
+                          </div>
                         </div>
                       ) : (
-                        <div className="text-center text-text-muted">
-                          <p className="mb-2">{(isGenerating || isEditing) ? 'Generating...' : 'No project yet.'}</p>
-                          <p className="text-sm">Switch to Files to see code.</p>
+                        <div className="flex-1 flex items-center justify-center text-text-muted">
+                          <div className="text-center">
+                            <p className="mb-2">{(isGenerating || isEditing) ? 'Generating...' : 'No project yet.'}</p>
+                            <p className="text-sm">Switch to Files to see code.</p>
+                          </div>
                         </div>
                       )}
                     </div>
