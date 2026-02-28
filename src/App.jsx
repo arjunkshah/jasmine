@@ -3,15 +3,6 @@ import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, ext
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
 
-const EXAMPLE_CARDS = [
-  { label: 'Law firm', desc: 'Full site: home, about, practice areas, team, contact. Every page, every section.', prompt: 'Complete law firm website — home, about, practice areas grid, team bios, contact page. Trustworthy, Lora serif, navy and gold. Every page, every section, every animation.' },
-  { label: 'SaaS', desc: 'Full product site: landing, features, pricing, docs, dashboard. All pages.', prompt: 'Complete SaaS site for a dev tool — landing, features, pricing, docs, dashboard. Dark mode, Vercel-inspired, Space Grotesk. Every page, every section, every animation.' },
-  { label: 'Restaurant', desc: 'Full site: home, menu, reservations, about, contact. All sections.', prompt: 'Complete restaurant website — home, full menu, reservations, about, contact. Warm, appetizing, DM Sans. Every page, every section, every animation.' },
-  { label: 'Gaming studio', desc: 'Full portfolio: home, games, team, careers, contact. All pages.', prompt: 'Complete gaming studio site — home, games showcase, team, careers, contact. Bold gradients, Overused Grotesk. Every page, every section, every animation.' },
-  { label: 'Meditation app', desc: 'Full app site: landing, features, testimonials, pricing, download.', prompt: 'Complete meditation app site — landing, features, testimonial carousel, pricing, download CTA. Soft, calming, Lora serif. Every page, every section, every animation.' },
-  { label: 'Creative agency', desc: 'Full portfolio: home, work, about, services, contact. All pages.', prompt: 'Complete creative agency portfolio — home, case studies, about, services, contact. Dark editorial, asymmetric grid. Every page, every section, every animation.' },
-];
-
 function App() {
   const [prompt, setPrompt] = useState('');
   const [generatedHTML, setGeneratedHTML] = useState('');
@@ -206,7 +197,6 @@ function App() {
   const isLight = theme === 'light';
   const base = 'bg-surface text-text-primary';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
-  const cardCl = isLight ? 'bg-white border-zinc-200 shadow-sm' : 'card-depth';
   const ghostCl = isLight ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200' : 'btn-ghost';
   const inputCl = isLight ? 'bg-zinc-50 border-zinc-200 focus:border-jasmine-400' : 'input-premium';
 
@@ -246,8 +236,8 @@ function App() {
           />
         ) : (
           <>
-            <div className={`flex border-r ${borderCl} transition-all duration-300 ${hasOutput ? 'w-[360px] flex-shrink-0 flex-col' : 'flex-1 min-w-0 flex-col sm:flex-row'}`}>
-              <div className={`flex-1 flex flex-col min-w-0 ${hasOutput ? 'flex overflow-hidden' : 'p-6 sm:p-8 sm:max-w-[520px]'}`}>
+            <div className={`flex border-r ${borderCl} transition-all duration-300 ${hasOutput ? 'w-[360px] flex-shrink-0 flex-col' : 'flex-1 min-w-0 flex-col'}`}>
+              <div className={`flex-1 flex flex-col min-w-0 ${hasOutput ? 'flex overflow-hidden' : 'flex items-center justify-center p-6 sm:p-8'}`}>
                 {hasOutput ? (
                   <>
                     <div className={`flex-none px-4 py-3 border-b ${borderCl}`}>
@@ -300,34 +290,28 @@ function App() {
                     </div>
                   </>
                 ) : (
-                  <>
-                {!hasOutput && (
-                  <div className="mb-4">
-                    <h1 className="text-2xl sm:text-[2rem] font-extrabold tracking-[-0.04em] leading-[1.1] text-text-primary mb-2">
-                      What do you want to build?
-                    </h1>
-                    <p className="text-base text-text-secondary leading-[1.5] mb-3">
-                      Describe it. Jasmine will craft it.
-                    </p>
+                  <div className="w-full max-w-2xl mx-auto">
                     <button
                       onClick={() => setShowLanding(true)}
-                      className="text-sm text-text-muted hover:text-text-secondary"
+                      className="text-sm text-text-muted hover:text-text-secondary mb-8"
                     >
                       ← Back to overview
                     </button>
-                  </div>
-                )}
-
-                <div className={hasOutput ? '' : 'flex-1 flex flex-col min-w-0 min-h-0'}>
-                  <div className={`prompt-container overflow-hidden ${!hasOutput ? 'flex-1 flex flex-col min-h-0' : ''}`}>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-[-0.04em] leading-[1.1] text-text-primary mb-2 text-center">
+                      What will you design today?
+                    </h1>
+                    <p className="text-text-secondary text-center mb-8">
+                      Describe it. One prompt. Full Next.js project.
+                    </p>
+                    <div className="prompt-container overflow-hidden rounded-xl">
                     <textarea
                       ref={textareaRef}
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="A landing page for..."
-                      rows={hasOutput ? 4 : 5}
-                      className={`w-full px-4 py-3 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none leading-[1.5] tracking-[-0.01em] ${!hasOutput ? 'flex-1 min-h-0' : ''}`}
+                      placeholder="A landing page for a law firm — trustworthy, professional, navy and gold..."
+                      rows={4}
+                      className="w-full px-5 py-4 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none leading-[1.5] tracking-[-0.01em]"
                     />
                     <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                       <div className="flex items-center gap-3">
@@ -379,46 +363,9 @@ function App() {
                       </button>
                     </div>
                   </div>
-                </div>
-
-                {!hasOutput && history.length > 0 && (
-                  <div className="mt-6 flex-1 overflow-y-auto">
-                    <p className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.08em] mb-2">History</p>
-                    <div className="space-y-1">
-                      {history.map((item, i) => (
-                        <button
-                          key={i}
-                          onClick={() => loadFromHistory(item)}
-                          className={`w-full text-left px-3 py-2.5 rounded-lg ${ghostCl} text-[13px] text-text-secondary hover:text-text-primary transition-colors truncate border`}
-                        >
-                          <span className="text-text-muted mr-2">{item.provider === 'groq' ? '⚡' : '✦'}</span>
-                          {item.prompt}
-                        </button>
-                      ))}
-                    </div>
                   </div>
-                )}
-                  </>
                 )}
               </div>
-
-              {!hasOutput && (
-                <div className={`flex-1 min-w-0 sm:min-w-[340px] lg:min-w-[400px] w-full pt-4 sm:pt-0 sm:pl-6 lg:pl-8 sm:border-l ${borderCl} flex flex-col overflow-y-auto border-t sm:border-t-0 sm:py-6 sm:pb-8`}>
-                  <p className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.08em] mb-4 px-1">Quick picks</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start">
-                    {EXAMPLE_CARDS.map((card, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setPrompt(card.prompt)}
-                        className={`${cardCl} text-left px-4 py-4 rounded-xl border transition-all hover:border-jasmine-400/30 hover:shadow-md hover:shadow-jasmine-400/5 flex flex-col gap-1.5 min-h-[100px]`}
-                      >
-                        <span className="text-jasmine-400 font-semibold text-sm uppercase tracking-wider">{card.label}</span>
-                        <span className="text-sm text-text-secondary leading-[1.4] line-clamp-2">{card.desc}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {deployUrl && (
                 <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center justify-between gap-3">
