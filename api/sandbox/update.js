@@ -1,4 +1,3 @@
-import { Sandbox } from 'e2b';
 import { BOILERPLATE, checkE2B } from '../lib/e2b.js';
 
 export const config = { maxDuration: 60 };
@@ -19,6 +18,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { Sandbox } = await import('e2b');
     const sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
     for (const [path, content] of Object.entries(files)) {
       await sandbox.files.write(path, typeof content === 'string' ? content : String(content));
@@ -30,6 +30,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true });
   } catch (e) {
     console.error('E2B sandbox/update:', e);
-    return res.status(500).json({ error: e.message || 'Sandbox update failed' });
+    const msg = e?.message || e?.toString?.() || 'Sandbox update failed';
+    return res.status(500).json({ error: msg });
   }
 }

@@ -1,4 +1,3 @@
-import { Sandbox } from 'e2b';
 import { BOILERPLATE, checkE2B } from './lib/e2b.js';
 
 export const config = { maxDuration: 120 };
@@ -19,6 +18,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { Sandbox } = await import('e2b');
     const sandbox = await Sandbox.create('base', { apiKey: process.env.E2B_API_KEY });
     for (const [filePath, content] of Object.entries(files)) {
       await sandbox.files.write(filePath, typeof content === 'string' ? content : String(content));
