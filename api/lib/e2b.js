@@ -33,6 +33,7 @@ export default function RootLayout({ children }) {
 export function checkE2B() {
   const key = process.env.E2B_API_KEY;
   if (!key) {
+    console.warn('[e2b] E2B_API_KEY not set');
     return { error: 'E2B_API_KEY not set. Add it in Vercel Environment Variables. Get key at https://e2b.dev/dashboard' };
   }
   return null;

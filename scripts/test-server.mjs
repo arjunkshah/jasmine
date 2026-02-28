@@ -4,23 +4,24 @@
  * Run: node scripts/test-server.mjs
  * Requires: dev server running (npm run dev)
  */
-const BASE = process.env.TEST_URL || 'http://127.0.0.1:3001';
+const BASE = process.env.TEST_URL || 'http://127.0.0.1:5173';
+// Note: requires npm run dev (Vite with api plugin on 5173)
 
 async function main() {
   console.log('Testing server at', BASE, '\n');
 
-  // 1. Root health
+  // 1. API health
   try {
-    const r = await fetch(`${BASE}/`);
+    const r = await fetch(`${BASE}/api/health`);
     const j = await r.json();
-    console.log('✓ GET /', r.status, '-', j.message);
+    console.log('✓ GET /api/health', r.status);
     if (!j.e2bConfigured) {
       console.log('  ⚠ E2B_API_KEY not configured');
     } else {
       console.log('  ✓ E2B configured');
     }
   } catch (e) {
-    console.log('✗ GET / failed:', e.message);
+    console.log('✗ GET /api/health failed:', e.message);
     console.log('  Is the server running? Start with: npm run dev');
     process.exit(1);
   }

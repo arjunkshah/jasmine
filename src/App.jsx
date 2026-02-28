@@ -457,13 +457,15 @@ function App() {
       (async () => {
         try {
           const apiBase = import.meta.env.VITE_API_URL || '';
-          await fetch(`${apiBase}/api/sandbox/update`, {
+          console.log('[Jasmine] POST /api/sandbox/update (pending apply)', Object.keys(files).length, 'files');
+          const res = await fetch(`${apiBase}/api/sandbox/update`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sandboxId, files }),
           });
+          if (!res.ok) console.warn('[Jasmine] sandbox/update', res.status);
         } catch (e) {
-          console.warn('Sandbox update failed:', e.message);
+          console.warn('[Jasmine] Sandbox update failed:', e.message);
         }
       })();
     }
@@ -500,8 +502,10 @@ function App() {
     (async () => {
       try {
         const apiBase = import.meta.env.VITE_API_URL || '';
+        console.log('[Jasmine] POST /api/sandbox/start', apiBase || '(same origin)');
         const res = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
         const data = await parseJsonResponse(res);
+        console.log('[Jasmine] sandbox/start response', res.status, data?.success ? 'ok' : data?.error);
         if (data.success && data.url) {
           setDeployUrl(data.url);
           setSandboxId(data.sandboxId);
@@ -514,6 +518,7 @@ function App() {
           sandboxStartedRef.current = false;
         }
       } catch (e) {
+        console.error('[Jasmine] sandbox/start failed:', e);
         const hint = typeof window !== 'undefined' && !window.location.hostname.includes('localhost')
           ? ' Check /api/health on your deployment.'
           : '';
@@ -565,6 +570,7 @@ function App() {
       }
       if (!currentSandboxId && !sandboxStarting) {
         try {
+          console.log('[Jasmine] POST /api/sandbox/start (generate flow)');
           const startRes = await fetch(`${apiBase}/api/sandbox/start`, { method: 'POST' });
           const startData = await parseJsonResponse(startRes);
           if (startData.success && startData.url) {
@@ -587,11 +593,14 @@ function App() {
         if (sandboxUpdateTimerRef.current) clearTimeout(sandboxUpdateTimerRef.current);
         sandboxUpdateTimerRef.current = setTimeout(async () => {
           try {
-            await fetch(`${apiBase}/api/sandbox/update`, {
+            const fileCount = Object.keys(project.files).length;
+            console.log('[Jasmine] POST /api/sandbox/update', fileCount, 'files');
+            const updRes = await fetch(`${apiBase}/api/sandbox/update`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ sandboxId: currentSandboxId, files: project.files }),
             });
+            if (!updRes.ok) console.warn('[Jasmine] sandbox/update', updRes.status, await updRes.text().catch(() => ''));
           } catch (e) {
             console.warn('Sandbox update failed:', e.message);
           }

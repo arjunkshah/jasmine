@@ -91,6 +91,15 @@ export async function createSandbox(opts = {}) {
     }
     await sandbox.commands.run('npm install');
     await sandbox.commands.run('npx next dev --port 3000 --hostname 0.0.0.0', { background: true });
+    const url = `https://${sandbox.getHost(3000)}`;
+    // Wait for Next.js dev server to be ready (up to 45s)
+    for (let i = 0; i < 45; i++) {
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        if (r.ok) break;
+      } catch (_) {}
+      await new Promise((r) => setTimeout(r, 1000));
+    }
   }
 
   const url = `https://${sandbox.getHost(3000)}`;
