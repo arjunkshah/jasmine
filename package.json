@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "dev:all": "npm run dev",
-    "e2b:build": "npx tsx e2b-template/build.mts"
+    "e2b:build": "npx tsx e2b-template/build.mts",
+    "test:server": "node scripts/test-server.mjs"
   },
   "dependencies": {
     "cors": "^2.8.6",
