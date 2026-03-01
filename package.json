@@ -16,6 +16,7 @@
     "e2b:build": "npx tsx e2b-template/build.mts",
     "test:server": "node scripts/test-server.mjs",
     "test:generate": "node scripts/test-generation.mjs",
+    "test:generate:verbose": "VERBOSE=1 node scripts/test-generation.mjs",
     "firebase:deploy": "firebase deploy --only firestore"
   },
   "dependencies": {
