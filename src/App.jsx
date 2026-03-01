@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, extractEditSummary, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, fixPhosphorIcons, webSearch } from './api';
+import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, extractEditSummary, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, fixPhosphorIcons, webSearch, decideSearchQuery } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
@@ -52,10 +52,6 @@ function AppBody({
   sendChatMessage,
   contextFiles,
   setContextFiles,
-  searchContext = [],
-  setSearchContext = () => {},
-  isSearching = false,
-  setIsSearching = () => {},
   fileInputRef,
   downloadProject,
   deployToNetlify,
@@ -557,7 +553,7 @@ function AppBody({
                   rows={4}
                   className="w-full px-5 py-4 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none leading-[1.5] tracking-[-0.01em]"
                 />
-                {(contextFiles.length > 0 || (searchContext?.length ?? 0) > 0) && (
+                {contextFiles.length > 0 && (
                   <div className={`px-4 py-2 border-t ${borderCl} flex flex-wrap gap-2`}>
                     {contextFiles.map((f, i) => (
                       <span key={`f-${i}`} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-zinc-100 text-zinc-700' : 'bg-white/10 text-text-secondary'}`}>
@@ -568,15 +564,6 @@ function AppBody({
                         </button>
                       </span>
                     ))}
-                    {(searchContext?.length ?? 0) > 0 && (
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                        <i className="ph ph-magnifying-glass"></i>
-                        {searchContext?.length ?? 0} results
-                        <button type="button" onClick={() => setSearchContext([])} className="hover:opacity-80">
-                          <i className="ph ph-x text-sm"></i>
-                        </button>
-                      </span>
-                    )}
                   </div>
                 )}
                 <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
@@ -589,31 +576,6 @@ function AppBody({
                     >
                       <i className="ph ph-paperclip"></i>
                       Attach
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const q = prompt.trim() || 'latest web design trends';
-                        if (!q) return;
-                        setIsSearching(true);
-                        setError('');
-                        try {
-                          const apiBase = import.meta.env.VITE_API_URL || '';
-                          const results = await webSearch(q, apiBase);
-                          setSearchContext(results);
-                        } catch (e) {
-                          setError(e?.message || 'Search failed');
-                          setSearchContext([]);
-                        } finally {
-                          setIsSearching(false);
-                        }
-                      }}
-                      disabled={isSearching}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-zinc-600 hover:bg-zinc-100' : 'text-text-muted hover:bg-white/[0.06]'} disabled:opacity-50`}
-                      title="Search web for context (use prompt or 'latest trends'). Needs SERPER_API_KEY in Vercel."
-                    >
-                      {isSearching ? <i className="ph ph-circle-notch animate-spin"></i> : <i className="ph ph-magnifying-glass"></i>}
-                      Search
                     </button>
                     <div className={`flex items-center rounded-lg p-0.5 border ${borderCl} ${isLight ? 'bg-zinc-100/80' : 'bg-white/[0.04]'}`}>
                       <button
@@ -746,8 +708,6 @@ function App() {
   const sandboxIdRef = useRef(null);
   const pendingSandboxApplyRef = useRef(null);
   const [contextFiles, setContextFiles] = useState([]);
-  const [searchContext, setSearchContext] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authClosing, setAuthClosing] = useState(false);
@@ -1079,6 +1039,19 @@ function App() {
       // Streaming updates caused 20+ rebuilds per project, 504 timeouts, and port errors.
       const onChunk = (chunk) => setStreamingRaw(chunk);
 
+      let searchContext = [];
+      const searchQuery = await decideSearchQuery(prompt, provider, key, apiBase);
+      if (searchQuery) {
+        try {
+          searchContext = await webSearch(searchQuery, apiBase);
+          if (searchContext?.length > 0) {
+            setChatMessages((prev) => [...prev, { role: 'status', message: 'Searching web for context', details: [searchQuery], icon: 'ph-magnifying-glass', detailLabel: 'query' }]);
+          }
+        } catch (e) {
+          console.warn('[Jasmine] AI-requested search failed:', e?.message);
+        }
+      }
+
       const generateFn = provider === 'groq' ? generateWithGroq : generateWithGemini;
       let result = await generateFn(key, prompt, onChunk, contextFiles, searchContext);
 
@@ -1363,10 +1336,6 @@ function App() {
   sendChatMessage,
   contextFiles,
   setContextFiles,
-  searchContext,
-  setSearchContext,
-  isSearching,
-  setIsSearching,
   fileInputRef,
   downloadProject,
     deployToNetlify,
