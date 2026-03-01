@@ -138,26 +138,44 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
     <div className="flex-1 overflow-y-auto">
       {/* hero */}
       <section ref={heroRef} className={`relative min-h-[90vh] flex flex-col justify-center ${sectionCl} overflow-hidden`}>
-        {/* Center content */}
-        <div className={`relative flex flex-col items-center text-center max-w-2xl mx-auto transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className={`${labelCl} font-display text-3d`}>the world's best designer</p>
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.1] text-text-primary mb-6 font-display text-3d">
-            design anything.
-          </h1>
-          <p className="text-base md:text-lg text-text-secondary leading-[1.6] mb-12">
-            describe what you want. jasmine crafts it — every page, every section. the best designer, one prompt.
-          </p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-8 py-3">
-              <i className="ph ph-magic-wand text-base"></i>
-              start designing
-            </button>
-            <button
-              onClick={() => onSelectPrompt(EXAMPLE_CARDS[0].prompt)}
-              className="btn-ghost flex items-center gap-2 px-8 py-3 text-sm font-medium text-text-primary"
-            >
-              try law firm
-            </button>
+        <div className={`relative ${maxW} w-full transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+          <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
+            <div>
+              <p className={`${labelCl} font-display text-3d`}>the world's best designer</p>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.1] text-text-primary mb-6 font-display text-3d">
+                design anything.
+              </h1>
+              <p className="text-base md:text-lg text-text-secondary leading-[1.6] max-w-lg mb-12">
+                describe what you want. jasmine crafts it — every page, every section. the best designer, one prompt.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-8 py-3">
+                  <i className="ph ph-magic-wand text-base"></i>
+                  start designing
+                </button>
+                <button
+                  onClick={() => onSelectPrompt(EXAMPLE_CARDS[0].prompt)}
+                  className="btn-ghost flex items-center gap-2 px-8 py-3 text-sm font-medium text-text-primary"
+                >
+                  try law firm
+                </button>
+              </div>
+            </div>
+            <div className={`relative hidden lg:block ${heroVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-6'} transition-all duration-700 delay-200`}>
+              <div className={`${cardCl} rounded-lg p-6 overflow-hidden`}>
+                <pre className="text-[12px] font-mono text-text-secondary leading-relaxed overflow-x-auto">
+{`src/
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── ...
+├── components/
+└── ...
+`}
+                </pre>
+                <p className="text-xs text-text-muted mt-4">vite · react · tailwind</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
