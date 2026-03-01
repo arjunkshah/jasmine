@@ -3,9 +3,10 @@ const E2B_BADGE_URL = 'https://uilwcam5kj.ufs.sh/f/pcCLEhYqZ204w1rLMw40tuZMShPRc
 /**
  * E2B for Startups badge — official design from E2B
  */
-export default function E2BBadge({ className = '', showClose = false, onClose }) {
+export default function E2BBadge({ className = '', showClose = false, onClose, theme = 'dark' }) {
+  const isLight = theme === 'light';
   return (
-    <div className={`inline-flex items-stretch overflow-hidden rounded ${className}`}>
+    <div className={`inline-flex items-stretch overflow-hidden ${className}`}>
       <a
         href="https://e2b.dev/startups"
         target="_blank"
@@ -13,13 +14,17 @@ export default function E2BBadge({ className = '', showClose = false, onClose })
         className="flex items-center shrink-0 hover:opacity-90 transition-opacity"
         title="Sponsored by E2B for Startups"
       >
-        <img src={E2B_BADGE_URL} alt="E2B for Startups" className="h-6" />
+        <img src={E2B_BADGE_URL} alt="E2B for Startups" className="h-6 block" />
       </a>
       {showClose && onClose && (
         <button
           type="button"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
-          className="flex items-center justify-center w-7 h-8 bg-white hover:bg-zinc-100 text-zinc-500 hover:text-black border-l border-zinc-200 transition-colors shrink-0"
+          className={`flex items-center justify-center w-7 h-8 border-l shrink-0 transition-colors ${
+            isLight
+              ? 'bg-white hover:bg-zinc-100 text-zinc-500 hover:text-black border-zinc-200'
+              : 'bg-zinc-800/90 hover:bg-zinc-700 text-zinc-400 hover:text-white border-white/10'
+          }`}
           aria-label="Close badge"
         >
           <i className="ph ph-x text-sm" />
