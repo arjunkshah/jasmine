@@ -25,6 +25,20 @@ export function apiPlugin() {
     sendJson(res, { ok: true, e2bConfigured: !err, e2bError: err?.error || null });
   });
   api.get('/ping', (req, res) => sendJson(res, { ok: true, message: 'API works' }));
+  api.post('/closed-auth', (req, res) => {
+    const username = process.env.JASMINE_CLOSED_USERNAME || 'arjunkshah';
+    const password = process.env.JASMINE_CLOSED_PASSWORD || '';
+    const body = req.body || {};
+    const { username: u, password: p } = body;
+    if (!u || !p) {
+      res.statusCode = 400;
+      return sendJson(res, { success: false, error: 'Username and password required' });
+    }
+    const valid = String(u).trim() === username && p === password;
+    if (valid) return sendJson(res, { success: true });
+    res.statusCode = 401;
+    sendJson(res, { success: false, error: 'Invalid credentials' });
+  });
   api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/generate-image', '/api/health'] }));
   api.post('/generate-image', async (req, res) => {
     return (await import('./api/generate-image.js')).default(req, res);

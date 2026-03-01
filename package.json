@@ -17,7 +17,8 @@
     "test:server": "node scripts/test-server.mjs",
     "test:generate": "node scripts/test-generation.mjs",
     "test:generate:verbose": "VERBOSE=1 node scripts/test-generation.mjs",
-    "firebase:deploy": "firebase deploy --only firestore"
+    "firebase:deploy": "firebase deploy --only firestore",
+    "postinstall": "node scripts/patch-babel-types.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.43.0",
@@ -31,7 +32,8 @@
     "jszip": "^3.10.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-resizable-panels": "^4.7.0"
+    "react-resizable-panels": "^4.7.0",
+    "react-router-dom": "^6.30.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
