@@ -11,7 +11,7 @@ const BENTO_ITEMS = [
 const BENTO_OUTPUT = [
   { span: 'md:col-span-2', icon: 'ph-file-tsx', title: 'typescript', desc: 'strict types, clean interfaces.' },
   { span: '', icon: 'ph-paint-bucket', title: 'tailwind', desc: 'utility-first. consistent spacing.' },
-  { span: '', icon: 'ph-rocket-launch', title: 'deploy-ready', desc: 'e2b sandbox. one click.' },
+  { span: '', icon: 'ph-rocket-launch', title: 'deploy-ready', desc: 'Netlify. one click.' },
   { span: 'md:col-span-2 md:row-span-2', icon: 'ph-code', title: 'production code', desc: 'proper structure, components, layouts. ready for your team.' },
   { span: '', icon: 'ph-download-simple', title: 'one-click zip', desc: 'download full project.' },
 ];
@@ -33,7 +33,7 @@ const MARQUEE_ITEMS = [
 const STEPS = [
   { num: '01', label: 'describe', desc: 'tell jasmine what you want — law firm, restaurant, saas, portfolio. one sentence.', icon: 'ph-chat-circle-dots' },
   { num: '02', label: 'generate', desc: 'ai crafts the full project: every page, every section. no slop.', icon: 'ph-wand' },
-  { num: '03', label: 'refine', desc: 'edit in real time. copy, download, or deploy to e2b.', icon: 'ph-pencil-simple' },
+  { num: '03', label: 'refine', desc: 'edit in real time. download or deploy to Netlify.', icon: 'ph-pencil-simple' },
 ];
 
 const HORIZONTAL_FEATURES = [
@@ -41,13 +41,13 @@ const HORIZONTAL_FEATURES = [
   { icon: 'ph-palette', title: 'cohesive palettes', desc: 'no clash' },
   { icon: 'ph-layout', title: 'smart layouts', desc: 'production-ready structure' },
   { icon: 'ph-file-code', title: 'clean code', desc: 'typescript, src/' },
-  { icon: 'ph-download-simple', title: 'one-click export', desc: 'deploy to e2b' },
+  { icon: 'ph-download-simple', title: 'one-click export', desc: 'download or deploy to Netlify' },
   { icon: 'ph-device-responsive', title: 'responsive', desc: 'mobile-first' },
 ];
 
 const FAQ_ITEMS = [
   { q: 'what can i build?', a: 'full react sites for law firms, restaurants, saas, portfolios, agencies — anything you can describe. jasmine crafts production-ready projects with vite, react, tailwind.' },
-  { q: 'how does it work?', a: 'describe your site in one prompt. jasmine uses kimi k2 or gemini to generate a complete react project. edit in real time, then copy, download, or deploy to e2b sandbox.' },
+  { q: 'how does it work?', a: 'describe your site in one prompt. jasmine uses kimi k2 or gemini to generate a complete react project. edit in real time, then download or deploy to Netlify.' },
   { q: 'is it really free?', a: 'yes. generate and export as many projects as you want. no signup, no credit card required.' },
   { q: 'can i use the output commercially?', a: 'absolutely. the code you generate is yours.' },
 ];
@@ -104,7 +104,7 @@ function useScrollReveal(threshold = 0.1) {
 
 const sectionCl = 'px-6 md:px-12 lg:px-24';
 const labelCl = 'text-xs tracking-[0.12em] text-text-muted mb-6';
-const headingCl = 'text-2xl md:text-3xl font-medium text-text-primary mb-4 leading-[1.2]';
+const headingCl = 'text-2xl md:text-3xl font-semibold text-text-primary mb-4 leading-[1.2] font-display';
 const maxW = 'max-w-4xl mx-auto';
 
 function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
@@ -141,8 +141,8 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
         <div className={`relative ${maxW} w-full transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
             <div>
-              <p className={labelCl}>ai website designer</p>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-[-0.02em] leading-[1.2] text-text-primary mb-6">
+              <p className={`${labelCl} font-display`}>ai website designer</p>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.1] text-text-primary mb-6 font-display">
                 design anything.
               </h1>
               <p className="text-base md:text-lg text-text-secondary leading-[1.6] max-w-lg mb-12">

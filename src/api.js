@@ -222,15 +222,17 @@ const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;
 
 /**
  * Replace {{IMAGE:prompt}} placeholders with AI-generated images.
- * Calls /api/generate-image for each unique prompt. Returns replaced text.
+ * ALWAYS uses Gemini API for images (even when text is from Kimi/Groq).
+ * Pass geminiApiKey when available (VITE_GEMINI_API_KEY) so images work with Kimi.
  */
-export async function replaceImagePlaceholders(text, apiBase = '') {
+export async function replaceImagePlaceholders(text, apiBase = '', geminiApiKey = '') {
   if (!text || typeof text !== 'string') return text;
   const matches = [...text.matchAll(IMAGE_PLACEHOLDER_REGEX)];
   if (matches.length === 0) return text;
 
   let result = text;
   const seen = new Set();
+  const key = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
 
   for (const match of matches) {
     const full = match[0];
@@ -239,10 +241,12 @@ export async function replaceImagePlaceholders(text, apiBase = '') {
     seen.add(full);
 
     try {
+      const body = { prompt };
+      if (key) body.apiKey = key;
       const res = await fetch(`${apiBase}/api/generate-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (data.image) {

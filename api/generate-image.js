@@ -13,14 +13,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY or VITE_GEMINI_API_KEY required' });
-  }
-
-  const { prompt } = req.body || {};
+  const { prompt, apiKey: clientApiKey } = req.body || {};
   if (!prompt || typeof prompt !== 'string') {
     return res.status(400).json({ error: 'Missing prompt' });
+  }
+  const apiKey = (typeof clientApiKey === 'string' ? clientApiKey : '').trim()
+    || (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+  if (!apiKey) {
+    return res.status(500).json({
+      error: 'GEMINI_API_KEY or VITE_GEMINI_API_KEY required for image generation. Add it in Vercel env vars. Images work with Kimi — just set a Gemini key for images.',
+    });
   }
 
   let lastError = null;

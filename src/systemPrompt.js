@@ -85,12 +85,13 @@ Primary CTA: pill (rounded-full), px-10 py-4, solid/gradient bg, inset shadow (d
 - **Staggered**: 50–150ms delay per child
 - **Scroll-triggered**: IntersectionObserver or CSS scroll-driven
 
-### 7. IMAGES — AI-GENERATED & PLACEHOLDERS
+### 7. IMAGES — AI-GENERATED (Gemini API, works with Kimi too)
 
 **For custom visuals** (hero, logo, illustration, product mockup): use \`{{IMAGE:descriptive prompt}}\` in src or url().
 - Example: \`src="{{IMAGE:modern SaaS hero illustration, gradient background, abstract blue shapes}}"\`
 - Example: \`backgroundImage: url("{{IMAGE:law firm office, professional, navy and gold accents}}")\`
-- Our system replaces these with AI-generated images. Use for: hero images, logos, illustrations, product mockups.
+- Our system replaces these with AI-generated images via Gemini (works with Kimi text generation).
+- Use for: hero images, logos, illustrations, product mockups. ALWAYS use {{IMAGE:...}} for hero/feature visuals.
 - Be specific: "restaurant food photography, warm lighting" not "food image".
 
 **For generic placeholders**: use https://placehold.co/800x600 or https://picsum.photos/800/600.
@@ -220,70 +221,101 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 /* Custom styles */
 \`\`\`
 
+---FILE:src/components/ErrorBoundary.jsx---
+\`\`\`jsx
+import React from 'react';
+
+export default class ErrorBoundary extends React.Component {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(err, info) { console.error(err, info); }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? (
+        <div className="min-h-[200px] flex items-center justify-center text-zinc-500">
+          Something went wrong on this page.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+\`\`\`
+
 ---FILE:src/App.jsx---
 \`\`\`jsx
+// WRAP EACH ROUTE in ErrorBoundary so one broken page doesn't crash the app:
+// <Route path="/docs" element={<ErrorBoundary><Docs /></ErrorBoundary>} />
 // Main app with react-router-dom for multi-page, or single-page layout
 \`\`\`
 
-Continue for EVERY file. REQUIRED structure:
-- index.html, vite.config.js, tailwind.config.js, postcss.config.js
-- src/main.jsx — entry, imports App and index.css
-- src/App.jsx — main app (use BrowserRouter, Routes, Route for multi-page)
-- src/index.css — ONLY @tailwind directives + optional plain CSS. No @apply with custom colors.
-- src/components/Header.jsx, Footer.jsx, etc. — reusable components
-- src/pages/Home.jsx, About.jsx, Pricing.jsx, etc. — **output EVERY page you add to Routes in App.jsx**
-- package.json MUST include react-router-dom for multi-page sites
+Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 
-**Rule:** App.jsx imports from ./pages/X → you MUST output src/pages/X.jsx. No imports without corresponding files.
+**OUTPUT ORDER (strict):** Output in this order. Never import before the file exists.
+1. package.json, vite.config.js, tailwind.config.js, postcss.config.js, index.html
+2. src/index.css (ONLY @tailwind base/components/utilities + plain CSS — NO @apply with custom colors)
+3. src/components/ErrorBoundary.jsx (required — see below)
+4. src/components/Header.jsx, Footer.jsx, etc.
+5. src/pages/Home.jsx, About.jsx, Pricing.jsx, etc. — **ALL pages you will route to**
+6. src/App.jsx — imports ONLY from files you already output above
+7. src/main.jsx
+
+**Rule:** App.jsx imports from ./pages/X → you MUST have output src/pages/X.jsx BEFORE App.jsx. Count imports = count files.
 
 ## RULES — MUST FOLLOW
 
 1. **src/ directory** — All app code in src/.
 2. **JSX** — Use .jsx for components.
-3. **Tailwind** — Use Tailwind classes. tailwind.config content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}']
+3. **Tailwind** — Standard colors only (zinc, slate, gray). tailwind.config content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}']
 4. **Phosphor Icons** — import { HouseIcon, CheckIcon, ArrowRightIcon } from '@phosphor-icons/react'. NEVER import { Icon }.
-5. **Navigation** — Use react-router-dom: Link, useNavigate, BrowserRouter, Routes, Route
-6. **Images** — Use <img src="..." /> or backgroundImage. For AI images use {{IMAGE:prompt}}.
-7. **Imports** — Use relative paths: import { Header } from './components/Header' or from '../components/Header'
-8. **No placeholder content** — Real copy, no Lorem Ipsum
-9. **Responsive** — Mobile-first, md: and lg: breakpoints
-10. **Animations** — blur-reveal on load, scroll-triggered, hover states
+5. **Navigation** — react-router-dom: Link, useNavigate, BrowserRouter, Routes, Route. Wrap every Route in <ErrorBoundary>.
+6. **Images** — <img src="..." /> or backgroundImage. AI images: {{IMAGE:prompt}}.
+7. **Imports** — Relative paths. Output the file BEFORE importing it. No phantom imports.
+8. **No placeholder content** — Real copy, no Lorem Ipsum.
+9. **Responsive** — Mobile-first, md: and lg: breakpoints.
+10. **Animations** — blur-reveal on load, scroll-triggered, hover states.
 
 ## ZERO ERRORS — CRITICAL (Generated code must RUN without errors)
 
-### 1. NO PHANTOM IMPORTS
-- **Every import MUST resolve to a file you output.** If App.jsx has \`import Docs from "./pages/Docs"\`, you MUST output \`---FILE:src/pages/Docs.jsx---\`.
-- Before outputting any file with imports: list every import path. For each one, ensure you output that exact file. No exceptions.
-- Never import a component you don't create. If you can't create it, don't import it.
+### 1. NO PHANTOM IMPORTS (strict)
+- **1:1 rule:** Every import path = exactly one output file. \`import X from "./pages/Docs"\` → you MUST output \`---FILE:src/pages/Docs.jsx---\`.
+- **Output order:** Output pages BEFORE App.jsx. Never import a file you haven't output yet.
+- **Pre-flight:** Before outputting App.jsx, list every import. For each: "Did I output this file? Yes/No." If No → output it first or remove the import.
+- Never import a component you don't create. If in doubt, don't import it.
 
-### 2. TAILWIND — STANDARD CLASSES ONLY
-- Use ONLY built-in Tailwind color names: zinc, slate, gray, neutral, stone, red, amber, emerald, blue, indigo, etc.
+### 2. TAILWIND — STANDARD CLASSES ONLY (strict)
+- **Allowed:** zinc, slate, gray, neutral, stone, red, amber, emerald, blue, indigo, violet, purple, pink, orange, yellow, green, teal, cyan, sky.
 - Valid: \`bg-zinc-950\`, \`dark:bg-zinc-900\`, \`text-slate-100\`, \`border-gray-700\`
-- **NEVER** use custom color names like \`dark-950\`, \`dark-900\` — they don't exist. Use \`zinc-950\`, \`slate-900\` instead.
-- In src/index.css: only \`@tailwind base;\`, \`@tailwind components;\`, \`@tailwind utilities;\` plus plain CSS. No \`@apply\` with custom/invalid classes.
-- If you need custom colors, add them to tailwind.config.js theme.extend AND output that file.
+- **BANNED:** \`dark-950\`, \`dark-900\`, \`dark-800\`, or any \`dark-*\` as a color. Use \`zinc-950\`, \`slate-900\` instead.
+- src/index.css: ONLY \`@tailwind base;\`, \`@tailwind components;\`, \`@tailwind utilities;\` + plain CSS (no @apply with custom colors).
+- Custom colors: add to tailwind.config.js theme.extend.colors and output that file.
 
-### 3. COMMON ERRORS TO AVOID
+### 3. GRACEFUL DEGRADATION — one broken part must not crash the app
+- **Wrap every Route in ErrorBoundary:** \`<Route path="/docs" element={<ErrorBoundary><Docs /></ErrorBoundary>} />\`
+- If one page has a runtime error, only that route shows "Something went wrong" — nav, other pages, layout keep working.
+- Always output ErrorBoundary.jsx and use it for every Route element.
+
+### 4. COMMON ERRORS TO AVOID
 - **NEVER Next.js**: No next, next/link, next/image, src/app/, App Router. Vite + React ONLY.
 - **Phosphor Icons**: NEVER \`import { Icon }\` — use \`import { CheckIcon, StarIcon, HouseIcon }\` etc.
 - **Component exports**: Every component file MUST have \`export default\` or \`export function\`.
 - **package.json**: MUST include \`@phosphor-icons/react\` and \`react-router-dom\` (for multi-page).
 - **Vite**: No "use client". Use standard React. Use <a> or react-router Link, <img> for images.
 
-## BEFORE OUTPUT — VALIDATION CHECKLIST
+## BEFORE OUTPUT — VALIDATION CHECKLIST (run every time)
 
-1. **Import audit**: Every import in every file — does that file exist in my output? If not, create it or remove the import.
-2. **Tailwind audit**: Every class uses standard Tailwind (zinc, slate, gray, etc.). No dark-950, dark-900, or undefined colors.
-3. All icon imports use real Phosphor names (CheckIcon, StarIcon, ArrowRightIcon)
-4. Every imported component exists and is exported from its file
-5. package.json includes @phosphor-icons/react and every npm package you use
-6. No Lucide, Heroicons, or Feather — Phosphor ONLY
-7. Typography: NOT Inter — choose fonts that match the aesthetic
-8. Shadows: soft, inner shadows on buttons, no harsh blacks`;
+1. **Import audit:** For every file with imports, list each import path. For each: "File X exists in my output: YES/NO." All must be YES.
+2. **Output order:** Did I output all pages before App.jsx? App.jsx imports must reference files already output.
+3. **Tailwind audit:** Grep for \`dark-\` (as color). If found → replace with zinc/slate/gray. No @apply with custom classes in index.css.
+4. **ErrorBoundary:** Did I output ErrorBoundary.jsx? Does App.jsx wrap every Route element in <ErrorBoundary>?
+5. **Icons:** All use Phosphor (CheckIcon, StarIcon). No Lucide, Heroicons, Feather.
+6. **Exports:** Every imported component has export default or export { X }.
+7. **package.json:** Includes @phosphor-icons/react, react-router-dom (if multi-page).
+8. **Typography:** NOT Inter. Shadows: soft, no harsh blacks.`;
 
 /** Wraps user prompt with full-frontend emphasis. */
 export function enhanceUserPrompt(prompt) {
-  return prompt.trim() + '\n\n[Generate a COMPLETE Vite + React project: every page, every section, every component, every animation. Use src/ structure. You have creative freedom — pick or match the aesthetic and make it look insane. CRITICAL: Zero errors. Every import must resolve to a file you output. Use only standard Tailwind classes (zinc, slate, gray — never dark-950). Full, shippable frontend that RUNS without errors.]';
+  return prompt.trim() + '\n\n[COMPLETE Vite + React project. Zero errors: (1) Output pages BEFORE App.jsx — every import must have a file. (2) Tailwind: zinc/slate/gray only — never dark-950. (3) Wrap every Route in ErrorBoundary so one broken page does not crash the app. Full, shippable frontend.]';
 }
 
 /** System prompt for edit requests — user wants to modify existing code. */
@@ -298,10 +330,10 @@ CRITICAL: Make MINIMAL, TARGETED edits. Only change what the user asked for.
 - Never regenerate the entire project. Output ONLY the files you actually modified.
 
 Phosphor Icons: import { CheckIcon, StarIcon } from '@phosphor-icons/react'. NEVER import { Icon }.
-Component exports: ensure every imported component is exported (export default or export { X }).
-NO PHANTOM IMPORTS: Only import files you output. Every import path must exist in your output.
-Tailwind: Use only standard classes (zinc, slate, gray). Never dark-950, dark-900 — use zinc-950, slate-900.
-Images: Use {{IMAGE:descriptive prompt}} for custom visuals (hero, logo, illustration). System replaces with AI-generated images.
+NO PHANTOM IMPORTS: Output pages BEFORE App.jsx. Every import = a file you output. 1:1 rule.
+Tailwind: zinc, slate, gray only. Never dark-950, dark-900 — use zinc-950, slate-900.
+ErrorBoundary: Wrap every Route element in <ErrorBoundary> so one broken page does not crash the app.
+Images: Use {{IMAGE:descriptive prompt}} for custom visuals.
 
 Output format (same as generation):
 ---FILE:path/to/file.jsx---
@@ -309,4 +341,5 @@ Output format (same as generation):
 // full file content with your minimal edit applied
 \`\`\`
 
-Output ONLY changed files. Preserve all other code exactly. Be surgical.`;
+Output ONLY changed files. Preserve all other code exactly. Be surgical.
+When adding routes: output the new page file AND wrap the Route in <ErrorBoundary>. Never remove ErrorBoundary from routes.`;

@@ -3,7 +3,7 @@ import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, ext
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
-import AuthModal from './components/AuthModal';
+import AuthPage from './components/AuthPage';
 import ProjectSidebar from './components/ProjectSidebar';
 import { useAuth } from './contexts/AuthContext';
 import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
@@ -49,11 +49,12 @@ function AppBody({
   contextFiles,
   setContextFiles,
   fileInputRef,
-  copyCode,
   downloadProject,
+  deployToNetlify,
+  netlifyDeploying,
+  netlifyUrl,
   onThemeToggle,
   themeForToggle,
-  copied,
   retrySandbox,
   retryPreviewUpdate,
   sidebarOpen,
@@ -352,6 +353,14 @@ function AppBody({
                   </a>
                 </div>
               )}
+              {netlifyUrl && (
+                <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-jasmine-500/10 border border-jasmine-500/20 text-jasmine-400 text-sm flex items-center justify-between gap-3">
+                  <span>Deployed to Netlify</span>
+                  <a href={netlifyUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
+                    View site <i className="ph ph-arrow-square-out text-base"></i>
+                  </a>
+                </div>
+              )}
               {error && (
                 <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -397,11 +406,16 @@ function AppBody({
                   <div className="flex items-center gap-2">
                     {deployUrl && (
                       <a href={deployUrl} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Open preview">
-                        <i className="ph ph-rocket-launch text-lg"></i>
+                        <i className="ph ph-eye text-lg"></i>
                       </a>
                     )}
-                    <button onClick={copyCode} className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Copy">
-                      {copied ? <i className="ph ph-check text-lg text-emerald-400"></i> : <i className="ph ph-copy text-lg"></i>}
+                    <button
+                      onClick={deployToNetlify}
+                      disabled={netlifyDeploying || !generatedProject?.files}
+                      className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed`}
+                      title="Deploy to Netlify"
+                    >
+                      {netlifyDeploying ? <i className="ph ph-circle-notch text-lg animate-spin"></i> : <i className="ph ph-rocket-launch text-lg"></i>}
                     </button>
                     <button onClick={downloadProject} className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Download as ZIP">
                       <i className="ph ph-download-simple text-lg"></i>
@@ -487,8 +501,9 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [rightTab, setRightTab] = useState('files');
-  const [copied, setCopied] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
+  const [netlifyDeploying, setNetlifyDeploying] = useState(false);
+  const [netlifyUrl, setNetlifyUrl] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [provider, setProvider] = useState(() => localStorage.getItem('jasmine_provider') || 'groq');
   const [error, setError] = useState('');
@@ -832,9 +847,10 @@ function App() {
 
       const project = extractNextProject(result);
       if (project?.files) {
+        const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
         const replaced = {};
         for (const [path, content] of Object.entries(project.files)) {
-          replaced[path] = await replaceImagePlaceholders(String(content), apiBase);
+          replaced[path] = await replaceImagePlaceholders(String(content), apiBase, geminiKey);
         }
         project.files = replaced;
       }
@@ -894,10 +910,33 @@ function App() {
     }
   };
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(generatedHTML);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const deployToNetlify = async () => {
+    const files = generatedProject?.files;
+    const sid = sandboxId;
+    if (!files || Object.keys(files).length === 0) {
+      setError('Generate a project first');
+      return;
+    }
+    setNetlifyDeploying(true);
+    setError('');
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${apiBase}/api/netlify/deploy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandboxId: sid, files }),
+      });
+      const data = await parseJsonResponse(res);
+      if (data.success && data.url) {
+        setNetlifyUrl(data.url);
+      } else {
+        setError(data?.error || 'Deploy failed');
+      }
+    } catch (e) {
+      setError(e?.message || 'Deploy failed');
+    } finally {
+      setNetlifyDeploying(false);
+    }
   };
 
   const downloadProject = async () => {
@@ -935,9 +974,10 @@ function App() {
       const project = extractNextProject(result);
       if (project?.files) {
         const apiBase = import.meta.env.VITE_API_URL || '';
+        const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
         const replaced = {};
         for (const [path, content] of Object.entries(project.files)) {
-          replaced[path] = await replaceImagePlaceholders(String(content), apiBase);
+          replaced[path] = await replaceImagePlaceholders(String(content), apiBase, geminiKey);
         }
         const mergedFiles = { ...(generatedProject?.files || {}), ...replaced };
         setGeneratedProject({ files: mergedFiles });
@@ -1042,11 +1082,12 @@ function App() {
   contextFiles,
   setContextFiles,
   fileInputRef,
-  copyCode,
-    downloadProject,
-    themeForToggle: theme,
-    copied,
-    retrySandbox,
+  downloadProject,
+    deployToNetlify,
+    netlifyDeploying,
+    netlifyUrl,
+  themeForToggle: theme,
+  retrySandbox,
     retryPreviewUpdate,
     sidebarOpen,
     onToggleSidebar: () => setSidebarOpen((o) => !o),
@@ -1090,7 +1131,7 @@ function App() {
         </div>
       </div>
       {showAuthModal && (
-        <AuthModal
+        <AuthPage
           onClose={handleAuthModalClose}
           onSuccess={handleAuthSuccess}
           onSignIn={signIn}
