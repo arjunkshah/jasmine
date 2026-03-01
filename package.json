@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "dev:all": "npm run dev",
-    "e2b:build": "npx tsx e2b-template/build.mts",
+    "e2b:build": "echo 'Starting E2B build...' && npx tsx e2b-template/build.mts",
     "test:server": "node scripts/test-server.mjs",
     "test:generate": "node scripts/test-generation.mjs",
     "test:generate:verbose": "VERBOSE=1 node scripts/test-generation.mjs",
@@ -48,6 +48,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "tailwindcss": "^4.2.1",
+    "tsx": "^4.19.0",
     "vite": "^7.3.1",
     "vite-express": "^0.22.1"
   }

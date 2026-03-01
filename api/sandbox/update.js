@@ -88,27 +88,30 @@ export default async function handler(req, res) {
       await sandbox.files.write('package.json', BOILERPLATE['package.json']);
     }
 
-    // Always run npm install — project package.json may have different deps than template (e.g. react-router-dom).
-    // Skipping install caused "Failed to resolve import react-router-dom" when template lacked it.
-    log('Running npm install...');
-    const installResult = await sandbox.commands.run('npm install');
-    if (installResult.exitCode !== 0) {
-      logErr('npm install failed:', installResult.exitCode, 'stderr:', installResult.stderr?.slice(0, 500));
-    } else {
-      log('npm install done');
-    }
-
     if (useCustomTemplate) {
-      log('Custom template: restarting Vite to pick up new deps');
+      // Custom template has react-router-dom + @phosphor-icons pre-installed. Just write files → Vite hot-reload.
+      // NO npm install, NO restart — avoids "process not running on port 5173" when killing Vite.
+      log('Custom template: files written → hot-reload (no restart)');
+    } else {
+      log('Running npm install...');
+      const installResult = await sandbox.commands.run('npm install --prefer-offline --no-audit', { timeoutMs: 90000 });
+      if (installResult.exitCode !== 0) {
+        const stderr = (installResult.stderr || '').slice(0, 800);
+        logErr('npm install failed:', installResult.exitCode, 'stderr:', stderr);
+        return res.status(500).json({
+          error: `npm install failed. ${stderr || 'Check Vercel logs.'} Sandbox may have expired — try generating again.`,
+        });
+      }
+      log('Restarting Vite (kill + start)...');
+      await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+      await new Promise((r) => setTimeout(r, 2000));
+      await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
     }
-    log('Restarting Vite (kill + start)...');
-    await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
-    await new Promise((r) => setTimeout(r, 1500));
-    await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
 
     const url = `https://${sandbox.getHost(port)}`;
-    log('URL:', url, '| waiting', cfg.startupDelayMs, 'ms');
-    await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
+    const delayMs = useCustomTemplate ? 3000 : cfg.startupDelayMs;
+    log('URL:', url, '| waiting', delayMs, 'ms');
+    await new Promise((r) => setTimeout(r, delayMs));
 
     const updatePollAttempts = Math.min(20, cfg.maxPollAttempts);
     for (let i = 0; i < updatePollAttempts; i++) {
@@ -132,7 +135,12 @@ export default async function handler(req, res) {
   } catch (e) {
     const elapsed = Date.now() - t0;
     logErr('Failed after', elapsed, 'ms:', e?.message || e?.toString?.(), e);
-    const msg = e?.message || e?.toString?.() || 'Sandbox update failed';
+    let msg = e?.message || e?.toString?.() || 'Sandbox update failed';
+    if (msg.includes('not found') || msg.includes('404') || msg.includes('expired')) {
+      msg = 'Sandbox expired. Start a new preview by generating again.';
+    } else if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) {
+      msg = 'Sandbox update timed out. Try again or generate a smaller project.';
+    }
     const isTimeout = msg.includes('timeout') || msg.includes('ETIMEDOUT') || msg.includes('504');
     return res.status(isTimeout ? 504 : 500).json({ error: msg });
   }

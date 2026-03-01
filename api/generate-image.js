@@ -1,6 +1,6 @@
 /**
  * Gemini image generation — tries gemini-2.0-flash-preview-image-generation, falls back to exp
- * Uses GEMINI_API_KEY or VITE_GEMINI_API_KEY from env.
+ * Uses VITE_GEMINI_API_KEY (or GEMINI_API_KEY) from env.
  */
 export const config = { maxDuration: 60 };
 
@@ -18,10 +18,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing prompt' });
   }
   const apiKey = (typeof clientApiKey === 'string' ? clientApiKey : '').trim()
-    || (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+    || (process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) {
     return res.status(503).json({
-      error: 'GEMINI_API_KEY or VITE_GEMINI_API_KEY required for image generation. Add it in Vercel env vars. Images work with Kimi — just set a Gemini key for images.',
+      error: 'VITE_GEMINI_API_KEY required for image generation. Add it in Vercel → Project Settings → Environment Variables. Images work with Kimi — just set a Gemini key for images.',
     });
   }
 
@@ -58,6 +58,6 @@ export default async function handler(req, res) {
 
   console.error('[generate-image]', lastError?.message, lastError);
   return res.status(500).json({
-    error: lastError?.message || 'Image generation failed. Ensure GEMINI_API_KEY has image generation access.',
+    error: lastError?.message || 'Image generation failed. Ensure VITE_GEMINI_API_KEY has image generation access.',
   });
 }

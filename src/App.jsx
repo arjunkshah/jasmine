@@ -1066,12 +1066,13 @@ function App() {
               console.warn('[Jasmine] sandbox/update 504, retrying...');
               await new Promise((r) => setTimeout(r, 3000));
             } else {
-              setError('Preview update failed. Click Retry to apply your code.');
+              const data = await updRes.json().catch(() => ({}));
+              setError(data?.error || 'Preview update failed. Click Retry to apply your code.');
             }
           } catch (e) {
             console.warn('[Jasmine] sandbox update failed:', e?.message);
             if (attempt < 1) await new Promise((r) => setTimeout(r, 3000));
-            else setError('Preview update failed. Click Retry to apply your code.');
+            else setError(e?.message || 'Preview update failed. Click Retry to apply your code.');
           }
         }
       }

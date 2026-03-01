@@ -227,13 +227,19 @@ export function ensurePackageDependencies(files) {
 
 /** Parse multi-file output (---FILE:path---). Returns { files: { path: content } } or null. */
 export function extractNextProject(text) {
+  if (!text || typeof text !== 'string') return null;
   const files = {};
-  const regex = /---FILE:([^\n-]+)---\s*```(?:\w+)?\s*\n([\s\S]*?)```/g;
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    const path = match[1].trim();
-    const content = match[2].trim();
-    if (path && content) files[path] = content;
+  try {
+    const regex = /---FILE:([^\n-]+)---\s*```(?:\w+)?\s*\n([\s\S]*?)```/g;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      const path = match[1].trim();
+      const content = match[2].trim();
+      if (path && content) files[path] = content;
+    }
+  } catch (e) {
+    console.warn('[Jasmine] extractNextProject regex error:', e?.message);
+    return null;
   }
   if (Object.keys(files).length > 0) return { files };
   return null;
@@ -360,7 +366,7 @@ export async function replaceImagePlaceholders(text, apiBase = '', geminiApiKey 
         if (!res.ok) {
           if (errMsg.includes('key') || errMsg.includes('gemini') || errMsg.includes('required')) {
             skipApi = true;
-            console.warn('[Jasmine] Image gen disabled (no API key). Add GEMINI_API_KEY in Vercel env. Using placeholders.');
+            console.warn('[Jasmine] Image gen disabled (no API key). Add VITE_GEMINI_API_KEY in Vercel env. Using placeholders.');
           } else if (data?.error) console.warn('[Jasmine] image gen:', data.error);
         }
       }

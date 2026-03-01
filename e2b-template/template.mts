@@ -15,6 +15,6 @@ export const template = Template()
   .runCmd('npm create vite@4 app -- --template react')
   .runCmd('cp -r app/. . && rm -rf app')
   .runCmd('npm install')
-  .runCmd('npm install tailwindcss@3 postcss autoprefixer @phosphor-icons/react')
+  .runCmd('npm install tailwindcss@3 postcss autoprefixer @phosphor-icons/react react-router-dom@6')
   .runCmd('npx tailwindcss init -p')
   .setStartCmd('npx vite --host --port 5173', waitForURL('http://localhost:5173'));
