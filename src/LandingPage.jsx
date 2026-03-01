@@ -138,36 +138,6 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
     <div className="flex-1 overflow-y-auto">
       {/* hero */}
       <section ref={heroRef} className={`relative min-h-[90vh] flex flex-col justify-center ${sectionCl} overflow-hidden`}>
-        {/* Side decorations — gradient orbs */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className={`absolute -left-32 top-1/3 w-96 h-96 rounded-full bg-jasmine-500/10 blur-[120px] transition-all duration-1000 ${heroVisible ? 'opacity-100' : 'opacity-0'}`} />
-          <div className={`absolute -right-32 top-1/4 w-80 h-80 rounded-full bg-blue-500/10 blur-[100px] transition-all duration-1000 delay-200 ${heroVisible ? 'opacity-100' : 'opacity-0'}`} />
-        </div>
-
-        {/* Side accents — floating pills */}
-        <div className="absolute left-8 lg:left-16 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-4">
-          {['law firm', 'saas', 'restaurant'].map((label, i) => (
-            <div
-              key={label}
-              className={`${cardCl} px-4 py-2 rounded-full text-xs text-text-muted whitespace-nowrap hover:opacity-100 cursor-default transition-all duration-500 ${heroVisible ? 'opacity-70 translate-x-0' : 'opacity-0 -translate-x-4'}`}
-              style={{ transitionDelay: `${300 + i * 80}ms` }}
-            >
-              {label}
-            </div>
-          ))}
-        </div>
-        <div className="absolute right-8 lg:right-16 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-4 items-end">
-          {['vite', 'react', 'tailwind'].map((label, i) => (
-            <div
-              key={label}
-              className={`${cardCl} px-4 py-2 rounded-full text-xs text-text-muted whitespace-nowrap hover:opacity-100 cursor-default transition-all duration-500 ${heroVisible ? 'opacity-70 translate-x-0' : 'opacity-0 translate-x-4'}`}
-              style={{ transitionDelay: `${400 + i * 80}ms` }}
-            >
-              {label}
-            </div>
-          ))}
-        </div>
-
         {/* Center content */}
         <div className={`relative flex flex-col items-center text-center max-w-2xl mx-auto transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <p className={`${labelCl} font-display`}>the world's best designer</p>

@@ -98,13 +98,13 @@ function AppBody({
       <header className={`flex-none border-b ${borderCl} bg-surface z-50`}>
         <div className="flex items-center justify-between px-6 h-16">
           <div className="flex items-center gap-3">
-            {firebaseConfigured && (
+            {firebaseConfigured && !sidebarOpen && (
               <button
                 onClick={onToggleSidebar}
-                className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-primary`}
-                title={sidebarOpen ? 'Close projects' : 'Open projects'}
+                className="p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+                title="Open projects"
               >
-                <i className={`ph ph-folder ${sidebarOpen ? 'ph-folder-open' : ''} text-lg`}></i>
+                <i className="ph ph-folder text-lg"></i>
               </button>
             )}
             <div className={`w-8 h-8 rounded-lg border ${borderCl} flex items-center justify-center`}>
@@ -1117,6 +1117,7 @@ function App() {
           <ProjectSidebar
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
+            onToggle={() => setSidebarOpen(false)}
             projects={projects}
             onLoadProject={loadProject}
             onDeleteProject={handleDeleteProject}

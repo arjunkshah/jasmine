@@ -4,6 +4,7 @@ import { listProjects } from '../lib/projects';
 export default function ProjectSidebar({
   isOpen,
   onClose,
+  onToggle,
   projects,
   onLoadProject,
   onDeleteProject,
@@ -45,20 +46,26 @@ export default function ProjectSidebar({
       >
         <div className={`flex-none flex items-center justify-between px-4 py-3 border-b ${borderCl}`}>
           <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
-            <i className="ph ph-folder-open text-jasmine-400"></i>
+            <button
+              onClick={onToggle || onClose}
+              className="p-2 -ml-2 text-text-muted hover:text-text-primary rounded-lg transition-colors"
+              title="Close projects"
+            >
+              <i className="ph ph-folder-open text-jasmine-400 text-lg"></i>
+            </button>
             Projects
           </h3>
           <div className="flex items-center gap-1">
             <button
               onClick={() => { onNewProject?.(); onClose(); }}
-              className="p-2 text-text-muted hover:text-text-primary rounded-lg"
+              className="p-2 text-text-muted hover:text-text-primary rounded-lg transition-colors"
               title="New project"
             >
               <i className="ph ph-plus text-lg"></i>
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-text-muted hover:text-text-primary rounded-lg lg:hidden"
+              className="p-2 text-text-muted hover:text-text-primary rounded-lg lg:hidden transition-colors"
             >
               <i className="ph ph-x text-lg"></i>
             </button>
