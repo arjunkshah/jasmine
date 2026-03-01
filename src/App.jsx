@@ -1118,6 +1118,7 @@ function App() {
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
             onToggle={() => setSidebarOpen(false)}
+            user={user}
             projects={projects}
             onLoadProject={loadProject}
             onDeleteProject={handleDeleteProject}

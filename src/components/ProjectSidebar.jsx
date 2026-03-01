@@ -12,6 +12,7 @@ export default function ProjectSidebar({
   onSpinUpSandbox,
   loadingProjects,
   theme,
+  user,
 }) {
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
@@ -40,8 +41,8 @@ export default function ProjectSidebar({
         />
       )}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full flex flex-col bg-surface border-r ${borderCl} shadow-xl transition-transform duration-200 ease-out lg:relative lg:z-auto ${
-          isOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72 lg:w-0 lg:overflow-hidden'
+        className={`fixed left-0 top-0 z-50 h-full flex flex-col bg-surface border-r ${borderCl} shadow-xl lg:relative lg:z-auto w-72 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          isOpen ? 'translate-x-0 lg:w-72' : '-translate-x-full lg:w-0 lg:min-w-0 lg:overflow-hidden'
         }`}
       >
         <div className={`flex-none flex items-center justify-between px-4 py-3 border-b ${borderCl}`}>
@@ -57,7 +58,7 @@ export default function ProjectSidebar({
           </h3>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => { onNewProject?.(); onClose(); }}
+              onClick={() => { onNewProject?.(); if (user) onClose(); }}
               className="p-2 text-text-muted hover:text-text-primary rounded-lg transition-colors"
               title="New project"
             >
