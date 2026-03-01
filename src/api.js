@@ -200,6 +200,7 @@ export function extractHTML(text) {
 const REQUIRED_DEPS = {
   'react-router-dom': '^6.20.0',
   '@phosphor-icons/react': '^2.1.6',
+  'react-intersection-observer': '^9.5.3',
 };
 
 /** Fix common Phosphor icon mistakes (HomeIcon does not exist → HouseIcon). Mutates files in place. */
@@ -283,7 +284,7 @@ const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;
 const FIX_ERRORS_PROMPT = `You are a code reviewer. This Vite + React project may have errors. Fix ALL of them:
 
 1. **Unterminated literals** — Unclosed strings, template literals, JSX tags, or brackets. Add the missing closing characters. Example: \`style={{ color: 'red'\` → \`style={{ color: 'red' }}\`
-2. **Missing package.json dependencies** — If any file imports react-router-dom or @phosphor-icons/react, package.json MUST include them. Add "react-router-dom": "^6.20.0" and "@phosphor-icons/react": "^2.1.6" to dependencies.
+2. **Missing package.json dependencies** — If any file imports react-router-dom, @phosphor-icons/react, or react-intersection-observer, package.json MUST include them. Add "react-router-dom": "^6.20.0", "@phosphor-icons/react": "^2.1.6", "react-intersection-observer": "^9.5.3" to dependencies.
 3. **File not found / phantom imports** — Every import must have a corresponding file. Either create the missing file or remove the import. Check path casing (./pages/Home vs ./pages/home).
 4. **main.jsx casing (CRITICAL)** — JavaScript is case-sensitive. Fix: React (not react), ReactDOM (not reactdom), createRoot (not createroot), getElementById (not getelementbyid), App (not app). Import from './App.jsx' not './app.jsx'. Use <React.StrictMode> not <react.strictmode>.
 5. **Styling errors** — Invalid Tailwind (dark-950 → zinc-950). Wrong Phosphor imports: HomeIcon → HouseIcon (HomeIcon does not exist), Icon → CheckIcon/StarIcon. Invalid class names.

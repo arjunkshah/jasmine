@@ -16,6 +16,7 @@ const SHARED_FILES = {
       'react-dom': '^18.2.0',
       'react-router-dom': '^6.20.0',
       '@phosphor-icons/react': '^2.1.6',
+      'react-intersection-observer': '^9.5.3',
     },
     devDependencies: {
       '@vitejs/plugin-react': '^4.0.0',
