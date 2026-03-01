@@ -19,7 +19,7 @@ export default function E2BBadge({ className = '', showClose = false, onClose })
         <button
           type="button"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
-          className="flex items-center justify-center w-7 h-8 bg-white hover:bg-zinc-100 text-zinc-500 hover:text-black border-l border-zinc-200 shrink-0 transition-colors"
+          className="flex items-center justify-center w-7 h-6 bg-white hover:bg-zinc-100 text-zinc-500 hover:text-black border-l border-zinc-200 shrink-0 transition-colors"
           aria-label="Close badge"
         >
           <i className="ph ph-x text-sm" />
