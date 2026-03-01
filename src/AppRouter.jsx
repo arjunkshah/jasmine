@@ -1,13 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { isClosedAccessGranted } from './pages/ClosedGatePage';
-import WaitlistPage from './pages/WaitlistPage';
 import ClosedGatePage from './pages/ClosedGatePage';
 import App from './App';
 
 export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<WaitlistPage />} />
+      <Route path="/" element={<Navigate to="/closed" replace />} />
       <Route
         path="/closed"
         element={
@@ -18,7 +17,7 @@ export default function AppRouter() {
           )
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/closed" replace />} />
     </Routes>
   );
 }

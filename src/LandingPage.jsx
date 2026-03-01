@@ -144,10 +144,10 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url('/hero-bg.png')` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface/40 to-surface" />
+        <div className={`absolute inset-0 ${isLight ? 'bg-gradient-to-b from-transparent via-surface/40 to-surface' : 'bg-gradient-to-b from-black/40 via-surface/75 to-surface'}`} />
         <div className={`relative ${maxW} w-full`}>
           <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
-            <div>
+            <div className={!isLight ? '[text-shadow:0_1px_2px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.4)]' : ''}>
               <BlurPopUp delay={0}>
                 <p className={`${labelCl} font-display text-3d`}>the world's best designer</p>
               </BlurPopUp>
@@ -155,7 +155,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 <BlurPopUpByWord text="design anything." wordDelay={0.05} />
               </h1>
               <BlurPopUp delay={0.6}>
-                <p className="text-base md:text-lg text-text-secondary leading-[1.6] max-w-lg mb-12">
+                <p className={`text-base md:text-lg leading-[1.6] max-w-lg mb-12 ${isLight ? 'text-text-secondary' : 'text-text-secondary [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]'}`}>
                   describe what you want. jasmine crafts it — every page, every section. the best designer, one prompt.
                 </p>
               </BlurPopUp>
@@ -177,7 +177,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
               </div>
             </div>
             <BlurPopUp delay={1.1} className="relative hidden lg:block">
-              <div className={`${cardCl} rounded-lg p-6 overflow-hidden`}>
+              <div className={`${cardCl} rounded-lg p-6 overflow-hidden ${!isLight ? 'shadow-[0_4px_24px_rgba(0,0,0,0.5)]' : ''}`}>
                 <pre className="text-[12px] font-mono text-text-secondary leading-relaxed overflow-x-auto">
 {`src/
 ├── app/

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const CLOSED_ACCESS_KEY = 'jasmine_closed_access';
 
@@ -112,9 +112,6 @@ export default function ClosedGatePage({ onSuccess }) {
             )}
           </button>
         </form>
-        <p className="mt-6 text-xs text-text-muted text-center">
-          <Link to="/" className="text-jasmine-400 hover:text-jasmine-300">← Back to waitlist</Link>
-        </p>
       </div>
     </div>
   );
