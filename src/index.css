@@ -56,6 +56,19 @@ h1, h2, h3, .font-display {
   letter-spacing: -0.02em;
 }
 
+/* Subtle 3D text effect for headers */
+h1, h2, h3, .text-3d {
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+html.light h1, html.light h2, html.light h3, html.light .text-3d {
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
 body {
   background: var(--color-surface);
   color: var(--color-text-primary);

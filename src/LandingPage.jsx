@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const BENTO_ITEMS = [
-  { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'describe anything', desc: 'law firms, restaurants, saas, portfolios. one prompt. full react project.' },
+  { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'world\'s best designer', desc: 'law firms, restaurants, saas, portfolios. one prompt. jasmine crafts it.' },
   { span: '', icon: 'ph-lightning', title: 'kimi k2', desc: 'blazing fast via groq' },
   { span: '', icon: 'ph-palette', title: 'gemini', desc: 'creative depth' },
   { span: 'md:col-span-2', icon: 'ph-sparkle', title: 'anti-ai-slop craft', desc: 'premium typography, phosphor icons, blur-reveal.' },
@@ -12,7 +12,7 @@ const BENTO_OUTPUT = [
   { span: 'md:col-span-2', icon: 'ph-file-tsx', title: 'typescript', desc: 'strict types, clean interfaces.' },
   { span: '', icon: 'ph-paint-bucket', title: 'tailwind', desc: 'utility-first. consistent spacing.' },
   { span: '', icon: 'ph-rocket-launch', title: 'deploy-ready', desc: 'Netlify. one click.' },
-  { span: 'md:col-span-2 md:row-span-2', icon: 'ph-code', title: 'production code', desc: 'proper structure, components, layouts. ready for your team.' },
+  { span: 'md:col-span-2 md:row-span-2', icon: 'ph-code', title: 'world-class code', desc: 'proper structure, components, layouts. the best designer delivers.' },
   { span: '', icon: 'ph-download-simple', title: 'one-click zip', desc: 'download full project.' },
 ];
 
@@ -39,15 +39,15 @@ const STEPS = [
 const HORIZONTAL_FEATURES = [
   { icon: 'ph-typography', title: 'premium typography', desc: 'curated pairings' },
   { icon: 'ph-palette', title: 'cohesive palettes', desc: 'no clash' },
-  { icon: 'ph-layout', title: 'smart layouts', desc: 'production-ready structure' },
+  { icon: 'ph-layout', title: 'smart layouts', desc: 'world-class structure' },
   { icon: 'ph-file-code', title: 'clean code', desc: 'typescript, src/' },
   { icon: 'ph-download-simple', title: 'one-click export', desc: 'download or deploy to Netlify' },
   { icon: 'ph-device-responsive', title: 'responsive', desc: 'mobile-first' },
 ];
 
 const FAQ_ITEMS = [
-  { q: 'what can i build?', a: 'full react sites for law firms, restaurants, saas, portfolios, agencies — anything you can describe. jasmine crafts production-ready projects with vite, react, tailwind.' },
-  { q: 'how does it work?', a: 'describe your site in one prompt. jasmine uses kimi k2 or gemini to generate a complete react project. edit in real time, then download or deploy to Netlify.' },
+  { q: 'what can i build?', a: 'full sites for law firms, restaurants, saas, portfolios, agencies — anything you can describe. jasmine is the world\'s best designer. vite, react, tailwind.' },
+  { q: 'how does it work?', a: 'describe what you want in one prompt. jasmine — the world\'s best designer — uses kimi k2 or gemini to craft it. edit in real time, download or deploy to Netlify.' },
   { q: 'is it really free?', a: 'yes. generate and export as many projects as you want. no signup, no credit card required.' },
   { q: 'can i use the output commercially?', a: 'absolutely. the code you generate is yours.' },
 ];
@@ -63,7 +63,7 @@ const EXAMPLE_CARDS = [
 
 const STATS = [
   { value: '20s', label: 'average generation time' },
-  { value: '100%', label: 'production-ready' },
+  { value: '100%', label: 'world-class' },
   { value: '0', label: 'setup required' },
   { value: '∞', label: 'projects free' },
 ];
@@ -141,12 +141,12 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
         <div className={`relative ${maxW} w-full transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
             <div>
-              <p className={`${labelCl} font-display`}>ai website designer</p>
+              <p className={`${labelCl} font-display`}>the world's best designer</p>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.1] text-text-primary mb-6 font-display">
                 design anything.
               </h1>
               <p className="text-base md:text-lg text-text-secondary leading-[1.6] max-w-lg mb-12">
-                describe the website you want. jasmine crafts a full react project — every page, every section. production-ready.
+                describe what you want. jasmine crafts it — every page, every section. the best designer, one prompt.
               </p>
               <div className="flex flex-wrap gap-3">
                 <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-8 py-3">
@@ -304,7 +304,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       <section ref={bento2Ref} className={`${sectionCl} py-32 border-t ${borderCl}`}>
         <div className={`${maxW} transition-all duration-700 ${bento2Visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <p className={labelCl}>output quality</p>
-          <h2 className={headingCl}>production-ready. every time.</h2>
+          <h2 className={headingCl}>world-class. every time.</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 [grid-auto-rows:minmax(120px,auto)]">
             {BENTO_OUTPUT.map((item, i) => (
               <div key={i} className={`${item.span} ${cardCl} rounded-lg p-6 flex flex-col justify-between transition-all duration-300 ${bento2Visible ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: `${i * 60}ms` }}>
@@ -421,7 +421,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       <section ref={ctaRef} className={`${sectionCl} py-40 border-t ${borderCl}`}>
         <div className={`${maxW} text-center transition-all duration-700 ${ctaVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <h2 className={headingCl}>ready to design?</h2>
-          <p className="text-base text-text-secondary mb-12">describe it. jasmine crafts it.</p>
+          <p className="text-base text-text-secondary mb-12">the world's best designer. one prompt.</p>
           <button onClick={onStartDesigning} className="btn-premium inline-flex items-center gap-2 text-sm px-10 py-3">
             <i className="ph ph-rocket-launch text-base"></i>
             start designing

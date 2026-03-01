@@ -242,7 +242,7 @@ function AppBody({
                       what will you design today?
                     </h1>
                     <p className="text-text-secondary text-center mb-4 text-base">
-                      describe it. one prompt. full react project.
+                      the world's best designer. one prompt.
                     </p>
                     {(deployUrl || sandboxStarting) && (
                       <div className="mb-6 flex items-center justify-center gap-2">
