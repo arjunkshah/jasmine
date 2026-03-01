@@ -160,7 +160,7 @@ function AppBody({
         </div>
       </header>
 
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 min-w-0">
         {showLanding && !hasOutput ? (
           <LandingPage
             onStartDesigning={onStartDesigning}
@@ -168,8 +168,8 @@ function AppBody({
             theme={theme}
           />
         ) : hasOutput ? (
-          <Group orientation="horizontal" id="jasmine-split" className="flex-1 min-h-0">
-            <Panel defaultSize={35} minSize={25} maxSize={60} className="flex flex-col min-w-0">
+          <Group orientation="horizontal" id="jasmine-split" className="flex-1 min-h-0 min-w-0" resizeTargetMinimumSize={{ fine: 32, coarse: 44 }}>
+            <Panel defaultSize="50" minSize="35" maxSize="75" className="flex flex-col min-w-0 overflow-hidden">
             <div className={`flex flex-1 flex-col min-h-0 border-r ${borderCl}`}>
               <div className={`flex-1 flex flex-col min-w-0 ${hasOutput ? 'flex overflow-hidden' : 'flex items-center justify-center p-6 sm:p-8'}`}>
                 {hasOutput ? (
@@ -391,8 +391,10 @@ function AppBody({
               )}
             </div>
             </Panel>
-            <Separator className={`w-2 flex-shrink-0 bg-transparent hover:bg-white/5 transition-colors data-[resize-handle-active]:bg-jasmine-400/20 ${borderCl} border-r`} />
-            <Panel defaultSize={65} minSize={40} className="flex flex-col min-w-0">
+            <Separator
+              className={`w-6 shrink-0 cursor-col-resize flex items-center justify-center transition-colors hover:bg-white/10 active:bg-jasmine-400/20 ${borderCl} border-r`}
+            />
+            <Panel defaultSize="50" minSize="25" maxSize="65" className="flex flex-col min-w-0 overflow-hidden">
               <div className="flex-1 flex flex-col min-w-0">
                 <div className={`flex-none flex items-center justify-between px-5 h-14 border-b ${borderCl} bg-surface-raised/80 backdrop-blur-xl`}>
                   <div className="flex gap-1">
@@ -1309,7 +1311,7 @@ function App() {
 
   return (
     <div className={`h-screen flex flex-col overflow-hidden font-sans ${base}`}>
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 min-w-0">
         {firebaseConfigured && (
           <ProjectSidebar
             isOpen={sidebarOpen}

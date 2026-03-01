@@ -88,21 +88,23 @@ export default async function handler(req, res) {
       await sandbox.files.write('package.json', BOILERPLATE['package.json']);
     }
 
-    if (useCustomTemplate) {
-      log('Custom template: files written → Vite hot-reload, no restart');
+    // Always run npm install — project package.json may have different deps than template (e.g. react-router-dom).
+    // Skipping install caused "Failed to resolve import react-router-dom" when template lacked it.
+    log('Running npm install...');
+    const installResult = await sandbox.commands.run('npm install');
+    if (installResult.exitCode !== 0) {
+      logErr('npm install failed:', installResult.exitCode, 'stderr:', installResult.stderr?.slice(0, 500));
     } else {
-      log('Running npm install...');
-      const installResult = await sandbox.commands.run('npm install');
-      if (installResult.exitCode !== 0) {
-        logErr('npm install failed:', installResult.exitCode, 'stderr:', installResult.stderr?.slice(0, 500));
-      } else {
-        log('npm install done');
-      }
-      log('Restarting Vite (kill + start)...');
-      await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
-      await new Promise((r) => setTimeout(r, 1500));
-      await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
+      log('npm install done');
     }
+
+    if (useCustomTemplate) {
+      log('Custom template: restarting Vite to pick up new deps');
+    }
+    log('Restarting Vite (kill + start)...');
+    await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
+    await new Promise((r) => setTimeout(r, 1500));
+    await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
 
     const url = `https://${sandbox.getHost(port)}`;
     log('URL:', url, '| waiting', cfg.startupDelayMs, 'ms');
