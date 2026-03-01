@@ -79,8 +79,9 @@ export default function ProjectSidebar({
               Loading projects...
             </div>
           ) : projects.length === 0 ? (
-            <div className={`px-4 py-8 text-center ${textCl} text-sm`}>
-              No projects yet. Generate one to get started.
+            <div className="px-4 py-8 text-center">
+              <img src="/empty-state.png" alt="" className="w-24 h-24 mx-auto mb-3 rounded-lg object-cover opacity-80" />
+              <p className={`${textCl} text-sm`}>No projects yet. Generate one to get started.</p>
             </div>
           ) : (
             <div className="space-y-0.5 px-2">

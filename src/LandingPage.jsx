@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import BlurPopUpByWord from './components/BlurPopUpByWord';
+import BlurPopUp from './components/BlurPopUp';
 
 const BENTO_ITEMS = [
   { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'world\'s best designer', desc: 'law firms, restaurants, saas, portfolios. one prompt. jasmine crafts it.' },
@@ -108,7 +110,6 @@ const headingCl = 'text-2xl md:text-3xl font-semibold text-text-primary mb-4 lea
 const maxW = 'max-w-4xl mx-auto';
 
 function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
-  const [heroRef, heroVisible] = useScrollReveal(0.2);
   const [marqueeRef, marqueeVisible] = useScrollReveal(0.1);
   const [bentoRef, bentoVisible] = useScrollReveal(0.05);
   const [stepsRef, stepsVisible] = useScrollReveal(0.1);
@@ -137,36 +138,44 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
   return (
     <div className="flex-1 overflow-y-auto">
       {/* hero */}
-      <section ref={heroRef} className={`relative min-h-[90vh] flex flex-col justify-center ${sectionCl} overflow-hidden`}>
+      <section className={`relative min-h-[90vh] flex flex-col justify-center ${sectionCl} overflow-hidden`}>
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url('/hero-bg.png')` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface/60 to-surface" />
-        <div className={`relative ${maxW} w-full transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+        <div className={`relative ${maxW} w-full`}>
           <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
             <div>
-              <p className={`${labelCl} font-display text-3d`}>the world's best designer</p>
+              <BlurPopUp delay={0}>
+                <p className={`${labelCl} font-display text-3d`}>the world's best designer</p>
+              </BlurPopUp>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.1] text-text-primary mb-6 font-display text-3d">
-                design anything.
+                <BlurPopUpByWord text="design anything." wordDelay={0.05} />
               </h1>
-              <p className="text-base md:text-lg text-text-secondary leading-[1.6] max-w-lg mb-12">
-                describe what you want. jasmine crafts it — every page, every section. the best designer, one prompt.
-              </p>
+              <BlurPopUp delay={0.6}>
+                <p className="text-base md:text-lg text-text-secondary leading-[1.6] max-w-lg mb-12">
+                  describe what you want. jasmine crafts it — every page, every section. the best designer, one prompt.
+                </p>
+              </BlurPopUp>
               <div className="flex flex-wrap gap-3">
-                <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-8 py-3">
-                  <i className="ph ph-magic-wand text-base"></i>
-                  start designing
-                </button>
-                <button
-                  onClick={() => onSelectPrompt(EXAMPLE_CARDS[0].prompt)}
-                  className="btn-ghost flex items-center gap-2 px-8 py-3 text-sm font-medium text-text-primary"
-                >
-                  try law firm
-                </button>
+                <BlurPopUp delay={0.9}>
+                  <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-8 py-3">
+                    <i className="ph ph-magic-wand text-base"></i>
+                    start designing
+                  </button>
+                </BlurPopUp>
+                <BlurPopUp delay={1}>
+                  <button
+                    onClick={() => onSelectPrompt(EXAMPLE_CARDS[0].prompt)}
+                    className="btn-ghost flex items-center gap-2 px-8 py-3 text-sm font-medium text-text-primary"
+                  >
+                    try law firm
+                  </button>
+                </BlurPopUp>
               </div>
             </div>
-            <div className={`relative hidden lg:block ${heroVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-6'} transition-all duration-700 delay-200`}>
+            <BlurPopUp delay={1.1} className="relative hidden lg:block">
               <div className={`${cardCl} rounded-lg p-6 overflow-hidden`}>
                 <pre className="text-[12px] font-mono text-text-secondary leading-relaxed overflow-x-auto">
 {`src/
@@ -180,7 +189,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 </pre>
                 <p className="text-xs text-text-muted mt-4">vite · react · tailwind</p>
               </div>
-            </div>
+            </BlurPopUp>
           </div>
         </div>
       </section>
@@ -438,8 +447,8 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       <footer className={`${sectionCl} py-20 border-t ${borderCl}`}>
         <div className={`${maxW} flex flex-col md:flex-row items-center justify-between gap-6`}>
           <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg border ${borderCl} flex items-center justify-center`}>
-              <i className="ph ph-sparkle text-sm text-text-primary"></i>
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+              <img src="/logo-mark.png" alt="" className="w-full h-full object-contain" />
             </div>
             <span className="text-sm font-medium text-text-primary">jasmine</span>
           </div>
