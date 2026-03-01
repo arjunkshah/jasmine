@@ -72,12 +72,12 @@ export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSucc
       {/* Left: background + testimonials */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center scale-105"
+          className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1557683316-973673baf926?w=1400&q=85')`,
+            backgroundImage: `url('/auth-bg.png')`,
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/92 via-zinc-900/85 to-jasmine-950/75" />
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/80 via-zinc-900/70 to-transparent" />
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <button
             onClick={onClose}
