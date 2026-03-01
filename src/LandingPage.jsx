@@ -319,8 +319,10 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       </section>
 
       {/* bento 2 */}
-      <section ref={bento2Ref} className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <div className={`${maxW} transition-all duration-700 ${bento2Visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+      <section ref={bento2Ref} className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
+        <div className="absolute inset-0 bg-cover bg-center opacity-[0.12]" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-surface/85 via-surface/95 to-surface" aria-hidden />
+        <div className={`relative ${maxW} transition-all duration-700 ${bento2Visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <p className={labelCl}>output quality</p>
           <h2 className={headingCl}>world-class. every time.</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 [grid-auto-rows:minmax(120px,auto)]">

@@ -36,6 +36,28 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing sandboxId or files' });
   }
 
+  // Ensure package.json has required deps (react-router-dom, @phosphor-icons/react)
+  const pkgRaw = files['package.json'];
+  if (pkgRaw && typeof pkgRaw === 'string') {
+    try {
+      const pkg = JSON.parse(pkgRaw);
+      const deps = pkg.dependencies || {};
+      const required = { 'react-router-dom': '^6.20.0', '@phosphor-icons/react': '^2.1.6' };
+      let changed = false;
+      for (const [name, version] of Object.entries(required)) {
+        if (!deps[name]) {
+          deps[name] = version;
+          changed = true;
+        }
+      }
+      if (changed) {
+        pkg.dependencies = deps;
+        files['package.json'] = JSON.stringify(pkg, null, 2);
+        log('Patched package.json with missing deps');
+      }
+    } catch (_) {}
+  }
+
   try {
     log('Importing E2B SDK...');
     const e2b = await import('e2b/dist/index.mjs');

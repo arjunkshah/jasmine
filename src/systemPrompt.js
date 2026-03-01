@@ -164,7 +164,12 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  server: { host: '0.0.0.0', port: 5173, strictPort: true }
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    hmr: { overlay: false }
+  }
 })
 \`\`\`
 
@@ -189,7 +194,7 @@ export default { plugins: { tailwindcss: {}, autoprefixer: {} } }
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <title>Jasmine App</title>
   </head>
   <body>
@@ -272,7 +277,7 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 6. **Images** — <img src="..." /> or backgroundImage. AI images: {{IMAGE:prompt}}.
 7. **Imports** — Relative paths. Output the file BEFORE importing it. No phantom imports.
 8. **No placeholder content** — Real copy, no Lorem Ipsum.
-9. **Responsive** — Mobile-first, md: and lg: breakpoints.
+9. **Responsive** — CRITICAL. Mobile-first: base styles for mobile, md: for tablet, lg: for desktop. Use min-w-0, overflow-hidden on flex children. Test at 375px, 768px, 1024px. All layouts must work at every viewport.
 10. **Animations** — blur-reveal on load, scroll-triggered, hover states.
 
 ## ZERO ERRORS — CRITICAL (Generated code must RUN without errors)

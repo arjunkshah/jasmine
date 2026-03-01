@@ -196,6 +196,35 @@ export function extractHTML(text) {
   return text;
 }
 
+/** Required deps — always ensure these exist so generated apps don't fail with "Failed to resolve import". */
+const REQUIRED_DEPS = {
+  'react-router-dom': '^6.20.0',
+  '@phosphor-icons/react': '^2.1.6',
+};
+
+/** Ensure package.json has required dependencies. Mutates files in place. */
+export function ensurePackageDependencies(files) {
+  if (!files || typeof files !== 'object') return files;
+  const raw = files['package.json'];
+  if (!raw || typeof raw !== 'string') return files;
+  try {
+    const pkg = JSON.parse(raw);
+    const deps = pkg.dependencies || {};
+    let changed = false;
+    for (const [name, version] of Object.entries(REQUIRED_DEPS)) {
+      if (!deps[name]) {
+        deps[name] = version;
+        changed = true;
+      }
+    }
+    if (changed) {
+      pkg.dependencies = deps;
+      files['package.json'] = JSON.stringify(pkg, null, 2);
+    }
+  } catch (_) {}
+  return files;
+}
+
 /** Parse multi-file output (---FILE:path---). Returns { files: { path: content } } or null. */
 export function extractNextProject(text) {
   const files = {};
@@ -225,6 +254,70 @@ const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;
  * ALWAYS uses Gemini API for images (even when text is from Kimi/Groq).
  * Pass geminiApiKey when available (VITE_GEMINI_API_KEY) so images work with Kimi.
  */
+const FIX_ERRORS_PROMPT = `You are a code reviewer. This Vite + React project may have errors:
+1. **Missing package.json dependencies** — If App.jsx or any file imports react-router-dom or @phosphor-icons/react, package.json MUST include them. Add "react-router-dom": "^6.20.0" and "@phosphor-icons/react": "^2.1.6" to dependencies.
+2. **File not found** — Every import path must have a corresponding output file. Fix or remove broken imports.
+3. **Styling errors** — Invalid Tailwind classes (e.g. dark-950), wrong Phosphor icon imports.
+4. **Missing exports** — Every imported component must exist and be exported.
+5. **Responsive** — Ensure layouts work at 375px, 768px, 1024px. Add min-w-0, overflow-hidden where needed.
+
+Fix ALL errors. Output ONLY the changed files in ---FILE:path--- format. No explanations. If nothing to fix, output a single line: NO_CHANGES_NEEDED.`;
+
+/** Post-generation: use the OTHER model to check and fix errors. Returns merged files or null. */
+export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey) {
+  if (!project?.files || Object.keys(project.files).length === 0) return null;
+  const otherProvider = primaryProvider === 'groq' ? 'gemini' : 'groq';
+  const key = otherProvider === 'groq' ? groqKey : geminiKey;
+  if (!key) return null;
+
+  const raw = projectToRaw(project);
+  const prompt = `${FIX_ERRORS_PROMPT}\n\nCURRENT PROJECT:\n${raw.slice(0, 25000)}`;
+
+  try {
+    let result = '';
+    if (otherProvider === 'groq') {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'moonshotai/kimi-k2-instruct',
+          messages: [{ role: 'user', content: prompt }],
+          stream: false,
+          temperature: 0.2,
+          max_tokens: 16384,
+        }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      result = data.choices?.[0]?.message?.content || '';
+    } else {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: 16384 },
+          }),
+        }
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      result = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    }
+
+    if (result.includes('NO_CHANGES_NEEDED') || !result.trim()) return null;
+    const fixed = extractNextProject(result);
+    if (fixed?.files && Object.keys(fixed.files).length > 0) {
+      return { ...project.files, ...fixed.files };
+    }
+  } catch (e) {
+    console.warn('[Jasmine] fix pass failed:', e?.message);
+  }
+  return null;
+}
+
 export async function replaceImagePlaceholders(text, apiBase = '', geminiApiKey = '') {
   if (!text || typeof text !== 'string') return text;
   const matches = [...text.matchAll(IMAGE_PLACEHOLDER_REGEX)];

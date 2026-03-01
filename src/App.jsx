@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, replaceImagePlaceholders } from './api';
+import { Group, Panel, Separator } from 'react-resizable-panels';
+import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
@@ -166,9 +167,10 @@ function AppBody({
             onSelectPrompt={onSelectPrompt}
             theme={theme}
           />
-        ) : (
-          <>
-            <div className={`flex border-r ${borderCl} transition-all duration-300 ${hasOutput ? 'w-[360px] flex-shrink-0 flex-col' : 'flex-1 min-w-0 flex-col'}`}>
+        ) : hasOutput ? (
+          <Group orientation="horizontal" id="jasmine-split" className="flex-1 min-h-0">
+            <Panel defaultSize={35} minSize={25} maxSize={60} className="flex flex-col min-w-0">
+            <div className={`flex flex-1 flex-col min-h-0 border-r ${borderCl}`}>
               <div className={`flex-1 flex flex-col min-w-0 ${hasOutput ? 'flex overflow-hidden' : 'flex items-center justify-center p-6 sm:p-8'}`}>
                 {hasOutput ? (
                   <>
@@ -388,8 +390,9 @@ function AppBody({
                 </div>
               )}
             </div>
-
-            {hasOutput && (
+            </Panel>
+            <Separator className={`w-2 flex-shrink-0 bg-transparent hover:bg-white/5 transition-colors data-[resize-handle-active]:bg-jasmine-400/20 ${borderCl} border-r`} />
+            <Panel defaultSize={65} minSize={40} className="flex flex-col min-w-0">
               <div className="flex-1 flex flex-col min-w-0">
                 <div className={`flex-none flex items-center justify-between px-5 h-14 border-b ${borderCl} bg-surface-raised/80 backdrop-blur-xl`}>
                   <div className="flex gap-1">
@@ -442,7 +445,7 @@ function AppBody({
                   )}
 
                   {rightTab === 'preview' && (
-                    <div className="absolute inset-0 flex flex-col">
+                    <div className="absolute inset-0 flex flex-col overflow-hidden">
                       {deployUrl ? (
                         <>
                           <div className="flex-none flex items-center justify-between px-3 py-2 border-b border-zinc-800 gap-2">
@@ -491,8 +494,170 @@ function AppBody({
                   )}
                 </div>
               </div>
+            </Panel>
+          </Group>
+        ) : (
+          <div className={`flex-1 flex flex-col min-w-0 border-r ${borderCl}`}>
+            <div className="flex-1 flex flex-col min-w-0 flex items-center justify-center p-6 sm:p-8">
+              <div className="w-full max-w-2xl mx-auto">
+                <button
+                  onClick={() => setShowLanding(true)}
+                  className="text-sm text-text-muted hover:text-text-secondary mb-8"
+                >
+                  ← back to overview
+                </button>
+                <h1 className="text-2xl sm:text-3xl font-medium tracking-[-0.02em] leading-[1.2] text-text-primary mb-4 text-center">
+                  what will you design today?
+                </h1>
+                <p className="text-text-secondary text-center mb-4 text-base">
+                  the world's best designer. one prompt.
+                </p>
+                {(deployUrl || sandboxStarting) && (
+                  <div className="mb-6 flex items-center justify-center gap-2">
+                    {sandboxStarting ? (
+                      <span className="text-sm text-text-muted flex items-center gap-2">
+                        <i className="ph ph-circle-notch animate-spin-slow"></i>
+                        Starting preview sandbox...
+                      </span>
+                    ) : deployUrl ? (
+                      <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1.5 font-medium">
+                        <i className="ph ph-rocket-launch"></i>
+                        Preview live — code applies as you generate
+                      </a>
+                    ) : null}
+                  </div>
+                )}
+                <div className="prompt-container overflow-hidden rounded-xl">
+                <textarea
+                  ref={textareaRef}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="A landing page for a law firm — trustworthy, professional, navy and gold..."
+                  rows={4}
+                  className="w-full px-5 py-4 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none leading-[1.5] tracking-[-0.01em]"
+                />
+                {contextFiles.length > 0 && (
+                  <div className={`px-4 py-2 border-t ${borderCl} flex flex-wrap gap-2`}>
+                    {contextFiles.map((f, i) => (
+                      <span key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-zinc-100 text-zinc-700' : 'bg-white/10 text-text-secondary'}`}>
+                        <i className="ph ph-file-text"></i>
+                        {f.name}
+                        <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary">
+                          <i className="ph ph-x text-sm"></i>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-zinc-600 hover:bg-zinc-100' : 'text-text-muted hover:bg-white/[0.06]'}`}
+                      title="Attach files as context for the AI (txt, md, json, etc.)"
+                    >
+                      <i className="ph ph-paperclip"></i>
+                      Attach
+                    </button>
+                    <div className={`flex items-center rounded-lg p-0.5 border ${borderCl} ${isLight ? 'bg-zinc-100/80' : 'bg-white/[0.04]'}`}>
+                      <button
+                        onClick={() => setProvider('groq')}
+                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                          provider === 'groq' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <i className={`ph ${provider === 'groq' ? 'ph-fill' : 'ph'} ph-lightning text-sm`}></i>
+                          Kimi K2
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setProvider('gemini')}
+                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                          provider === 'gemini' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <i className={`ph ${provider === 'gemini' ? 'ph-fill' : 'ph'} ph-palette text-sm`}></i>
+                          Gemini
+                        </span>
+                      </button>
+                    </div>
+                    <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
+                      {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={firebaseConfigured && !user ? onSignInClick : generate}
+                    disabled={isGenerating}
+                    className="btn-premium flex items-center gap-2 px-8 py-3 text-[#0a0a0b] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <i className="ph ph-circle-notch text-lg animate-spin-slow"></i>
+                        <span>Generating</span>
+                      </>
+                    ) : firebaseConfigured && !user ? (
+                      <>
+                        <i className="ph ph-sign-in text-lg"></i>
+                        <span>Sign in to generate</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="ph ph-magic-wand text-lg"></i>
+                        <span>Generate</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              </div>
+            </div>
+            {(deployUrl || netlifyUrl || error) && (
+              <div className="flex-none space-y-0">
+                {deployUrl && (
+                  <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center justify-between gap-3">
+                    <span>Preview live — code applies as you generate</span>
+                    <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
+                      Open <i className="ph ph-arrow-square-out text-base"></i>
+                    </a>
+                  </div>
+                )}
+                {netlifyUrl && (
+                  <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-jasmine-500/10 border border-jasmine-500/20 text-jasmine-400 text-sm flex items-center justify-between gap-3">
+                    <span>Deployed to Netlify</span>
+                    <a href={netlifyUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
+                      View site <i className="ph ph-rocket-launch text-base"></i>
+                    </a>
+                  </div>
+                )}
+                {error && (
+                  <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <span>{error}</span>
+                      {error.toLowerCase().includes('preview update') ? (
+                        <button onClick={retryPreviewUpdate} className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium">
+                          Retry
+                        </button>
+                      ) : error.toLowerCase().includes('sandbox') ? (
+                        <button onClick={retrySandbox} className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium">
+                          Retry
+                        </button>
+                      ) : null}
+                    </div>
+                    {error.toLowerCase().includes('sandbox') && hasOutput && (
+                      <p className="text-emerald-400/90 text-xs">
+                        Your project is ready — download the ZIP and run <code className="bg-white/10 px-1 rounded">npm install && npm run dev</code> locally.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </>
@@ -552,6 +717,7 @@ function App() {
     if (sandboxId && pendingSandboxApplyRef.current) {
       const files = pendingSandboxApplyRef.current;
       pendingSandboxApplyRef.current = null;
+      ensurePackageDependencies(files);
       (async () => {
         try {
           const apiBase = import.meta.env.VITE_API_URL || '';
@@ -727,6 +893,7 @@ function App() {
     const files = generatedProject?.files;
     const sid = sandboxId;
     if (!sid || !files || Object.keys(files).length === 0) return;
+    ensurePackageDependencies(files);
     setError('');
     try {
       const apiBase = import.meta.env.VITE_API_URL || '';
@@ -868,6 +1035,20 @@ function App() {
       if (project) setGeneratedProject(project);
       setGeneratedHTML(result);
 
+      // Post-generation: use other model to check and fix errors
+      if (project?.files) {
+        const groqKey = import.meta.env.VITE_GROQ_API_KEY || '';
+        const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+        const fixedFiles = await fixProjectErrors(project, provider, groqKey, geminiKey);
+        if (fixedFiles && Object.keys(fixedFiles).length > 0) {
+          project.files = fixedFiles;
+          setGeneratedProject({ ...project, files: fixedFiles });
+        }
+        // Guarantee package.json has react-router-dom, @phosphor-icons/react (model sometimes omits)
+        ensurePackageDependencies(project.files);
+      }
+      // Note: fix pass runs after images; sandbox update below uses latest project.files
+
       if (currentSandboxId && project?.files) {
         let updated = false;
         for (let attempt = 0; attempt < 2 && !updated; attempt++) {
@@ -991,6 +1172,7 @@ function App() {
           replaced[path] = await replaceImagePlaceholders(String(content), apiBase, geminiKey);
         }
         const mergedFiles = { ...(generatedProject?.files || {}), ...replaced };
+        ensurePackageDependencies(mergedFiles);
         setGeneratedProject({ files: mergedFiles });
         if (sandboxId) {
           try {

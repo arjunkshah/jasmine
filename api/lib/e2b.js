@@ -14,6 +14,7 @@ const SHARED_FILES = {
     dependencies: {
       react: '^18.2.0',
       'react-dom': '^18.2.0',
+      'react-router-dom': '^6.20.0',
       '@phosphor-icons/react': '^2.1.6',
     },
     devDependencies: {
