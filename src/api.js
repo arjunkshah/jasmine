@@ -202,6 +202,26 @@ const REQUIRED_DEPS = {
   '@phosphor-icons/react': '^2.1.6',
 };
 
+/** Fix common Phosphor icon mistakes (HomeIcon does not exist → HouseIcon). Mutates files in place. */
+const PHOSPHOR_FIXES = [
+  ['HomeIcon', 'HouseIcon'],
+  ['MailIcon', 'EnvelopeIcon'],
+  ['EmailIcon', 'EnvelopeIcon'],
+];
+
+export function fixPhosphorIcons(files) {
+  if (!files || typeof files !== 'object') return files;
+  for (const [path, content] of Object.entries(files)) {
+    if (typeof content !== 'string' || !path.match(/\.(jsx?|tsx?)$/)) continue;
+    let next = content;
+    for (const [bad, good] of PHOSPHOR_FIXES) {
+      if (next.includes(bad)) next = next.replace(new RegExp(bad.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), good);
+    }
+    if (next !== content) files[path] = next;
+  }
+  return files;
+}
+
 /** Ensure package.json has required dependencies. Mutates files in place. */
 export function ensurePackageDependencies(files) {
   if (!files || typeof files !== 'object') return files;
@@ -266,10 +286,12 @@ const FIX_ERRORS_PROMPT = `You are a code reviewer. This Vite + React project ma
 2. **Missing package.json dependencies** — If any file imports react-router-dom or @phosphor-icons/react, package.json MUST include them. Add "react-router-dom": "^6.20.0" and "@phosphor-icons/react": "^2.1.6" to dependencies.
 3. **File not found / phantom imports** — Every import must have a corresponding file. Either create the missing file or remove the import. Check path casing (./pages/Home vs ./pages/home).
 4. **main.jsx casing (CRITICAL)** — JavaScript is case-sensitive. Fix: React (not react), ReactDOM (not reactdom), createRoot (not createroot), getElementById (not getelementbyid), App (not app). Import from './App.jsx' not './app.jsx'. Use <React.StrictMode> not <react.strictmode>.
-5. **Styling errors** — Invalid Tailwind (dark-950 → zinc-950). Wrong Phosphor imports (Icon → CheckIcon, StarIcon). Invalid class names.
+5. **Styling errors** — Invalid Tailwind (dark-950 → zinc-950). Wrong Phosphor imports: HomeIcon → HouseIcon (HomeIcon does not exist), Icon → CheckIcon/StarIcon. Invalid class names.
 6. **Missing exports** — Every imported component must exist and have export default or export { X }.
 7. **JSON syntax** — package.json: no trailing commas, valid JSON.
 8. **Responsive** — Add min-w-0, overflow-hidden on flex children. Ensure layouts work at 375px, 768px, 1024px.
+9. **Phosphor icons** — HomeIcon does NOT exist. Replace with HouseIcon. Use only valid exports from @phosphor-icons/react (HouseIcon, UserIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, etc.).
+10. **Invalid RegExp** — Fix regex with invalid flags. Valid flags: g, i, m, s, u, y. Remove duplicates or invalid characters.
 
 Output ONLY the changed files in ---FILE:path--- format. Each file must be complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
 
@@ -366,7 +388,7 @@ export async function replaceImagePlaceholders(text, apiBase = '', geminiApiKey 
         if (!res.ok) {
           if (errMsg.includes('key') || errMsg.includes('gemini') || errMsg.includes('required')) {
             skipApi = true;
-            console.warn('[Jasmine] Image gen disabled (no API key). Add VITE_GEMINI_API_KEY in Vercel env. Using placeholders.');
+            console.warn('[Jasmine] Image gen disabled. Add GEMINI_API_KEY or VITE_GEMINI_API_KEY in Vercel env. Using placeholders.');
           } else if (data?.error) console.warn('[Jasmine] image gen:', data.error);
         }
       }

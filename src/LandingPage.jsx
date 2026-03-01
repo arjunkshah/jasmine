@@ -55,12 +55,12 @@ const FAQ_ITEMS = [
 ];
 
 const EXAMPLE_CARDS = [
-  { label: 'law firm', desc: 'professional landing — practice areas, team bios. trustworthy, navy & gold.', prompt: 'Complete law firm website — home, about, practice areas grid, team bios, contact page. Trustworthy, Lora serif, navy and gold. Every page, every section, every animation.' },
-  { label: 'saas', desc: 'developer tool landing — dark mode, feature grid, pricing. vercel-inspired.', prompt: 'Complete SaaS site for a dev tool — landing, features, pricing, docs, dashboard. Dark mode, Vercel-inspired, Space Grotesk. Every page, every section, every animation.' },
-  { label: 'restaurant', desc: 'menu section, reservation cta. warm, appetizing.', prompt: 'Complete restaurant website — home, full menu, reservations, about, contact. Warm, appetizing, DM Sans. Every page, every section, every animation.' },
-  { label: 'gaming studio', desc: 'bold gradients, game showcase. high-energy.', prompt: 'Complete gaming studio site — home, games showcase, team, careers, contact. Bold gradients, Overused Grotesk. Every page, every section, every animation.' },
-  { label: 'meditation app', desc: 'soft, calming. testimonial carousel.', prompt: 'Complete meditation app site — landing, features, testimonial carousel, pricing, download CTA. Soft, calming, Lora serif. Every page, every section, every animation.' },
-  { label: 'creative agency', desc: 'dark editorial, case studies.', prompt: 'Complete creative agency portfolio — home, case studies, about, services, contact. Dark editorial, asymmetric grid. Every page, every section, every animation.' },
+  { label: 'law firm', desc: 'professional landing — practice areas, team bios. trustworthy.', prompt: 'Complete law firm website — home (5+ sections: hero, practice areas, team, testimonials, CTA, footer), about, practice areas grid, team bios, contact. Professional, trustworthy, premium typography. Apply UI tips: layered shadows, tight tracking, 60-30-10 color, generous whitespace. World-class polish.' },
+  { label: 'saas', desc: 'developer tool landing — dark mode, feature grid, pricing.', prompt: 'Complete SaaS site for a dev tool — home (5+ sections: hero, features, social proof, pricing, CTA, footer), features, pricing, docs, dashboard. Dark mode, Vercel-inspired. Apply UI tips: depth, micro-interactions, bento grids. Every page complete.' },
+  { label: 'restaurant', desc: 'menu section, reservation cta. warm, appetizing.', prompt: 'Complete restaurant website — home (5+ sections: hero, menu preview, about, testimonials, reservations CTA, footer), full menu, reservations, about, contact. Warm, appetizing. Apply UI tips: visual rhythm, typography pairing, conversion elements.' },
+  { label: 'gaming studio', desc: 'bold gradients, game showcase. high-energy.', prompt: 'Complete gaming studio site — home (5+ sections: hero, games showcase, team, stats, CTA, footer), games, team, careers, contact. Bold, high-energy. Apply UI tips: asymmetric grids, gradients with purpose, staggered reveals.' },
+  { label: 'meditation app', desc: 'soft, calming. testimonial carousel.', prompt: 'Complete meditation app site — home (5+ sections: hero, features, testimonial carousel, pricing, download CTA, footer). Soft, calming. Apply UI tips: muted palette, blur-to-reveal, single clear CTA per section.' },
+  { label: 'creative agency', desc: 'dark editorial, case studies.', prompt: 'Complete creative agency portfolio — home (5+ sections: hero, case studies, services, testimonials, CTA, footer), case studies, about, services, contact. Dark editorial. Apply UI tips: asymmetric layout, depth, premium typography.' },
 ];
 
 const STATS = [

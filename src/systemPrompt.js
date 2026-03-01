@@ -60,11 +60,12 @@ export const DESIGN_BREAKDOWN_AND_ASSETS = `
 - List every page the product needs. Home, About, Features, Pricing, Contact, etc.
 - Each page gets its own route and component. No skipping.
 
-### 4. PLAN SECTIONS PER PAGE
-- Home: Hero, Features, Testimonials, CTA, Footer
-- About: Header block, story, team grid, values
-- Pricing: Headline, 3-tier cards, FAQ optional
-- etc. Every section = real content, not placeholder.
+### 4. PLAN SECTIONS PER PAGE (CRITICAL — MINIMUM 5 SECTIONS)
+- **Home/landing**: MINIMUM 5 sections. Hero, Features/How it works, Testimonials or Stats, Social proof, CTA, Footer. NEVER a 1-section page that just redirects. Full, comprehensive landing.
+- **About**: Header, story, team grid, values, CTA — 4–5 sections
+- **Pricing**: Headline, 3-tier cards, FAQ, CTA — 4+ sections
+- **Contact**: Can be 3–4 (form, info, map optional)
+- Every section = real content, not placeholder. No shortcuts.
 
 ### 5. PLAN ASSETS TO GENERATE
 - **Hero**: ALWAYS use {{IMAGE:...}}. Product-specific. "law firm office, professional, navy and gold" or "restaurant interior, warm lighting, appetizing".
@@ -104,7 +105,6 @@ For hero/above-fold backgrounds, optimize for typography overlay:
 - **Style**: "Landing page optimized, 16:9, clean edges, minimalist and airy."
 - **Example (soft/cute)**: {{IMAGE:stylized 3D meadow, soft pink yellow purple flowers, vast clear blue sky top 60%, horizon bottom 40%, dreamlike soft-focus, landing page optimized}}
 - **Example (professional)**: {{IMAGE:law office, wood and leather, navy and gold, vast neutral area top for typography, professional, clean}}
-
 ### EXAMPLES BY PRODUCT TYPE
 - **Law firm**: {{IMAGE:professional law office, wood and leather, navy and gold, trustworthy}}
 - **Restaurant**: {{IMAGE:restaurant interior, warm lighting, appetizing, terracotta and cream}}
@@ -285,7 +285,54 @@ export const DHRUV_AND_ANTI_SLOP = `
 - Don't scatter micro-interactions → One well-orchestrated page load with staggered reveals
 - Don't use timid palettes → Commit to a cohesive aesthetic; 60-30-10 rule
 
-**Second-order convergence:** Even "creative" choices converge. After avoiding Inter, models often default to Space Grotesk for everything. Vary: use Lora for law firms, Overused Grotesk for gaming, DM Sans for SaaS. Think outside the box.
+**Second-order convergence:** Even "creative" choices converge. Vary fonts, palettes, and layouts by product type. Think outside the box — don't default to the same look for everything.
+`;
+
+export const UI_TIPS_AND_TRICKS = `
+## UI TIPS & TRICKS — MAKE IT STUNNING (Principles, not prescriptions)
+
+**These are guidelines to elevate design. Apply creatively — don't copy-paste.**
+
+### HIERARCHY & RHYTHM
+- **One dominant element** — Hero headline or hero image. Everything else supports it.
+- **Visual rhythm** — Alternate section backgrounds (light/dark, solid/gradient) for scroll interest.
+- **F-pattern** — Users scan top-left first. Put key info there.
+- **Whitespace as design** — Empty space creates focus. Don't cram.
+
+### DEPTH & DIMENSION
+- **Layered shadows** — Soft, stacked shadows (0 4px, 0 8px, 0 24px) create depth without harshness.
+- **Inner shadows** — Inset shadows on inputs, cards, buttons feel tactile.
+- **Border + shadow combo** — Thin border + soft shadow = premium card.
+- **Gradients with purpose** — Use for mood, not decoration. Subtle > loud.
+
+### TYPOGRAPHY MAGIC
+- **Tight tracking on headlines** — letter-spacing: -0.02em to -0.04em. Feels premium.
+- **Low line-height on headings** — 1.1–1.2. Creates density.
+- **Contrast in weight** — Bold headline + regular body. Or light headline + medium body.
+- **Font pairing** — One display/headline font + one body font. Max 2 families.
+
+### COLOR PSYCHOLOGY
+- **60-30-10 rule** — 60% dominant, 30% secondary, 10% accent. Accent = CTAs, highlights.
+- **Avoid purple default** — Indigo/purple is overused. Pick something that fits the brand.
+- **Muted > saturated** — Softer tones feel premium. Reserve bright for accents.
+- **Dark mode** — zinc-950 base, zinc-800/900 for elevation. Warm grays for text.
+
+### MICRO-INTERACTIONS
+- **Blur-to-reveal on load** — opacity 0→1, blur(12px)→0, translateY(20px)→0. 0.6–0.8s.
+- **Stagger children** — 50–150ms delay per section or card. Cascade effect.
+- **Hover states** — Subtle scale (1.02), shadow increase, or color shift. Not jarring.
+- **Smooth transitions** — 200–300ms, ease-out. Feels responsive.
+
+### LAYOUT TRICKS
+- **Asymmetric grids** — Not everything 3 equal columns. Mix 2+1, 1+2, full-bleed.
+- **Bento grids** — Varied card sizes. More interesting than uniform grid.
+- **Max-width for readability** — 65–75 characters per line. max-w-prose or max-w-2xl for body.
+- **Section padding** — py-16 md:py-24 or py-20 md:py-32. Generous.
+
+### CONVERSION ELEMENTS
+- **Urgency without sleaze** — "No credit card required", "Free forever plan"
+- **Social proof** — "Trusted by X+", logos, testimonials
+- **Single clear CTA** — One primary action per section. Don't overwhelm.
 `;
 
 export const DHRUV_ARTICLE_WORKFLOW = `
@@ -376,6 +423,7 @@ export const DESIGN_CRAFT = `
 ### 2. ICONS
 - **Phosphor Icons ONLY** — import { CheckIcon, StarIcon, ArrowRightIcon } from '@phosphor-icons/react'
 - Each icon is a named export with "Icon" suffix. NEVER import { Icon }.
+- **Valid names only** — HomeIcon does NOT exist → use HouseIcon. Browse phosphoricons.com. Common: HouseIcon, HouseSimpleIcon, UserIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon.
 - **Sizing**: w-4 h-4 (16px) for inline, w-5 h-5 (20px) for buttons, w-6 h-6 (24px) for features
 - **Weight**: "regular" (default), "bold" for emphasis — e.g. weight="bold"
 
@@ -457,7 +505,8 @@ You have the best UI design skills in the world. You have full creative freedom.
 **Style interpretation** — When user says:
 - **Minimalist**: Lots of whitespace, limited palette (2–3 colors), clean typography, few decorative elements
 - **Dark**: Dark bg (zinc-950, slate-900), light text, subtle borders, accent for CTAs
-- **Elegant**: Serif fonts, gold/navy accents, generous spacing, refined shadows
+- **Elegant**: Serif fonts, refined accents, generous spacing, editorial feel
+- **Professional**: Trust-building layout, clear hierarchy, cohesive palette — choose what fits (navy, slate, charcoal, warm neutrals)
 - **Playful**: Rounded shapes, bright accents, friendly copy, bouncy animations
 - **Brutalist**: Raw, bold typography, high contrast, minimal decoration, stark
 - **Retro**: Vintage fonts, muted palette, grain texture, nostalgic imagery
@@ -599,6 +648,7 @@ ${EXAMPLE_RESPONSES}
 ${AESTHETIC_ADAPTATION}
 ${UI_REFERENCES}
 ${DESIGN_CRAFT}
+${UI_TIPS_AND_TRICKS}
 ${SECTION_DESIGN_PATTERNS}
 ${LAYOUT_AND_ACCESSIBILITY}
 ${COMPONENT_SPECIFICS}
@@ -754,7 +804,7 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 1. **src/ directory** — All app code in src/.
 2. **JSX** — Use .jsx for components.
 3. **Tailwind** — Standard colors only (zinc, slate, gray). tailwind.config content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}']
-4. **Phosphor Icons** — import { HouseIcon, CheckIcon, ArrowRightIcon } from '@phosphor-icons/react'. NEVER import { Icon }.
+4. **Phosphor Icons** — import { HouseIcon, CheckIcon, ArrowRightIcon } from '@phosphor-icons/react'. NEVER import { Icon }. HomeIcon does NOT exist → use HouseIcon. Browse phosphoricons.com for valid names.
 5. **Navigation** — react-router-dom: Link, useNavigate, BrowserRouter, Routes, Route. Wrap every Route in <ErrorBoundary>.
 6. **Images** — <img src="..." /> or backgroundImage. AI images: {{IMAGE:prompt}}.
 7. **Imports** — Relative paths. Output the file BEFORE importing it. No phantom imports.
@@ -797,7 +847,7 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 
 ### 5. COMMON ERRORS TO AVOID
 - **NEVER Next.js**: No next, next/link, next/image, src/app/, App Router. Vite + React ONLY.
-- **Phosphor Icons**: NEVER \`import { Icon }\` — use \`import { CheckIcon, StarIcon, HouseIcon }\` etc.
+- **Phosphor Icons**: NEVER \`import { Icon }\` — use \`import { CheckIcon, StarIcon, HouseIcon }\` etc. HomeIcon does NOT exist → HouseIcon. Only use icons from phosphoricons.com.
 - **Component exports**: Every component file MUST have \`export default\` or \`export function\`.
 - **package.json**: MUST include \`@phosphor-icons/react\` and \`react-router-dom\` (for multi-page).
 - **Vite**: No "use client". Use standard React. Use <a> or react-router Link, <img> for images.
@@ -816,12 +866,12 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 9. **File completeness:** Each ---FILE:path--- block contains the ENTIRE file. No truncated output.
 10. **Typography:** NOT Inter. Shadows: soft, no harsh blacks.
 11. **Copy:** No Lorem Ipsum. Real headlines, CTAs, feature copy.
-12. **Sections:** Hero, features, CTA, footer present. Pricing/testimonials if product-type needs them.
+12. **Sections:** MINIMUM 5 sections on home/landing. Hero, features, testimonials/stats, CTA, footer. NEVER 1-section lander. Contact can have 3–4.
 13. **Responsive:** Nav works on mobile (hamburger or stacked). Grids collapse to 1 col.`;
 
 /** Wraps user prompt with full-frontend emphasis. */
 export function enhanceUserPrompt(prompt) {
-  return prompt.trim() + '\n\n[COMPLETE Vite + React project. ZERO ERRORS: (1) Output pages BEFORE App.jsx — every import must have a file. (2) Close all strings, JSX tags, brackets — no unterminated literals. (3) Tailwind: zinc/slate/gray only — no dark-950. (4) Wrap every Route in ErrorBoundary. (5) Each file must be complete — no truncated output. Full, shippable, runnable frontend.]';
+  return prompt.trim() + '\n\n[COMPLETE Vite + React project. COMPREHENSIVE: Minimum 5 sections per main page. Home = Hero + Features + Testimonials/Stats + CTA + Footer. No 1-section landers. Take your time — full, stunning, production-ready. ZERO ERRORS: (1) Output pages BEFORE App.jsx. (2) Close all strings, JSX tags, brackets. (3) Tailwind: zinc/slate/gray only. (4) Wrap every Route in ErrorBoundary. (5) Each file complete — no truncated output.]';
 }
 
 /** System prompt for edit requests — user wants to modify existing code. */

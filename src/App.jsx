@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies } from './api';
+import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, fixPhosphorIcons } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
 import AuthPage from './components/AuthPage';
+import E2BBadge from './components/E2BBadge';
 import ProjectSidebar from './components/ProjectSidebar';
 import { useAuth } from './contexts/AuthContext';
 import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
@@ -720,6 +721,7 @@ function App() {
     if (sandboxId && pendingSandboxApplyRef.current) {
       const files = pendingSandboxApplyRef.current;
       pendingSandboxApplyRef.current = null;
+      fixPhosphorIcons(files);
       ensurePackageDependencies(files);
       (async () => {
         try {
@@ -896,6 +898,7 @@ function App() {
     const files = generatedProject?.files;
     const sid = sandboxId;
     if (!sid || !files || Object.keys(files).length === 0) return;
+    fixPhosphorIcons(files);
     ensurePackageDependencies(files);
     setError('');
     try {
@@ -1047,7 +1050,7 @@ function App() {
           project.files = fixedFiles;
           setGeneratedProject({ ...project, files: fixedFiles });
         }
-        // Guarantee package.json has react-router-dom, @phosphor-icons/react (model sometimes omits)
+        fixPhosphorIcons(project.files);
         ensurePackageDependencies(project.files);
       }
       // Note: fix pass runs after images; sandbox update below uses latest project.files
@@ -1176,6 +1179,7 @@ function App() {
           replaced[path] = await replaceImagePlaceholders(String(content), apiBase, geminiKey);
         }
         const mergedFiles = { ...(generatedProject?.files || {}), ...replaced };
+        fixPhosphorIcons(mergedFiles);
         ensurePackageDependencies(mergedFiles);
         setGeneratedProject({ files: mergedFiles });
         if (sandboxId) {
@@ -1345,21 +1349,14 @@ function App() {
         />
       )}
       {!e2bBadgeDismissed && (
-        <div className={`fixed bottom-4 left-4 z-50 flex items-center gap-1 rounded-lg border ${theme === 'light' ? 'border-zinc-200 bg-white/95' : 'border-white/10 bg-surface/95'} backdrop-blur-sm shadow-lg p-1.5 pr-1`}>
-          <a href="https://e2b.dev/startups" target="_blank" rel="noopener noreferrer" className="shrink-0" title="Sponsored by E2B for Startups">
-            <img src="https://img.shields.io/badge/SPONSORED%20BY-E2B%20FOR%20STARTUPS-ff8800?style=for-the-badge" alt="Sponsored by E2B for Startups" className="h-6" />
-          </a>
-          <button
-            type="button"
-            onClick={() => {
+        <div className={`fixed bottom-4 left-4 z-50 flex items-center rounded-lg border ${theme === 'light' ? 'border-zinc-200 bg-white shadow-lg' : 'border-white/10 bg-surface/95 backdrop-blur-sm shadow-lg'}`}>
+          <E2BBadge
+            showClose
+            onClose={() => {
               setE2bBadgeDismissed(true);
               localStorage.setItem('jasmine_e2b_badge_dismissed', 'true');
             }}
-            className="p-1 rounded hover:bg-white/10 text-text-muted hover:text-text-primary transition-colors"
-            aria-label="Close badge"
-          >
-            <i className="ph ph-x text-sm"></i>
-          </button>
+          />
         </div>
       )}
     </div>
