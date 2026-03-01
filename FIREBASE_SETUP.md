@@ -61,7 +61,10 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
 VITE_FIREBASE_APP_ID=your-app-id
+VITE_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX   # Optional: for analytics (generations, edits, deploys)
 ```
+
+**Analytics:** Enable Google Analytics in Firebase Console → Project settings → Integrations. Copy the `measurementId` (starts with `G-`) into `VITE_FIREBASE_MEASUREMENT_ID` to track generations, edits, and deploys.
 
 ## 7. Authorized domains
 

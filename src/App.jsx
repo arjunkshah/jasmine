@@ -10,6 +10,7 @@ import StatusBubble from './components/StatusBubble';
 import ProjectSidebar from './components/ProjectSidebar';
 import { useAuth } from './contexts/AuthContext';
 import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
+import { trackGeneration, trackEdit, trackDeploy } from './lib/analytics';
 
 async function parseJsonResponse(res) {
   const text = await res.text();
@@ -51,6 +52,10 @@ function AppBody({
   sendChatMessage,
   contextFiles,
   setContextFiles,
+  searchContext = [],
+  setSearchContext = () => {},
+  isSearching = false,
+  setIsSearching = () => {},
   fileInputRef,
   downloadProject,
   deployToNetlify,
@@ -552,7 +557,7 @@ function AppBody({
                   rows={4}
                   className="w-full px-5 py-4 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none leading-[1.5] tracking-[-0.01em]"
                 />
-                {(contextFiles.length > 0 || searchContext.length > 0) && (
+                {(contextFiles.length > 0 || (searchContext?.length ?? 0) > 0) && (
                   <div className={`px-4 py-2 border-t ${borderCl} flex flex-wrap gap-2`}>
                     {contextFiles.map((f, i) => (
                       <span key={`f-${i}`} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-zinc-100 text-zinc-700' : 'bg-white/10 text-text-secondary'}`}>
@@ -563,10 +568,10 @@ function AppBody({
                         </button>
                       </span>
                     ))}
-                    {searchContext.length > 0 && (
+                    {(searchContext?.length ?? 0) > 0 && (
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-500/20 text-emerald-400'}`}>
                         <i className="ph ph-magnifying-glass"></i>
-                        {searchContext.length} results
+                        {searchContext?.length ?? 0} results
                         <button type="button" onClick={() => setSearchContext([])} className="hover:opacity-80">
                           <i className="ph ph-x text-sm"></i>
                         </button>
@@ -1140,6 +1145,7 @@ function App() {
       }
 
       console.log('[Jasmine] generate complete', project ? Object.keys(project.files).length + ' files' : 'no project');
+      trackGeneration({ provider, fileCount: project?.files ? Object.keys(project.files).length : 0, hasContextFiles: contextFiles?.length > 0, hasSearchContext: searchContext?.length > 0 });
       setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }]);
       if (firebaseConfigured && user && project?.files) {
         const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }];
@@ -1186,6 +1192,7 @@ function App() {
       const data = await parseJsonResponse(res);
       if (data.success && data.url) {
         setNetlifyUrl(data.url);
+        trackDeploy({ platform: 'netlify' });
       } else {
         setError(data?.error || 'Deploy failed');
       }
@@ -1264,6 +1271,7 @@ function App() {
       }
       setGeneratedHTML(result);
       console.log('[Jasmine] edit complete', project?.files ? Object.keys(project.files).length + ' files' : '');
+      if (project?.files) trackEdit({ provider, fileCount: Object.keys(project.files).length });
       const summary = extractEditSummary(result);
       setChatMessages((prev) => [...prev, { role: 'assistant', content: summary || 'Done. Check the Files tab.' }]);
       setRightTab('files');
@@ -1355,6 +1363,10 @@ function App() {
   sendChatMessage,
   contextFiles,
   setContextFiles,
+  searchContext,
+  setSearchContext,
+  isSearching,
+  setIsSearching,
   fileInputRef,
   downloadProject,
     deployToNetlify,
