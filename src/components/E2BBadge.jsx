@@ -5,15 +5,15 @@ const E2B_BADGE_URL = 'https://uilwcam5kj.ufs.sh/f/pcCLEhYqZ204w1rLMw40tuZMShPRc
  */
 export default function E2BBadge({ className = '', showClose = false, onClose }) {
   return (
-    <div className={`inline-flex items-stretch overflow-hidden ${className}`}>
+    <div className={`inline-flex items-stretch overflow-hidden gap-0 ${className}`}>
       <a
         href="https://e2b.dev/startups"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center shrink-0 hover:opacity-90 transition-opacity"
+        className="flex items-center shrink-0 p-0 m-0 hover:opacity-90 transition-opacity"
         title="Sponsored by E2B for Startups"
       >
-        <img src={E2B_BADGE_URL} alt="E2B for Startups" className="h-6 block" />
+        <img src={E2B_BADGE_URL} alt="E2B for Startups" className="h-6 block m-0 p-0 align-middle" />
       </a>
       {showClose && onClose && (
         <button

@@ -1349,7 +1349,7 @@ function App() {
         />
       )}
       {!e2bBadgeDismissed && (
-        <div className={`fixed bottom-4 left-4 z-50 flex items-center border ${theme === 'light' ? 'border-zinc-200 bg-white shadow-lg' : 'border-white/10 bg-surface/95 backdrop-blur-sm shadow-lg'}`}>
+        <div className="fixed bottom-4 left-4 z-50 flex items-center border border-zinc-200 bg-white shadow-lg">
           <E2BBadge
             showClose
             onClose={() => setE2bBadgeDismissed(true)}
