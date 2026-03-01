@@ -149,13 +149,13 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 describe the website you want. jasmine crafts a full react project — every page, every section. production-ready.
               </p>
               <div className="flex flex-wrap gap-3">
-                <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-5 py-2.5">
+                <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-8 py-3">
                   <i className="ph ph-magic-wand text-base"></i>
                   start designing
                 </button>
                 <button
                   onClick={() => onSelectPrompt(EXAMPLE_CARDS[0].prompt)}
-                  className="btn-ghost flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-text-primary"
+                  className="btn-ghost flex items-center gap-2 px-8 py-3 text-sm font-medium text-text-primary"
                 >
                   try law firm
                 </button>
@@ -422,7 +422,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
         <div className={`${maxW} text-center transition-all duration-700 ${ctaVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <h2 className={headingCl}>ready to design?</h2>
           <p className="text-base text-text-secondary mb-12">describe it. jasmine crafts it.</p>
-          <button onClick={onStartDesigning} className="btn-premium inline-flex items-center gap-2 text-sm px-8 py-3">
+          <button onClick={onStartDesigning} className="btn-premium inline-flex items-center gap-2 text-sm px-10 py-3">
             <i className="ph ph-rocket-launch text-base"></i>
             start designing
           </button>

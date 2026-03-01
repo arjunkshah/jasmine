@@ -224,7 +224,7 @@ function AppBody({
                           placeholder="Make the header darker..."
                           className={`flex-1 px-4 py-2.5 rounded-xl text-sm border ${borderCl} text-text-primary placeholder:text-text-muted focus:outline-none ${isLight ? 'bg-zinc-50' : 'bg-white/[0.04]'}`}
                         />
-                        <button onClick={sendChatMessage} disabled={!chatInput.trim() || isEditing} className="btn-premium px-4 py-2.5 text-sm disabled:opacity-40">
+                        <button onClick={sendChatMessage} disabled={!chatInput.trim() || isEditing} className="btn-premium px-6 py-2.5 text-sm disabled:opacity-40">
                           <i className="ph ph-paper-plane-tilt"></i>
                         </button>
                       </div>
@@ -325,7 +325,7 @@ function AppBody({
                         type="button"
                         onClick={generate}
                         disabled={isGenerating}
-                        className="btn-premium flex items-center gap-2 text-[#0a0a0b] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none"
+                        className="btn-premium flex items-center gap-2 px-8 py-3 text-[#0a0a0b] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none"
                       >
                         {isGenerating ? (
                           <>
