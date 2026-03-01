@@ -196,12 +196,56 @@ export function extractHTML(text) {
   return text;
 }
 
-/** Required deps — always ensure these exist so generated apps don't fail with "Failed to resolve import". */
-const REQUIRED_DEPS = {
+/** Known package versions — used when adding deps from imports. */
+const KNOWN_PACKAGE_VERSIONS = {
   'react-router-dom': '^6.20.0',
   '@phosphor-icons/react': '^2.1.6',
   'react-intersection-observer': '^9.5.3',
+  'framer-motion': '^11.0.0',
+  'lucide-react': '^0.400.0',
+  'clsx': '^2.1.0',
+  'tailwind-merge': '^2.2.0',
+  'date-fns': '^3.0.0',
+  'recharts': '^2.12.0',
+  'react-hot-toast': '^2.4.1',
+  'sonner': '^1.4.0',
+  'vaul': '^0.9.0',
+  '@radix-ui/react-dialog': '^1.0.5',
+  '@radix-ui/react-dropdown-menu': '^2.0.6',
+  '@radix-ui/react-tabs': '^1.0.4',
+  '@radix-ui/react-tooltip': '^1.0.7',
+  'class-variance-authority': '^0.7.0',
 };
+
+/** Normalize import to base package name (e.g. "lucide-react/icons" → "lucide-react"). */
+function toBasePackage(spec) {
+  if (spec.startsWith('@')) {
+    const parts = spec.split('/');
+    return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : spec;
+  }
+  return spec.split('/')[0] || spec;
+}
+
+/** Extract npm package names from import/require statements. Skips relative paths and built-ins. */
+function extractImportedPackages(files) {
+  const packages = new Set();
+  const re = /(?:from|import)\s+['"]([^'"]+)['"]|require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+  const skipPrefixes = ['.', '/', '@/', '~'];
+  const skipExact = new Set(['react', 'react-dom']);
+  for (const content of Object.values(files || {})) {
+    if (typeof content !== 'string') continue;
+    let m;
+    re.lastIndex = 0;
+    while ((m = re.exec(content)) !== null) {
+      const raw = (m[1] || m[2] || '').trim();
+      if (!raw) continue;
+      if (skipPrefixes.some((p) => raw === p || raw.startsWith(p))) continue;
+      if (skipExact.has(raw)) continue;
+      packages.add(toBasePackage(raw));
+    }
+  }
+  return packages;
+}
 
 /** Fix common Phosphor icon mistakes (HomeIcon does not exist → HouseIcon). Mutates files in place. */
 const PHOSPHOR_FIXES = [
@@ -223,18 +267,19 @@ export function fixPhosphorIcons(files) {
   return files;
 }
 
-/** Ensure package.json has required dependencies. Mutates files in place. */
+/** Ensure package.json has all dependencies used in imports. Mutates files in place. */
 export function ensurePackageDependencies(files) {
   if (!files || typeof files !== 'object') return files;
   const raw = files['package.json'];
   if (!raw || typeof raw !== 'string') return files;
   try {
     const pkg = JSON.parse(raw);
-    const deps = pkg.dependencies || {};
+    const deps = { ...(pkg.dependencies || {}) };
+    const imported = extractImportedPackages(files);
     let changed = false;
-    for (const [name, version] of Object.entries(REQUIRED_DEPS)) {
+    for (const name of imported) {
       if (!deps[name]) {
-        deps[name] = version;
+        deps[name] = KNOWN_PACKAGE_VERSIONS[name] ?? '^1.0.0';
         changed = true;
       }
     }
@@ -281,33 +326,37 @@ const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;
  * ALWAYS uses Gemini API for images (even when text is from Kimi/Groq).
  * Pass geminiApiKey when available (VITE_GEMINI_API_KEY) so images work with Kimi.
  */
-const FIX_ERRORS_PROMPT = `You are a code reviewer. This Vite + React project may have errors. Fix ALL of them:
+const FIX_ERRORS_PROMPT = `You are a code reviewer. Review this Vite + React project and fix ALL errors.
 
-1. **Unterminated literals** — Unclosed strings, template literals, JSX tags, or brackets. Add the missing closing characters. Example: \`style={{ color: 'red'\` → \`style={{ color: 'red' }}\`
-2. **Missing package.json dependencies** — If any file imports react-router-dom, @phosphor-icons/react, or react-intersection-observer, package.json MUST include them. Add "react-router-dom": "^6.20.0", "@phosphor-icons/react": "^2.1.6", "react-intersection-observer": "^9.5.3" to dependencies.
-3. **File not found / phantom imports** — Every import must have a corresponding file. Either create the missing file or remove the import. Check path casing (./pages/Home vs ./pages/home).
-4. **main.jsx casing (CRITICAL)** — JavaScript is case-sensitive. Fix: React (not react), ReactDOM (not reactdom), createRoot (not createroot), getElementById (not getelementbyid), App (not app). Import from './App.jsx' not './app.jsx'. Use <React.StrictMode> not <react.strictmode>.
-5. **Styling errors** — Invalid Tailwind (dark-950 → zinc-950). Wrong Phosphor imports: HomeIcon → HouseIcon (HomeIcon does not exist), Icon → CheckIcon/StarIcon. Invalid class names.
-6. **Missing exports** — Every imported component must exist and have export default or export { X }.
-7. **JSON syntax** — package.json: no trailing commas, valid JSON.
-8. **Responsive** — Add min-w-0, overflow-hidden on flex children. Ensure layouts work at 375px, 768px, 1024px.
-9. **Phosphor icons** — HomeIcon does NOT exist. Replace with HouseIcon. Use only valid exports from @phosphor-icons/react (HouseIcon, UserIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, etc.).
-10. **Invalid RegExp** — Fix regex with invalid flags. Valid flags: g, i, m, s, u, y. Remove duplicates or invalid characters.
+## DEPENDENCIES (CRITICAL)
+Scan EVERY file for import/require statements. For each npm package (not relative paths like ./ or ../):
+- If package.json dependencies does NOT include it, ADD it with a sensible version.
+- Use common versions: react-router-dom ^6.20.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, lucide-react ^0.400.0, @radix-ui/* ^1.0.0. For unknown packages use ^1.0.0.
+- NEVER remove a dependency that is imported. ALWAYS add missing ones.
 
-Output ONLY the changed files in ---FILE:path--- format. Each file must be complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
+## OTHER FIXES
+1. **Unterminated literals** — Unclosed strings, template literals, JSX tags, brackets.
+2. **File not found / phantom imports** — Every import must have a corresponding file. Create the file or remove the import. Check path casing.
+3. **main.jsx casing** — React, ReactDOM, createRoot, getElementById, App — exact casing. Import from './App.jsx'.
+4. **Styling** — Invalid Tailwind (dark-950 → zinc-950). Phosphor: HomeIcon → HouseIcon.
+5. **Missing exports** — Every imported component must exist with export default or export { X }.
+6. **package.json** — Valid JSON, no trailing commas.
+7. **Responsive** — min-w-0, overflow-hidden on flex children.
+8. **Phosphor icons** — Use HouseIcon, UserIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon.
+9. **Invalid RegExp** — Valid flags: g, i, m, s, u, y.
 
-/** Post-generation: use the OTHER model to check and fix errors. Returns merged files or null. */
+Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
+
+/** Post-generation: use the OTHER model to review and fix errors. Runs up to 2 passes. Returns merged files or null. */
 export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey) {
   if (!project?.files || Object.keys(project.files).length === 0) return null;
   const otherProvider = primaryProvider === 'groq' ? 'gemini' : 'groq';
   const key = otherProvider === 'groq' ? groqKey : geminiKey;
   if (!key) return null;
 
-  const raw = projectToRaw(project);
-  const prompt = `${FIX_ERRORS_PROMPT}\n\nCURRENT PROJECT:\n${raw.slice(0, 25000)}`;
-
-  try {
-    let result = '';
+  const runFix = async (files) => {
+    const raw = projectToRaw({ files });
+    const prompt = `${FIX_ERRORS_PROMPT}\n\nCURRENT PROJECT:\n${raw.slice(0, 25000)}`;
     if (otherProvider === 'groq') {
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -322,29 +371,37 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
       });
       if (!res.ok) return null;
       const data = await res.json();
-      result = data.choices?.[0]?.message?.content || '';
-    } else {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 16384 },
-          }),
-        }
-      );
-      if (!res.ok) return null;
-      const data = await res.json();
-      result = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      return data.choices?.[0]?.message?.content || '';
     }
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 16384 },
+        }),
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  };
 
-    if (result.includes('NO_CHANGES_NEEDED') || !result.trim()) return null;
-    const fixed = extractNextProject(result);
-    if (fixed?.files && Object.keys(fixed.files).length > 0) {
-      return { ...project.files, ...fixed.files };
+  try {
+    let current = { ...project.files };
+    let madeChanges = false;
+    for (let pass = 0; pass < 2; pass++) {
+      const result = await runFix(current);
+      if (!result || result.includes('NO_CHANGES_NEEDED')) break;
+      const fixed = extractNextProject(result);
+      if (!fixed?.files || Object.keys(fixed.files).length === 0) break;
+      current = { ...current, ...fixed.files };
+      ensurePackageDependencies(current);
+      madeChanges = true;
     }
+    return madeChanges ? current : null;
   } catch (e) {
     console.warn('[Jasmine] fix pass failed:', e?.message);
   }
