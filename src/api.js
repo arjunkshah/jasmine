@@ -310,6 +310,15 @@ export function ensurePackageDependencies(files) {
   return files;
 }
 
+/** Extract summary from edit response (text before first ---FILE:---). */
+export function extractEditSummary(text) {
+  if (!text || typeof text !== 'string') return null;
+  const idx = text.indexOf('---FILE:');
+  if (idx < 0) return text.trim() || null;
+  const summary = text.slice(0, idx).trim();
+  return summary.length > 0 ? summary : null;
+}
+
 /** Parse multi-file output (---FILE:path---). Returns { files: { path: content } } or null. */
 export function extractNextProject(text) {
   if (!text || typeof text !== 'string') return null;

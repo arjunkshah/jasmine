@@ -848,7 +848,14 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 - If one page has a runtime error, only that route shows "Something went wrong" — nav, other pages, layout keep working.
 - Always output ErrorBoundary.jsx and use it for every Route element.
 
-### 5. COMMON ERRORS TO AVOID
+### 5. COMPLETENESS — OPEN-LOVABLE STYLE (CRITICAL)
+- **NEVER truncate.** Every file must be 100% complete. No "...", no "// rest of component", no cutting mid-JSX.
+- **Output EVERY file.** Before outputting App.jsx, list every import. Each import = a file you MUST output. No phantom imports.
+- **Order matters.** Output: index.html, package.json, vite.config, tailwind, postcss, index.css, then ALL page components, then App.jsx, then main.jsx. App.jsx imports must reference files already in your output.
+- **More is better.** If unsure, output the file. A complete small project beats a truncated large one.
+- **File size:** Typical page = 80–200 lines. Hero section = 40–80 lines. Do not compress into 20-line stubs.
+
+### 6. COMMON ERRORS TO AVOID
 - **NEVER Next.js**: No next, next/link, next/image, src/app/, App Router. Vite + React ONLY.
 - **Phosphor Icons**: NEVER \`import { Icon }\` — use \`import { CheckIcon, StarIcon, HouseIcon }\` etc. HomeIcon does NOT exist → HouseIcon. Only use icons from phosphoricons.com.
 - **Component exports**: Every component file MUST have \`export default\` or \`export function\`.
@@ -858,6 +865,7 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 
 ## BEFORE OUTPUT — VALIDATION CHECKLIST (run every time)
 
+0. **Completeness:** Did I output ENOUGH? Each page should have real content. No 10-line stubs. No truncated files.
 1. **Import audit:** For every file with imports, list each import path. For each: "File X exists in my output: YES/NO." All must be YES.
 2. **Output order:** Did I output all pages before App.jsx? App.jsx imports must reference files already output.
 3. **Syntax audit:** Every string, template literal, JSX tag, and bracket is closed. No unterminated literals.
@@ -872,9 +880,18 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 12. **Sections:** MINIMUM 5 sections on home/landing. Hero, features, testimonials/stats, CTA, footer. NEVER 1-section lander. Contact can have 3–4.
 13. **Responsive:** Nav works on mobile (hamburger or stacked). Grids collapse to 1 col.`;
 
-/** Wraps user prompt with full-frontend emphasis. */
+/** Wraps user prompt with full-frontend emphasis. Open-lovable style: complete, no truncation. */
 export function enhanceUserPrompt(prompt) {
-  return prompt.trim() + '\n\n[COMPLETE Vite + React project. COMPREHENSIVE: Minimum 5 sections per main page. Home = Hero + Features + Testimonials/Stats + CTA + Footer. No 1-section landers. Take your time — full, stunning, production-ready. ZERO ERRORS: (1) Output pages BEFORE App.jsx. (2) Close all strings, JSX tags, brackets. (3) Tailwind: zinc/slate/gray only. (4) Wrap every Route in ErrorBoundary. (5) Each file complete — no truncated output.]';
+  return prompt.trim() + `
+
+[CRITICAL — OPEN-LOVABLE STYLE: Generate ENOUGH code. Never truncate. Every file FULLY complete.
+- Output EVERY file the project needs. No phantom imports. If App.jsx imports ./pages/Home, you MUST output pages/Home.jsx.
+- Each ---FILE:path--- block = ENTIRE file. No "..." or "// rest of file". No cutting off mid-function.
+- Prefer MORE code over less. Better to output 20 complete files than 10 truncated ones.
+- Minimum 5 sections per main page. Home = Hero + Features + Testimonials/Stats + CTA + Footer.
+- Output order: pages FIRST, then App.jsx, then main.jsx. Every import must reference a file you already output.
+- ZERO ERRORS: Close all strings, JSX tags, brackets. Tailwind: zinc/slate/gray only. Wrap every Route in ErrorBoundary.
+- Take your time. Full, shippable, production-ready.]`;
 }
 
 /** System prompt for edit requests — user wants to modify existing code. */
@@ -888,13 +905,22 @@ CRITICAL: Make MINIMAL, TARGETED edits. Only change what the user asked for.
 - If they want to change one component → output ONLY that file
 - Never regenerate the entire project. Output ONLY the files you actually modified.
 
+**RESPONSE FORMAT — You MUST start with a brief, friendly summary (1–3 sentences) of what you changed.** Write as if talking to the user. Examples:
+- "I've darkened the header by updating the nav background to zinc-800 and added a subtle shadow. The CTA button now uses a warmer amber accent."
+- "Added a pricing section with three tiers. The middle tier is highlighted as 'Popular'. Also updated the footer links."
+- "Changed to light mode — updated the background, text colors, and card styles across the main pages."
+
+Then a blank line, then the ---FILE:path--- blocks. The summary helps the user understand your changes before they check the files.
+
 Phosphor Icons: import { CheckIcon, StarIcon } from '@phosphor-icons/react'. NEVER import { Icon }.
 NO PHANTOM IMPORTS: Output pages BEFORE App.jsx. Every import = a file you output. 1:1 rule.
 Tailwind: zinc, slate, gray only. Never dark-950, dark-900 — use zinc-950, slate-900.
 ErrorBoundary: Wrap every Route element in <ErrorBoundary> so one broken page does not crash the app.
 Images: Use {{IMAGE:descriptive prompt}} for custom visuals.
 
-Output format (same as generation):
+Output format:
+[Your 1–3 sentence summary here. Be specific about what changed.]
+
 ---FILE:path/to/file.jsx---
 \`\`\`jsx
 // full file content with your minimal edit applied

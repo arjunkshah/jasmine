@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, fixPhosphorIcons, webSearch } from './api';
+import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, extractEditSummary, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, fixPhosphorIcons, webSearch } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
 import AuthPage from './components/AuthPage';
 import E2BBadge from './components/E2BBadge';
+import StatusBubble from './components/StatusBubble';
 import ProjectSidebar from './components/ProjectSidebar';
 import { useAuth } from './contexts/AuthContext';
 import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
@@ -181,11 +182,22 @@ function AppBody({
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                       {chatMessages.map((m, i) => (
-                        <div key={i} className={`text-sm ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
-                          <div className={`inline-block max-w-[90%] px-3 py-2 rounded-xl ${m.role === 'user' ? (isLight ? 'bg-zinc-200 text-zinc-900' : 'bg-white/10 text-text-primary') : (isLight ? 'bg-zinc-100 border border-zinc-200 text-zinc-600' : 'bg-white/[0.04] border border-white/[0.06] text-text-secondary')}`}>
-                            {m.content}
+                        m.role === 'status' ? (
+                          <StatusBubble
+                            key={i}
+                            message={m.message || m.content}
+                            details={m.details}
+                            icon={m.icon}
+                            isLight={isLight}
+                            detailLabel={m.detailLabel}
+                          />
+                        ) : (
+                          <div key={i} className={`text-sm ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
+                            <div className={`inline-block max-w-[90%] px-3 py-2 rounded-xl ${m.role === 'user' ? (isLight ? 'bg-zinc-200 text-zinc-900' : 'bg-white/10 text-text-primary') : (isLight ? 'bg-zinc-100 border border-zinc-200 text-zinc-600' : 'bg-white/[0.04] border border-white/[0.06] text-text-secondary')}`}>
+                              {m.content}
+                            </div>
                           </div>
-                        </div>
+                        )
                       ))}
                       {isEditing && (
                         <div className="text-left">
@@ -1092,6 +1104,16 @@ function App() {
       // Note: fix pass runs after images; sandbox update below uses latest project.files
 
       if (currentSandboxId && project?.files) {
+        const deps = (() => {
+          try {
+            const pkg = JSON.parse(project.files['package.json'] || '{}');
+            return Object.keys(pkg.dependencies || {});
+          } catch { return []; }
+        })();
+        if (deps.length > 0) {
+          setChatMessages((prev) => [...prev, { role: 'status', message: 'Installing dependencies', details: deps, icon: 'ph-package', detailLabel: 'packages' }]);
+        }
+        setChatMessages((prev) => [...prev, { role: 'status', message: 'Applying to preview', details: [`${Object.keys(project.files).length} files`], icon: 'ph-upload-simple', detailLabel: 'files' }]);
         let updated = false;
         for (let attempt = 0; attempt < 2 && !updated; attempt++) {
           try {
@@ -1220,6 +1242,16 @@ function App() {
         setGeneratedProject({ files: mergedFiles });
         if (sandboxId) {
           try {
+            const deps = (() => {
+              try {
+                const pkg = JSON.parse(mergedFiles['package.json'] || '{}');
+                return Object.keys(pkg.dependencies || {});
+              } catch { return []; }
+            })();
+            if (deps.length > 0) {
+              setChatMessages((prev) => [...prev, { role: 'status', message: 'Installing dependencies', details: deps, icon: 'ph-package', detailLabel: 'packages' }]);
+            }
+            setChatMessages((prev) => [...prev, { role: 'status', message: 'Applying to preview', details: [`${Object.keys(mergedFiles).length} files`], icon: 'ph-upload-simple', detailLabel: 'files' }]);
             await fetch(`${apiBase}/api/sandbox/update`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1232,7 +1264,8 @@ function App() {
       }
       setGeneratedHTML(result);
       console.log('[Jasmine] edit complete', project?.files ? Object.keys(project.files).length + ' files' : '');
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'Done. Check the Files tab.' }]);
+      const summary = extractEditSummary(result);
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: summary || 'Done. Check the Files tab.' }]);
       setRightTab('files');
       if (firebaseConfigured && user) debouncedSave();
     } catch (err) {
