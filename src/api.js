@@ -13,6 +13,51 @@ function buildContextBlock(files, searchContext = null) {
   return parts.join('');
 }
 
+/** Ask the AI if it needs to search the web for this prompt. Returns search query or null. */
+export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '') {
+  if (!prompt?.trim() || !apiKey) return null;
+  const msg = `User wants to build: "${prompt.slice(0, 200)}". Do you need to search the web for current info (trends, references, examples)? Reply with exactly SEARCH:query (one short query, e.g. "2024 web design trends") or NO_SEARCH.`;
+  try {
+    if (provider === 'groq') {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'moonshotai/kimi-k2-instruct-0905',
+          messages: [{ role: 'user', content: msg }],
+          stream: false,
+          temperature: 0.2,
+          max_tokens: 80,
+        }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const text = (data.choices?.[0]?.message?.content || '').trim().toUpperCase();
+      const m = text.match(/SEARCH:\s*(.+)/);
+      return m ? m[1].trim().slice(0, 100) : null;
+    }
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: msg }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 80 },
+        }),
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().toUpperCase();
+    const m = text.match(/SEARCH:\s*(.+)/);
+    return m ? m[1].trim().slice(0, 100) : null;
+  } catch (e) {
+    console.warn('[Jasmine] decideSearchQuery failed:', e?.message);
+    return null;
+  }
+}
+
 /** Web search — Serper or Tavily. Requires SERPER_API_KEY or TAVILY_API_KEY in Vercel env. */
 export async function webSearch(query, apiBase = '') {
   const res = await fetch(`${apiBase}/api/web-search`, {
@@ -298,7 +343,7 @@ export function ensurePackageDependencies(files) {
     let changed = false;
     for (const name of imported) {
       if (!deps[name]) {
-        deps[name] = KNOWN_PACKAGE_VERSIONS[name] ?? '^1.0.0';
+        deps[name] = KNOWN_PACKAGE_VERSIONS[name] ?? '*';
         changed = true;
       }
     }
@@ -359,7 +404,7 @@ const FIX_ERRORS_PROMPT = `You are a code reviewer. Review this Vite + React pro
 ## DEPENDENCIES (CRITICAL)
 Scan EVERY file for import/require statements. For each npm package (not relative paths like ./ or ../):
 - If package.json dependencies does NOT include it, ADD it with a sensible version.
-- Use common versions: react-router-dom ^6.20.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, lucide-react ^0.400.0, @radix-ui/* ^1.0.0. For unknown packages use ^1.0.0.
+- Use common versions: react-router-dom ^6.20.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, lucide-react ^0.400.0, @radix-ui/* ^1.0.0. For unknown packages use * (accept any version).
 - NEVER remove a dependency that is imported. ALWAYS add missing ones.
 
 ## OTHER FIXES

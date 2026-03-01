@@ -36,19 +36,49 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing sandboxId or files' });
   }
 
-  // Ensure package.json has required deps (react-router-dom, @phosphor-icons/react)
+  // Ensure package.json has all deps from imports (AI often uses react-intersection-observer, framer-motion, etc.)
   const pkgRaw = files['package.json'];
   if (pkgRaw && typeof pkgRaw === 'string') {
     try {
       const pkg = JSON.parse(pkgRaw);
       const deps = pkg.dependencies || {};
-      const required = { 'react-router-dom': '^6.20.0', '@phosphor-icons/react': '^2.1.6' };
-      let changed = false;
-      for (const [name, version] of Object.entries(required)) {
-        if (!deps[name]) {
-          deps[name] = version;
-          changed = true;
+      const knownVersions = {
+        'react-router-dom': '^6.20.0',
+        '@phosphor-icons/react': '^2.1.6',
+        'react-intersection-observer': '^9.5.3',
+        'framer-motion': '^11.0.0',
+        'clsx': '^2.1.0',
+        'tailwind-merge': '^2.2.0',
+        'lucide-react': '^0.400.0',
+        'recharts': '^2.12.0',
+        'date-fns': '^3.0.0',
+        'react-hot-toast': '^2.4.1',
+        'sonner': '^1.4.0',
+        'vaul': '^0.9.0',
+        '@radix-ui/react-dialog': '^1.0.5',
+        '@radix-ui/react-dropdown-menu': '^2.0.6',
+        '@radix-ui/react-tabs': '^1.0.4',
+        '@radix-ui/react-tooltip': '^1.0.7',
+        'class-variance-authority': '^0.7.0',
+      };
+      const re = /(?:from|import)\s+['"]([^'"]+)['"]|require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+      const skip = new Set(['react', 'react-dom']);
+      const toAdd = {};
+      for (const content of Object.values(files)) {
+        if (typeof content !== 'string') continue;
+        let m;
+        re.lastIndex = 0;
+        while ((m = re.exec(content)) !== null) {
+          const raw = (m[1] || m[2] || '').trim();
+          if (!raw || skip.has(raw) || raw.startsWith('.') || raw.startsWith('/') || raw.startsWith('@/') || raw.startsWith('~')) continue;
+          const name = raw.startsWith('@') ? raw.split('/').slice(0, 2).join('/') : raw.split('/')[0];
+          if (name && !deps[name]) toAdd[name] = knownVersions[name] ?? '*';
         }
+      }
+      let changed = false;
+      for (const [name, version] of Object.entries(toAdd)) {
+        deps[name] = version;
+        changed = true;
       }
       if (changed) {
         pkg.dependencies = deps;
@@ -89,9 +119,17 @@ export default async function handler(req, res) {
     }
 
     if (useCustomTemplate) {
-      // Custom template has react-router-dom + @phosphor-icons pre-installed. Just write files → Vite hot-reload.
-      // NO npm install, NO restart — avoids "process not running on port 5173" when killing Vite.
-      log('Custom template: files written → hot-reload (no restart)');
+      // Custom template has base deps pre-installed. Run npm install to add any new deps from generated code.
+      log('Custom template: running npm install for new deps...');
+      const installResult = await sandbox.commands.run('npm install --prefer-offline --no-audit', { timeoutMs: 90000 });
+      if (installResult.exitCode !== 0) {
+        const stderr = (installResult.stderr || '').slice(0, 800);
+        logErr('npm install failed:', installResult.exitCode, 'stderr:', stderr);
+        return res.status(500).json({
+          error: `npm install failed. ${stderr || 'Check Vercel logs.'} Try generating again.`,
+        });
+      }
+      log('npm install ok → Vite hot-reload');
     } else {
       log('Running npm install...');
       const installResult = await sandbox.commands.run('npm install --prefer-offline --no-audit', { timeoutMs: 90000 });
