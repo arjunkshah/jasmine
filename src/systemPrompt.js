@@ -229,10 +229,12 @@ Continue for EVERY file. REQUIRED structure:
 - index.html, vite.config.js, tailwind.config.js, postcss.config.js
 - src/main.jsx — entry, imports App and index.css
 - src/App.jsx — main app (use BrowserRouter, Routes, Route for multi-page)
-- src/index.css — Tailwind + custom
+- src/index.css — ONLY @tailwind directives + optional plain CSS. No @apply with custom colors.
 - src/components/Header.jsx, Footer.jsx, etc. — reusable components
-- src/pages/Home.jsx, About.jsx, Pricing.jsx, Contact.jsx — page components (if multi-page)
+- src/pages/Home.jsx, About.jsx, Pricing.jsx, etc. — **output EVERY page you add to Routes in App.jsx**
 - package.json MUST include react-router-dom for multi-page sites
+
+**Rule:** App.jsx imports from ./pages/X → you MUST output src/pages/X.jsx. No imports without corresponding files.
 
 ## RULES — MUST FOLLOW
 
@@ -247,26 +249,41 @@ Continue for EVERY file. REQUIRED structure:
 9. **Responsive** — Mobile-first, md: and lg: breakpoints
 10. **Animations** — blur-reveal on load, scroll-triggered, hover states
 
-## COMMON ERRORS TO AVOID (Code must WORK — no runtime errors)
+## ZERO ERRORS — CRITICAL (Generated code must RUN without errors)
 
-- **NEVER Next.js**: No next, next/link, next/image, src/app/, App Router, getServerSideProps, etc. Vite + React ONLY.
+### 1. NO PHANTOM IMPORTS
+- **Every import MUST resolve to a file you output.** If App.jsx has \`import Docs from "./pages/Docs"\`, you MUST output \`---FILE:src/pages/Docs.jsx---\`.
+- Before outputting any file with imports: list every import path. For each one, ensure you output that exact file. No exceptions.
+- Never import a component you don't create. If you can't create it, don't import it.
+
+### 2. TAILWIND — STANDARD CLASSES ONLY
+- Use ONLY built-in Tailwind color names: zinc, slate, gray, neutral, stone, red, amber, emerald, blue, indigo, etc.
+- Valid: \`bg-zinc-950\`, \`dark:bg-zinc-900\`, \`text-slate-100\`, \`border-gray-700\`
+- **NEVER** use custom color names like \`dark-950\`, \`dark-900\` — they don't exist. Use \`zinc-950\`, \`slate-900\` instead.
+- In src/index.css: only \`@tailwind base;\`, \`@tailwind components;\`, \`@tailwind utilities;\` plus plain CSS. No \`@apply\` with custom/invalid classes.
+- If you need custom colors, add them to tailwind.config.js theme.extend AND output that file.
+
+### 3. COMMON ERRORS TO AVOID
+- **NEVER Next.js**: No next, next/link, next/image, src/app/, App Router. Vite + React ONLY.
 - **Phosphor Icons**: NEVER \`import { Icon }\` — use \`import { CheckIcon, StarIcon, HouseIcon }\` etc.
 - **Component exports**: Every component file MUST have \`export default\` or \`export function\`.
-- **package.json**: MUST include \`@phosphor-icons/react\` and \`react-router-dom\` (for multi-page) in dependencies.
+- **package.json**: MUST include \`@phosphor-icons/react\` and \`react-router-dom\` (for multi-page).
 - **Vite**: No "use client". Use standard React. Use <a> or react-router Link, <img> for images.
 
 ## BEFORE OUTPUT — VALIDATION CHECKLIST
 
-1. All icon imports use real Phosphor names (CheckIcon, StarIcon, ArrowRightIcon)
-2. Every imported component exists and is exported from its file
-3. package.json includes @phosphor-icons/react and every npm package you use
-4. No Lucide, Heroicons, or Feather — Phosphor ONLY
-5. Typography: NOT Inter — choose fonts that match the aesthetic (Figtree, Manrope, Lora, Playfair, Bebas, Cormorant, etc.)
-6. Shadows: soft, inner shadows on buttons, no harsh blacks`;
+1. **Import audit**: Every import in every file — does that file exist in my output? If not, create it or remove the import.
+2. **Tailwind audit**: Every class uses standard Tailwind (zinc, slate, gray, etc.). No dark-950, dark-900, or undefined colors.
+3. All icon imports use real Phosphor names (CheckIcon, StarIcon, ArrowRightIcon)
+4. Every imported component exists and is exported from its file
+5. package.json includes @phosphor-icons/react and every npm package you use
+6. No Lucide, Heroicons, or Feather — Phosphor ONLY
+7. Typography: NOT Inter — choose fonts that match the aesthetic
+8. Shadows: soft, inner shadows on buttons, no harsh blacks`;
 
 /** Wraps user prompt with full-frontend emphasis. */
 export function enhanceUserPrompt(prompt) {
-  return prompt.trim() + '\n\n[Generate a COMPLETE Vite + React project: every page, every section, every component, every animation. Use src/ structure. You have creative freedom — pick or match the aesthetic and make it look insane. Premium craft, no generic output. Full, shippable frontend that WORKS and looks stunning.]';
+  return prompt.trim() + '\n\n[Generate a COMPLETE Vite + React project: every page, every section, every component, every animation. Use src/ structure. You have creative freedom — pick or match the aesthetic and make it look insane. CRITICAL: Zero errors. Every import must resolve to a file you output. Use only standard Tailwind classes (zinc, slate, gray — never dark-950). Full, shippable frontend that RUNS without errors.]';
 }
 
 /** System prompt for edit requests — user wants to modify existing code. */
@@ -282,7 +299,8 @@ CRITICAL: Make MINIMAL, TARGETED edits. Only change what the user asked for.
 
 Phosphor Icons: import { CheckIcon, StarIcon } from '@phosphor-icons/react'. NEVER import { Icon }.
 Component exports: ensure every imported component is exported (export default or export { X }).
-
+NO PHANTOM IMPORTS: Only import files you output. Every import path must exist in your output.
+Tailwind: Use only standard classes (zinc, slate, gray). Never dark-950, dark-900 — use zinc-950, slate-900.
 Images: Use {{IMAGE:descriptive prompt}} for custom visuals (hero, logo, illustration). System replaces with AI-generated images.
 
 Output format (same as generation):
