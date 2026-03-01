@@ -1,4 +1,4 @@
-import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt';
+import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt.js';
 
 function buildContextBlock(files) {
   if (!files?.length) return '';

@@ -294,7 +294,7 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 
 ### 2. NO UNTERMINATED LITERALS — COMPLETE SYNTAX (strict)
 - **Every string must close:** \`"hello\` is invalid. Always close quotes: \`"hello"\`.
-- **Template literals:** \`\`${x}\`\` must have matching backticks. No unclosed \` or \`}\`.
+- **Template literals:** \`\`\${x}\`\` must have matching backticks. No unclosed \` or \`}\`.
 - **JSX tags:** Every \`<\` must have a matching \`>\`. Every \`<div>\` needs \`</div>\`.
 - **Brackets:** \`{\`, \`[\`, \`(\` must have matching \`}\`, \`]\`, \`)\`.
 - **Complete files:** Never truncate. Each \`---FILE:path---\` block must contain the FULL file. If you run out of space, output fewer files but make each one complete.
