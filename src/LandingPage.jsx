@@ -195,8 +195,10 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       </section>
 
       {/* stats */}
-      <section ref={statsRef} className={`py-24 border-t ${borderCl}`}>
-        <div className={`${maxW} ${sectionCl} transition-all duration-700 ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+      <section ref={statsRef} className={`relative py-24 border-t ${borderCl} overflow-hidden`}>
+        <div className="absolute inset-0 bg-cover bg-center opacity-[0.12]" style={{ backgroundImage: `url('/lander-stats-bg.png')` }} aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-surface/85 via-surface/95 to-surface" aria-hidden />
+        <div className={`relative ${maxW} ${sectionCl} transition-all duration-700 ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-16 md:gap-24">
             {STATS.map((stat, i) => (
               <div key={i} className="text-center">
@@ -226,8 +228,10 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       </section>
 
       {/* bento 1 */}
-      <section ref={bentoRef} className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <div className={`${maxW} transition-all duration-700 ${bentoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+      <section ref={bentoRef} className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
+        <div className="absolute inset-0 bg-cover bg-center opacity-[0.12]" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-surface/85 via-surface/95 to-surface" aria-hidden />
+        <div className={`relative ${maxW} transition-all duration-700 ${bentoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <p className={labelCl}>how it works</p>
           <h2 className={headingCl}>one prompt. full project.</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 [grid-auto-rows:minmax(140px,auto)]">

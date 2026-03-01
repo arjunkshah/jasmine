@@ -107,8 +107,8 @@ function AppBody({
                 <i className="ph ph-folder text-lg"></i>
               </button>
             )}
-            <div className={`w-8 h-8 rounded-lg border ${borderCl} flex items-center justify-center`}>
-              <i className="ph ph-sparkle text-sm text-text-primary"></i>
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+              <img src="/logo-mark.png" alt="Jasmine" className="w-full h-full object-contain" />
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-text-primary">jasmine</span>

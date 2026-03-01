@@ -103,8 +103,8 @@ export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSucc
           </button>
           <div className="pt-12">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
-                <i className="ph ph-sparkle text-jasmine-400 text-lg"></i>
+              <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center bg-white/10 border border-white/20">
+                <img src="/logo-mark.png" alt="Jasmine" className="w-full h-full object-contain" />
               </div>
               <span className="text-lg font-semibold text-white tracking-tight">jasmine</span>
             </div>
@@ -134,8 +134,8 @@ export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSucc
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center justify-between mb-8">
             <div className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-lg border ${borderCl} flex items-center justify-center`}>
-                <i className="ph ph-sparkle text-jasmine-400 text-sm"></i>
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+                <img src="/logo-mark.png" alt="Jasmine" className="w-full h-full object-contain" />
               </div>
               <span className="font-semibold text-text-primary">jasmine</span>
             </div>

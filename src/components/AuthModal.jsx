@@ -69,7 +69,7 @@ export default function AuthModal({ onClose, onSignIn, onSignUp, onGoogle, onSuc
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-            <i className="ph ph-sign-in text-jasmine-400 text-xl"></i>
+            <img src="/logo-mark.png" alt="" className="w-7 h-7 object-contain" />
             {mode === 'signin' ? 'Sign in' : 'Create account'}
           </h2>
           <button onClick={onClose} className="p-2 text-text-muted hover:text-text-primary rounded-lg">
