@@ -1,4 +1,7 @@
 import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt.js';
+import { fixPhosphorIcons, applyPackageFixes } from './lib/package-fixes.js';
+
+export { fixPhosphorIcons, applyPackageFixes };
 
 function buildContextBlock(files, searchContext = null) {
   const parts = [];
@@ -266,7 +269,6 @@ const KNOWN_PACKAGE_VERSIONS = {
   '@phosphor-icons/react': '^2.1.6',
   'react-intersection-observer': '^9.5.3',
   'framer-motion': '^11.0.0',
-  'lucide-react': '^0.400.0',
   'clsx': '^2.1.0',
   'tailwind-merge': '^2.2.0',
   'date-fns': '^3.0.0',
@@ -309,26 +311,6 @@ function extractImportedPackages(files) {
     }
   }
   return packages;
-}
-
-/** Fix common Phosphor icon mistakes (HomeIcon does not exist → HouseIcon). Mutates files in place. */
-const PHOSPHOR_FIXES = [
-  ['HomeIcon', 'HouseIcon'],
-  ['MailIcon', 'EnvelopeIcon'],
-  ['EmailIcon', 'EnvelopeIcon'],
-];
-
-export function fixPhosphorIcons(files) {
-  if (!files || typeof files !== 'object') return files;
-  for (const [path, content] of Object.entries(files)) {
-    if (typeof content !== 'string' || !path.match(/\.(jsx?|tsx?)$/)) continue;
-    let next = content;
-    for (const [bad, good] of PHOSPHOR_FIXES) {
-      if (next.includes(bad)) next = next.replace(new RegExp(bad.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), good);
-    }
-    if (next !== content) files[path] = next;
-  }
-  return files;
 }
 
 /** Ensure package.json has all dependencies used in imports. Mutates files in place. */
@@ -404,8 +386,8 @@ const FIX_ERRORS_PROMPT = `You are a code reviewer. Review this Vite + React pro
 ## DEPENDENCIES (CRITICAL)
 Scan EVERY file for import/require statements. For each npm package (not relative paths like ./ or ../):
 - If package.json dependencies does NOT include it, ADD it with a sensible version.
-- Use common versions: react-router-dom ^6.20.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, lucide-react ^0.400.0, @radix-ui/* ^1.0.0. For unknown packages use * (accept any version).
-- NEVER remove a dependency that is imported. ALWAYS add missing ones.
+- Use common versions: react-router-dom ^6.20.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, @radix-ui/* ^1.0.0. NEVER use lucide-react — use @phosphor-icons/react only. For unknown packages use * (accept any version).
+- NEVER remove a dependency that is imported. ALWAYS add missing ones. Add ANY package — we install everything (unknown packages get *).
 
 ## OTHER FIXES
 1. **Unterminated literals** — Unclosed strings, template literals, JSX tags, brackets.
@@ -415,7 +397,7 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 5. **Missing exports** — Every imported component must exist with export default or export { X }.
 6. **package.json** — Valid JSON, no trailing commas.
 7. **Responsive** — min-w-0, overflow-hidden on flex children.
-8. **Phosphor icons** — Use HouseIcon, UserIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon.
+8. **Phosphor icons** — NEVER use: HomeIcon, MailIcon, EmailIcon, Family, FamilyIcon, SearchIcon, MenuIcon, CloseIcon. Use: HouseIcon, EnvelopeIcon, UsersIcon, MagnifyingGlassIcon, ListIcon, XIcon. Valid: HouseIcon, UserIcon, UsersIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, MagnifyingGlassIcon, ListIcon, XIcon, GearIcon.
 9. **Invalid RegExp** — Valid flags: g, i, m, s, u, y.
 
 Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
@@ -464,6 +446,7 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
 
   try {
     let current = { ...project.files };
+    applyPackageFixes(current);
     let madeChanges = false;
     for (let pass = 0; pass < 2; pass++) {
       const result = await runFix(current);
@@ -471,6 +454,7 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
       const fixed = extractNextProject(result);
       if (!fixed?.files || Object.keys(fixed.files).length === 0) break;
       current = { ...current, ...fixed.files };
+      applyPackageFixes(current);
       ensurePackageDependencies(current);
       madeChanges = true;
     }

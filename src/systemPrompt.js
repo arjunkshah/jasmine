@@ -423,7 +423,7 @@ export const DESIGN_CRAFT = `
 ### 2. ICONS
 - **Phosphor Icons ONLY** — import { CheckIcon, StarIcon, ArrowRightIcon } from '@phosphor-icons/react'
 - Each icon is a named export with "Icon" suffix. NEVER import { Icon }.
-- **Valid names only** — HomeIcon does NOT exist → use HouseIcon. Browse phosphoricons.com. Common: HouseIcon, HouseSimpleIcon, UserIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon.
+- **Valid names only** — HomeIcon does NOT exist → use HouseIcon. Family/FamilyIcon do NOT exist → use UsersIcon. NEVER use: HomeIcon, MailIcon, EmailIcon, Family, FamilyIcon, SearchIcon, MenuIcon, CloseIcon, SettingsIcon. Use: HouseIcon, EnvelopeIcon, UsersIcon, MagnifyingGlassIcon, ListIcon, XIcon, GearIcon. Full list: phosphoricons.com.
 - **Sizing**: w-4 h-4 (16px) for inline, w-5 h-5 (20px) for buttons, w-6 h-6 (24px) for features
 - **Weight**: "regular" (default), "bold" for emphasis — e.g. weight="bold"
 
@@ -659,7 +659,9 @@ ${DARK_MODE_PATTERNS}
 
 ## OUTPUT FORMAT — CRITICAL
 
-Output each file in this EXACT format. No other text. Start immediately with the first file:
+Output each file in this EXACT format. No other text. Start immediately with the first file.
+
+**Dependencies:** Add ANY npm package the app needs. Put it in package.json (or we auto-add from imports). We install everything — axios, lodash, zustand, recharts, framer-motion, date-fns, clsx, @radix-ui/*, etc.
 
 \`\`\`
 ---FILE:package.json---
@@ -859,7 +861,7 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 - **NEVER Next.js**: No next, next/link, next/image, src/app/, App Router. Vite + React ONLY.
 - **Phosphor Icons**: NEVER \`import { Icon }\` — use \`import { CheckIcon, StarIcon, HouseIcon }\` etc. HomeIcon does NOT exist → HouseIcon. Only use icons from phosphoricons.com.
 - **Component exports**: Every component file MUST have \`export default\` or \`export function\`.
-- **package.json**: MUST include \`@phosphor-icons/react\` and \`react-router-dom\` (for multi-page).
+- **package.json**: MUST include \`@phosphor-icons/react\` and \`react-router-dom\` (for multi-page). ADD ANY npm package the app needs — axios, lodash, zustand, recharts, framer-motion, date-fns, etc. We install whatever you put in dependencies.
 - **Vite**: No "use client". Use standard React. Use <a> or react-router Link, <img> for images.
 - **Image paths:** Use \`/image.png\` for public assets or \`{{IMAGE:prompt}}\` for AI images. No broken relative paths.
 
@@ -873,7 +875,7 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 5. **ErrorBoundary:** Did I output ErrorBoundary.jsx? Does App.jsx wrap every Route element in <ErrorBoundary>?
 6. **Icons:** All use Phosphor (CheckIcon, StarIcon). No Lucide, Heroicons, Feather.
 7. **Exports:** Every imported component has export default or export { X }.
-8. **package.json:** Includes @phosphor-icons/react, react-router-dom (if multi-page). Valid JSON, no trailing commas.
+8. **package.json:** Includes @phosphor-icons/react, react-router-dom (if multi-page). Add any other packages the app needs — we install all dependencies. Valid JSON, no trailing commas.
 9. **File completeness:** Each ---FILE:path--- block contains the ENTIRE file. No truncated output.
 10. **Typography:** NOT Inter. Shadows: soft, no harsh blacks.
 11. **Copy:** No Lorem Ipsum. Real headlines, CTAs, feature copy.
@@ -917,6 +919,8 @@ NO PHANTOM IMPORTS: Output pages BEFORE App.jsx. Every import = a file you outpu
 Tailwind: zinc, slate, gray only. Never dark-950, dark-900 — use zinc-950, slate-900.
 ErrorBoundary: Wrap every Route element in <ErrorBoundary> so one broken page does not crash the app.
 Images: Use {{IMAGE:descriptive prompt}} for custom visuals.
+
+**Dependencies:** When adding a package (user asks or you need it): add to package.json dependencies AND add the import/usage in code. We install any package you add — axios, lodash, zustand, recharts, etc.
 
 Output format:
 [Your 1–3 sentence summary here. Be specific about what changed.]

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, extractEditSummary, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, fixPhosphorIcons, webSearch, decideSearchQuery } from './api';
+import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, extractEditSummary, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
@@ -734,7 +734,7 @@ function App() {
     if (sandboxId && pendingSandboxApplyRef.current) {
       const files = pendingSandboxApplyRef.current;
       pendingSandboxApplyRef.current = null;
-      fixPhosphorIcons(files);
+      applyPackageFixes(files);
       ensurePackageDependencies(files);
       (async () => {
         try {
@@ -911,7 +911,7 @@ function App() {
     const files = generatedProject?.files;
     const sid = sandboxId;
     if (!sid || !files || Object.keys(files).length === 0) return;
-    fixPhosphorIcons(files);
+    applyPackageFixes(files);
     ensurePackageDependencies(files);
     setError('');
     try {
@@ -1076,7 +1076,7 @@ function App() {
           project.files = fixedFiles;
           setGeneratedProject({ ...project, files: fixedFiles });
         }
-        fixPhosphorIcons(project.files);
+        applyPackageFixes(project.files);
         ensurePackageDependencies(project.files);
       }
       // Note: fix pass runs after images; sandbox update below uses latest project.files
@@ -1217,7 +1217,7 @@ function App() {
           replaced[path] = await replaceImagePlaceholders(String(content), apiBase, geminiKey);
         }
         const mergedFiles = { ...(generatedProject?.files || {}), ...replaced };
-        fixPhosphorIcons(mergedFiles);
+        applyPackageFixes(mergedFiles);
         ensurePackageDependencies(mergedFiles);
         setGeneratedProject({ files: mergedFiles });
         if (sandboxId) {

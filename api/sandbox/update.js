@@ -1,9 +1,11 @@
 /**
  * E2B sandbox update — open-lovable approach: Vite + React
  * Write files → npm install (if package.json changed) → restart Vite. No build step.
+ * @see https://github.com/firecrawl/open-lovable (useLegacyPeerDeps, package fixes)
  */
 import { getBoilerplate, checkE2B } from '../lib/e2b.js';
 import { sandboxConfig } from '../lib/sandbox-config.js';
+import { applyPackageFixes } from '../../src/lib/package-fixes.js';
 
 export const config = { maxDuration: 120 };
 
@@ -36,6 +38,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing sandboxId or files' });
   }
 
+  // Fix Phosphor + Lucide (open-lovable style: prevent "does not provide an export named X")
+  applyPackageFixes(files);
+
   // Ensure package.json has all deps from imports (AI often uses react-intersection-observer, framer-motion, etc.)
   const pkgRaw = files['package.json'];
   if (pkgRaw && typeof pkgRaw === 'string') {
@@ -49,7 +54,6 @@ export default async function handler(req, res) {
         'framer-motion': '^11.0.0',
         'clsx': '^2.1.0',
         'tailwind-merge': '^2.2.0',
-        'lucide-react': '^0.400.0',
         'recharts': '^2.12.0',
         'date-fns': '^3.0.0',
         'react-hot-toast': '^2.4.1',
@@ -121,7 +125,7 @@ export default async function handler(req, res) {
     if (useCustomTemplate) {
       // Custom template has base deps pre-installed. Run npm install to add any new deps from generated code.
       log('Custom template: running npm install for new deps...');
-      const installResult = await sandbox.commands.run('npm install --prefer-offline --no-audit', { timeoutMs: 90000 });
+      const installResult = await sandbox.commands.run('npm install --prefer-offline --no-audit --legacy-peer-deps', { timeoutMs: 90000 });
       if (installResult.exitCode !== 0) {
         const stderr = (installResult.stderr || '').slice(0, 800);
         logErr('npm install failed:', installResult.exitCode, 'stderr:', stderr);
@@ -132,7 +136,7 @@ export default async function handler(req, res) {
       log('npm install ok → Vite hot-reload');
     } else {
       log('Running npm install...');
-      const installResult = await sandbox.commands.run('npm install --prefer-offline --no-audit', { timeoutMs: 90000 });
+      const installResult = await sandbox.commands.run('npm install --prefer-offline --no-audit --legacy-peer-deps', { timeoutMs: 90000 });
       if (installResult.exitCode !== 0) {
         const stderr = (installResult.stderr || '').slice(0, 800);
         logErr('npm install failed:', installResult.exitCode, 'stderr:', stderr);
