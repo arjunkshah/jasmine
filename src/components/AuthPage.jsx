@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const TESTIMONIALS = [
   { quote: "Generated a law firm site in 20 seconds. Looked like we paid a design agency.", author: "Founder", role: "Legal startup" },
@@ -6,8 +6,14 @@ const TESTIMONIALS = [
   { quote: "Finally, an AI that doesn't output slop. Jasmine gets it.", author: "Engineer", role: "Indie hacker" },
 ];
 
-export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSuccess, theme }) {
+export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSuccess, theme, isClosing }) {
   const [mode, setMode] = useState('signin');
+  const [hasEntered, setHasEntered] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setHasEntered(true), 10);
+    return () => clearTimeout(t);
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -67,8 +73,17 @@ export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSucc
     }
   };
 
+  const isVisible = hasEntered && !isClosing;
+
   return (
-    <div className="fixed inset-0 z-[200] flex">
+    <div
+      className="fixed inset-0 z-[200] flex transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'scale(1)' : 'scale(0.98)',
+        pointerEvents: isClosing ? 'none' : 'auto',
+      }}
+    >
       {/* Left: background + testimonials */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
         <div

@@ -529,6 +529,7 @@ function App() {
   const [contextFiles, setContextFiles] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authClosing, setAuthClosing] = useState(false);
   const [pendingAfterAuth, setPendingAfterAuth] = useState(null);
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
@@ -1056,8 +1057,12 @@ function App() {
   }, [pendingAfterAuth]);
 
   const handleAuthModalClose = useCallback(() => {
-    setPendingAfterAuth(null);
-    setShowAuthModal(false);
+    setAuthClosing(true);
+    setTimeout(() => {
+      setPendingAfterAuth(null);
+      setShowAuthModal(false);
+      setAuthClosing(false);
+    }, 300);
   }, []);
 
   const appBodyProps = {
@@ -1145,6 +1150,7 @@ function App() {
       {showAuthModal && (
         <AuthPage
           onClose={handleAuthModalClose}
+          isClosing={authClosing}
           onSuccess={handleAuthSuccess}
           onSignIn={signIn}
           onSignUp={signUp}
