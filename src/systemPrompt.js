@@ -56,16 +56,16 @@ export const DESIGN_BREAKDOWN_AND_ASSETS = `
 **Color palette**: Dominant (60%), secondary (30%), accent (10%). Name actual Tailwind colors.
 **Consistency**: Once you lock vibe + theme, every page must reinforce it. No random font or color changes.
 
-### 3. PLAN PAGES
+### 3. PLAN PAGES (CRITICAL — NAV LINKS = PAGES)
 - List every page the product needs. Home, About, Features, Pricing, Contact, etc.
-- Each page gets its own route and component. No skipping.
+- **NAV RULE:** Every link in the header/navbar MUST have a corresponding page file. If you put 4 nav items, you MUST output 4 full pages. NEVER list nav links for pages you don't create. No phantom links.
+- Each page gets its own route and component. No skipping. Output pages BEFORE App.jsx.
 
-### 4. PLAN SECTIONS PER PAGE (CRITICAL — MINIMUM 5 SECTIONS)
-- **Home/landing**: MINIMUM 5 sections. Hero, Features/How it works, Testimonials or Stats, Social proof, CTA, Footer. NEVER a 1-section page that just redirects. Full, comprehensive landing.
-- **About**: Header, story, team grid, values, CTA — 4–5 sections
-- **Pricing**: Headline, 3-tier cards, FAQ, CTA — 4+ sections
-- **Contact**: Can be 3–4 (form, info, map optional)
-- Every section = real content, not placeholder. No shortcuts.
+### 4. PLAN SECTIONS PER PAGE (CRITICAL — COMPREHENSIVE SECTIONS)
+- **Home/landing**: MINIMUM 5 sections. Hero, Features/How it works, Testimonials or Stats, Social proof, CTA, Footer. NEVER a 1–3 section stub. Full, comprehensive landing.
+- **Every other page**: MINIMUM 4 sections each. About: story, team/values, CTA. Pricing: headline, tiers, FAQ, CTA. Features: hero, grid, benefits, CTA. etc.
+- **Contact**: 3–4 sections (form, info, optional map)
+- Every section = real content, substantial. No 2-line placeholders. Typical section = 40–80 lines.
 
 ### 5. PLAN ASSETS TO GENERATE
 - **Hero**: ALWAYS use {{IMAGE:...}}. Product-specific. "law firm office, professional, navy and gold" or "restaurant interior, warm lighting, appetizing".
@@ -84,7 +84,7 @@ export const DESIGN_BREAKDOWN_AND_ASSETS = `
 export const ASSET_GENERATION_GUIDE = `
 ## WHAT ASSETS TO GENERATE — {{IMAGE:...}} USAGE
 
-**Our system replaces {{IMAGE:descriptive prompt}} with AI-generated images via Gemini.** Use these for custom visuals.
+**Our system replaces {{IMAGE:descriptive prompt}} with AI-generated images via Nano Banana Pro (Dhruv's pick).** Use these for custom visuals.
 
 ### WHEN TO USE {{IMAGE:...}}
 - **Hero/above-fold**: ALWAYS. This is the first impression. Be specific: product type + mood + style.
@@ -103,7 +103,7 @@ For hero/above-fold backgrounds, optimize for typography overlay:
 - **Composition**: Horizon at bottom 30–40%. Vast empty sky or upper area for headline.
 - **Primary focus**: Clear space for text — no large subjects in center.
 - **Style**: "Landing page optimized, 16:9, clean edges, minimalist and airy."
-- **Example (soft/cute)**: {{IMAGE:stylized 3D meadow, soft pink yellow purple flowers, vast clear blue sky top 60%, horizon bottom 40%, dreamlike soft-focus, landing page optimized}}
+- **Example (wellness/soft)**: {{IMAGE:stylized 3D meadow, soft greens lavenders cream, vast clear sky top 60%, horizon bottom 40%, dreamlike soft-focus, landing page optimized}} — adapt colors to product (meditation = serene greens; lifestyle = warm pastels)
 - **Example (professional)**: {{IMAGE:law office, wood and leather, navy and gold, vast neutral area top for typography, professional, clean}}
 ### EXAMPLES BY PRODUCT TYPE
 - **Law firm**: {{IMAGE:professional law office, wood and leather, navy and gold, trustworthy}}
@@ -131,7 +131,7 @@ export const EXAMPLE_RESPONSES = `
 
 **"Gaming studio"** → Home, Games showcase (cards with screenshots), Team, Careers, Contact. Bold gradients. Overused Grotesk or Bebas. High-energy. Dark theme with neon accents.
 
-**"Meditation app"** → Landing, Features, Testimonial carousel, Pricing, Download CTA. Soft, calming. Lora serif. Muted greens, lavenders. Generous whitespace.
+**"Meditation app"** → Home (5+ sections: hero, features, programs, testimonials, pricing, download CTA, footer), Features, Programs/Guides, Pricing, Download. Soft, calming. Lora or DM Sans. Muted greens, lavenders, cream. Generous whitespace. EVERY nav link = a full page with 4+ sections each.
 
 **"Creative agency"** → Home, Case studies (asymmetric grid), About, Services, Contact. Dark editorial. Asymmetric layout. Bold typography. Portfolio-first.
 
@@ -148,7 +148,7 @@ Every output must match or exceed the quality of these reference designs. Study 
 ### DRAMATIC HERO BACKGROUNDS
 - **Cosmic/futuristic** (Horixa): Saturn-like planet, silhouette figure, vast sky, feature callouts connected by lines. Dark void, warm planet accent.
 - **Aurora/nature** (Scalix): Mountain landscape, Northern Lights, starry sky. Human silhouette. Left-aligned content. Trust badges + stats in footer.
-- **Soft/dreamlike** (BloomAI, Finora, Layers): Blurred floral background, soft pastels. Warm tones. Glassmorphism dashboard floating on top.
+- **Soft/dreamlike** (wellness, meditation, lifestyle): Blurred nature or floral background, soft pastels. Warm tones. Adapt to product — meditation = serene greens/lavenders; lifestyle = warm creams.
 - **Tech/minimal** (Fourpoints, Mimic): Subtle code patterns, floating code editor overlay. Light grey. Red or blue accent. Monochrome partner logos.
 
 ### LAYOUT PATTERNS
@@ -195,13 +195,14 @@ Generate EVERY PAGE the product needs. Every section. Every feature. Every anima
 
 Think like a design agency delivering a complete client project. Not a prototype. A SHIPPABLE frontend.
 
-**Product-type guidance** — What "complete" means:
+**Product-type guidance** — What "complete" means (EVERY nav link = full page, 4+ sections each):
 - **SaaS**: Home, Pricing, Features, About, Contact, Login/Signup (or auth flow). Dashboard if requested.
 - **Restaurant**: Home, Menu, About, Contact, Reservations (form). Gallery optional.
 - **Law firm / Professional**: Home, Services, About, Team, Contact. Trust signals throughout.
 - **Portfolio**: Home, Work/Projects, About, Contact. Project detail pages if multiple projects.
 - **Agency**: Home, Services, Work, About, Contact. Case studies if requested.
 - **E-commerce (landing)**: Home, Products, About, Contact. Product cards with CTA.
+- **Meditation / Wellness app**: Home (5+ sections), Features, Programs/Guides, Pricing, Download/Get Started. Each page 4+ sections. Soft palette, calming typography.
 `;
 
 export const UI_REFERENCES = `
@@ -368,15 +369,15 @@ When generating hero/background images via {{IMAGE:...}}, optimize for typograph
 
 ### STEP 3.1: BUTTON STYLES (Understanding insets and shadows)
 
-**The premium button recipe** (from Dhruv's BloomAI example):
-- **Shape**: Pill (rounded-full, border-radius: 9999px)
-- **Background**: Solid color (e.g. soft pink #F8B4C6) — NOT flat, see below
-- **Inner shadow**: Gradient from BOTTOM. Darker at bottom (e.g. #EC407A), fading to transparent at top. Creates "pressed in" or embossed 3D effect. opacity ~0.5–0.6.
-- **Border**: Thick white border. 4–6px. Creates tactile, premium feel.
-- **Outer shadow**: Soft, minimal. rgba(0,0,0,0.08), blur 20px, offset-y 6px. Lifts button slightly.
-- **Hover**: scale(1.03), slight brightness increase.
+**The premium button recipe** (Dhruv's process — adapt colors to your theme):
+- **Shape**: Pill (rounded-full) or rounded-xl. Pick one and stay consistent.
+- **Background**: Solid color that matches your palette — navy for professional, emerald for wellness, amber for warm, etc. NOT flat — add depth.
+- **Inner shadow**: Gradient from BOTTOM. Darker shade at bottom fading to transparent. Creates "pressed in" 3D effect.
+- **Border**: Thick white or contrasting border. 4–6px. Tactile, premium.
+- **Outer shadow**: Soft, minimal. Never harsh black.
+- **Hover**: scale(1.02–1.03), slight brightness.
 
-**Tailwind implementation**: bg-[#F8B4C6], box-shadow: inset 0 -4px 0 rgba(236,64,122,0.5), border-4 border-white, shadow-lg. Adjust colors per theme.
+**Adapt to product:** Law firm = navy + gold. Restaurant = amber + cream. Meditation = soft green + lavender. SaaS = accent from palette. NEVER default to one style for everything.
 
 ### DESIGN RULES (From Dhruv's JSON prompt)
 - Hero headline must dominate visual hierarchy. Biggest, boldest element.
@@ -454,14 +455,14 @@ export const DESIGN_CRAFT = `
 
 **Spacing scale** — Consistent: 4, 8, 12, 16, 24, 32, 48, 64, 96 (px). Use Tailwind: p-4, p-6, p-8, gap-4, gap-6, gap-8.
 
-### 5. BUTTON STYLES (Dhruv's premium recipe)
+### 5. BUTTON STYLES (Dhruv's process — adapt to product)
 
-**Primary CTA** (from Dhruv's article — "soft pink inside, darker pink gradient inner shadow from bottom, thick white border, minimal shadow underneath"):
-- **Shape**: Pill (rounded-full, border-radius: 9999px)
-- **Background**: Solid color — soft pink, navy, emerald, etc. Match theme.
-- **Inner shadow**: Gradient from BOTTOM. Darker shade at bottom fading to transparent. Creates embossed/pressed 3D effect. box-shadow: inset 0 -4px 0 rgba(darker, 0.5)
-- **Border**: Thick white or contrasting border. 4–6px. Tactile, premium.
-- **Outer shadow**: Soft, minimal. rgba(0,0,0,0.08), blur 20px, offset-y 6px.
+**Primary CTA** — Apply the recipe, but **match colors to the product's vibe**:
+- **Shape**: Pill or rounded-xl. Consistent across site.
+- **Background**: Solid — match your 60-30-10 palette. Navy (professional), emerald (wellness), amber (warm), etc.
+- **Inner shadow**: inset 0 -4px 0 rgba(darker shade, 0.5). Creates depth.
+- **Border**: Thick white or contrasting. 4–6px.
+- **Outer shadow**: Soft. rgba(0,0,0,0.08).
 - **Hover**: scale(1.03), brightness 1.05. Transition 200–300ms, cubic-bezier(0.22, 1, 0.36, 1)
 - **Padding**: px-8 py-4 or px-10 py-4
 
@@ -479,12 +480,12 @@ export const DESIGN_CRAFT = `
 
 **Hover micro-interactions**: scale(1.02–1.05), translateY(-2px), border-color change. 150–200ms.
 
-### 7. IMAGES — AI-GENERATED (Gemini API, works with Kimi too)
+### 7. IMAGES — AI-GENERATED (Nano Banana Pro)
 
 **For custom visuals** (hero, logo, illustration, product mockup): use \`{{IMAGE:descriptive prompt}}\` in src or url().
 - Example: \`src="{{IMAGE:modern SaaS hero illustration, gradient background, abstract blue shapes}}"\`
 - Example: \`backgroundImage: url("{{IMAGE:law firm office, professional, navy and gold accents}}")\`
-- Our system replaces these with AI-generated images via Gemini (works with Kimi text generation).
+- Our system replaces these with AI-generated images via Nano Banana Pro (Dhruv's article — pro quality, legible text).
 - Use for: hero images, logos, illustrations, product mockups. ALWAYS use {{IMAGE:...}} for hero/feature visuals.
 - Be specific: "restaurant food photography, warm lighting" not "food image".
 
@@ -879,8 +880,9 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 9. **File completeness:** Each ---FILE:path--- block contains the ENTIRE file. No truncated output.
 10. **Typography:** NOT Inter. Shadows: soft, no harsh blacks.
 11. **Copy:** No Lorem Ipsum. Real headlines, CTAs, feature copy.
-12. **Sections:** MINIMUM 5 sections on home/landing. Hero, features, testimonials/stats, CTA, footer. NEVER 1-section lander. Contact can have 3–4.
-13. **Responsive:** Nav works on mobile (hamburger or stacked). Grids collapse to 1 col.`;
+12. **Sections:** MINIMUM 5 sections on home/landing. Every other page MINIMUM 4 sections. NEVER 1–3 section stubs. Contact can have 3–4.
+13. **Nav = Pages:** Every link in header/nav MUST have a corresponding page file. 4 nav items = 4 output pages. No phantom links.
+14. **Responsive:** Nav works on mobile (hamburger or stacked). Grids collapse to 1 col.`;
 
 /** Wraps user prompt with full-frontend emphasis. Open-lovable style: complete, no truncation. */
 export function enhanceUserPrompt(prompt) {
@@ -888,9 +890,10 @@ export function enhanceUserPrompt(prompt) {
 
 [CRITICAL — OPEN-LOVABLE STYLE: Generate ENOUGH code. Never truncate. Every file FULLY complete.
 - Output EVERY file the project needs. No phantom imports. If App.jsx imports ./pages/Home, you MUST output pages/Home.jsx.
+- NAV = PAGES: Every link in the header MUST have a page. 4 nav items = 4 full pages. Create ALL pages BEFORE App.jsx.
 - Each ---FILE:path--- block = ENTIRE file. No "..." or "// rest of file". No cutting off mid-function.
 - Prefer MORE code over less. Better to output 20 complete files than 10 truncated ones.
-- Minimum 5 sections per main page. Home = Hero + Features + Testimonials/Stats + CTA + Footer.
+- Sections: Home MINIMUM 5 (Hero, Features, Testimonials/Stats, CTA, Footer). Every other page MINIMUM 4 sections.
 - Output order: pages FIRST, then App.jsx, then main.jsx. Every import must reference a file you already output.
 - ZERO ERRORS: Close all strings, JSX tags, brackets. Tailwind: zinc/slate/gray only. Wrap every Route in ErrorBoundary.
 - Take your time. Full, shippable, production-ready.]`;
