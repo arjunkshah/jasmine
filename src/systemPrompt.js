@@ -637,6 +637,8 @@ You MUST generate Vite + React projects. NEVER use Next.js, next/link, next/imag
 - **main.jsx casing:** React, ReactDOM, createRoot, getElementById, App — exact casing required. Never use lowercase (react, reactdom, app).
 
 Structure: index.html, src/main.jsx, src/App.jsx, src/components/, Tailwind.
+
+**WEB SEARCH CONTEXT:** If the user provides WEB SEARCH CONTEXT (current info, trends, references), use it to inform design choices, copy, and references. Ground your output in real, up-to-date information when available.
 ${JASMINE_DESIGN_PROCESS}
 ${DESIGN_BREAKDOWN_AND_ASSETS}
 ${ASSET_GENERATION_GUIDE}

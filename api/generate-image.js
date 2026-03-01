@@ -1,5 +1,5 @@
 /**
- * Gemini image generation — tries multiple models in order.
+ * Gemini image generation — tries REST API and SDK with multiple models.
  * Uses VITE_GEMINI_API_KEY (or GEMINI_API_KEY) from env.
  */
 export const config = { maxDuration: 60 };
@@ -7,6 +7,7 @@ export const config = { maxDuration: 60 };
 const MODELS = [
   'gemini-2.0-flash-preview-image-generation',
   'gemini-2.0-flash-exp-image-generation',
+  'gemini-2.0-flash-exp',
 ];
 
 function extractImage(response) {
@@ -21,7 +22,55 @@ function extractImage(response) {
   return null;
 }
 
-/** Send JSON response — works with both Express and raw Node (Vite Connect). */
+/** Try Gemini REST API directly (bypasses SDK). */
+async function tryRestApi(apiKey, text) {
+  for (const model of MODELS) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text }] }],
+            generationConfig: {
+              responseModalities: ['TEXT', 'IMAGE'],
+            },
+          }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      return extractImage(data);
+    } catch (e) {
+      console.warn('[generate-image] REST', model, 'failed:', e?.message);
+    }
+  }
+  return null;
+}
+
+/** Try @google/genai SDK. */
+async function trySdk(apiKey, text) {
+  for (const model of MODELS) {
+    try {
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: [{ text }] }],
+        config: { responseModalities: ['Text', 'Image'] },
+      });
+      return extractImage(response);
+    } catch (e) {
+      console.warn('[generate-image] SDK', model, 'failed:', e?.message);
+    }
+  }
+  return null;
+}
+
 function sendJson(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
   res.statusCode = status;
@@ -53,36 +102,17 @@ export default async function handler(req, res) {
   }
 
   const text = prompt.trim();
-  let lastError = null;
+  let img = await tryRestApi(apiKey, text);
+  if (!img) img = await trySdk(apiKey, text);
 
-  for (const model of MODELS) {
-    try {
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey });
-
-      const response = await ai.models.generateContent({
-        model,
-        contents: [{ role: 'user', parts: [{ text }] }],
-        config: {
-          responseModalities: ['Text', 'Image'],
-        },
-      });
-
-      const img = extractImage(response);
-      if (img) {
-        return sendJson(res, 200, {
-          success: true,
-          image: `data:${img.mimeType};base64,${img.base64}`,
-        });
-      }
-    } catch (e) {
-      lastError = e;
-      console.warn('[generate-image]', model, 'failed:', e?.message);
-    }
+  if (img) {
+    return sendJson(res, 200, {
+      success: true,
+      image: `data:${img.mimeType};base64,${img.base64}`,
+    });
   }
 
-  console.error('[generate-image]', lastError?.message, lastError);
   return sendJson(res, 500, {
-    error: lastError?.message || 'Image generation failed. Ensure VITE_GEMINI_API_KEY has image generation access.',
+    error: 'Image generation failed. Ensure your Gemini API key has image generation access (Google AI Studio).',
   });
 }

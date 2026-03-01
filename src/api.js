@@ -1,13 +1,32 @@
 import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt.js';
 
-function buildContextBlock(files) {
-  if (!files?.length) return '';
-  const blocks = files.map((f) => `---FILE:${f.name}---\n${typeof f.content === 'string' ? f.content : ''}`).join('\n\n');
-  return `\n\nADDITIONAL CONTEXT (user-uploaded files — use for reference):\n\n${blocks}\n\n`;
+function buildContextBlock(files, searchContext = null) {
+  const parts = [];
+  if (searchContext?.length) {
+    const searchBlock = searchContext.map((r) => `- ${r.title}\n  ${r.link}\n  ${r.snippet || ''}`).join('\n\n');
+    parts.push(`\n\nWEB SEARCH CONTEXT (use for current info, trends, references):\n\n${searchBlock}\n\n`);
+  }
+  if (files?.length) {
+    const blocks = files.map((f) => `---FILE:${f.name}---\n${typeof f.content === 'string' ? f.content : ''}`).join('\n\n');
+    parts.push(`\n\nADDITIONAL CONTEXT (user-uploaded files — use for reference):\n\n${blocks}\n\n`);
+  }
+  return parts.join('');
 }
 
-export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = []) {
-  const contextBlock = buildContextBlock(contextFiles);
+/** Web search — Serper or Tavily. Requires SERPER_API_KEY or TAVILY_API_KEY in Vercel env. */
+export async function webSearch(query, apiBase = '') {
+  const res = await fetch(`${apiBase}/api/web-search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: query }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.results) return data.results;
+  throw new Error(data?.error || 'Web search failed');
+}
+
+export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [], searchContext = null) {
+  const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -82,8 +101,8 @@ export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, 
   return streamGeminiResponse(response, onChunk);
 }
 
-export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles = []) {
-  const contextBlock = buildContextBlock(contextFiles);
+export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles = [], searchContext = null) {
+  const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
   const response = await fetch(

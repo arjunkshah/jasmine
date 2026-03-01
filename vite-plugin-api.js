@@ -25,9 +25,12 @@ export function apiPlugin() {
     sendJson(res, { ok: true, e2bConfigured: !err, e2bError: err?.error || null });
   });
   api.get('/ping', (req, res) => sendJson(res, { ok: true, message: 'API works' }));
-  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/generate-image', '/api/health'] }));
+  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/generate-image', '/api/web-search', '/api/health'] }));
   api.post('/generate-image', async (req, res) => {
     return (await import('./api/generate-image.js')).default(req, res);
+  });
+  api.post('/web-search', async (req, res) => {
+    return (await import('./api/web-search.js')).default(req, res);
   });
   api.post('/sandbox/start', async (req, res) => {
     const theme = (req.body?.theme === 'light' || req.body?.theme === 'dark') ? req.body.theme : 'dark';
