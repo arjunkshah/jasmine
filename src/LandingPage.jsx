@@ -4,7 +4,7 @@ import BlurPopUp from './components/BlurPopUp';
 
 const BENTO_ITEMS = [
   { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'world\'s best designer', desc: 'law firms, restaurants, saas, portfolios. one prompt. jasmine crafts it.' },
-  { span: '', icon: 'ph-lightning', title: 'kimi k2', desc: 'blazing fast via groq' },
+  { span: '', icon: 'ph-lightning', title: 'kimi k2 0905', desc: 'blazing fast via groq' },
   { span: '', icon: 'ph-palette', title: 'gemini', desc: 'creative depth' },
   { span: 'md:col-span-2', icon: 'ph-sparkle', title: 'anti-ai-slop craft', desc: 'premium typography, phosphor icons, blur-reveal.' },
   { span: '', icon: 'ph-stack', title: 'full project', desc: 'src/, typescript, tailwind. deploy.' },
@@ -49,7 +49,7 @@ const HORIZONTAL_FEATURES = [
 
 const FAQ_ITEMS = [
   { q: 'what can i build?', a: 'full sites for law firms, restaurants, saas, portfolios, agencies — anything you can describe. jasmine is the world\'s best designer. vite, react, tailwind.' },
-  { q: 'how does it work?', a: 'describe what you want in one prompt. jasmine — the world\'s best designer — uses kimi k2 or gemini to craft it. edit in real time, download or deploy to Netlify.' },
+  { q: 'how does it work?', a: 'describe what you want in one prompt. jasmine — the world\'s best designer — uses kimi k2 0905 or gemini to craft it. edit in real time, download or deploy to Netlify.' },
   { q: 'is it really free?', a: 'yes. generate and export as many projects as you want. no signup, no credit card required.' },
   { q: 'can i use the output commercially?', a: 'absolutely. the code you generate is yours.' },
 ];

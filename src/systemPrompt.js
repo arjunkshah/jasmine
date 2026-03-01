@@ -282,45 +282,61 @@ Continue for EVERY file. REQUIRED structure and OUTPUT ORDER:
 
 ## ZERO ERRORS — CRITICAL (Generated code must RUN without errors)
 
-### 1. NO PHANTOM IMPORTS (strict)
+**Every line of output must be valid, complete, and runnable.** Broken code = failed project. Be meticulous.
+
+### 1. NO PHANTOM IMPORTS — FILES MUST EXIST (strict)
 - **1:1 rule:** Every import path = exactly one output file. \`import X from "./pages/Docs"\` → you MUST output \`---FILE:src/pages/Docs.jsx---\`.
 - **Output order:** Output pages BEFORE App.jsx. Never import a file you haven't output yet.
 - **Pre-flight:** Before outputting App.jsx, list every import. For each: "Did I output this file? Yes/No." If No → output it first or remove the import.
 - Never import a component you don't create. If in doubt, don't import it.
+- **Path matching:** \`import Header from "./components/Header"\` requires \`src/components/Header.jsx\`. Check extensions: .jsx for components.
+- **No typos:** \`./pages/Home\` and \`./pages/home\` are different. Use exact casing.
 
-### 2. TAILWIND — STANDARD CLASSES ONLY (strict)
+### 2. NO UNTERMINATED LITERALS — COMPLETE SYNTAX (strict)
+- **Every string must close:** \`"hello\` is invalid. Always close quotes: \`"hello"\`.
+- **Template literals:** \`\`${x}\`\` must have matching backticks. No unclosed \` or \`}\`.
+- **JSX tags:** Every \`<\` must have a matching \`>\`. Every \`<div>\` needs \`</div>\`.
+- **Brackets:** \`{\`, \`[\`, \`(\` must have matching \`}\`, \`]\`, \`)\`.
+- **Complete files:** Never truncate. Each \`---FILE:path---\` block must contain the FULL file. If you run out of space, output fewer files but make each one complete.
+- **No trailing commas in JSON:** package.json must be valid JSON. No comma after last property.
+
+### 3. TAILWIND & CSS — VALID CLASSES ONLY (strict)
 - **Allowed:** zinc, slate, gray, neutral, stone, red, amber, emerald, blue, indigo, violet, purple, pink, orange, yellow, green, teal, cyan, sky.
-- Valid: \`bg-zinc-950\`, \`dark:bg-zinc-900\`, \`text-slate-100\`, \`border-gray-700\`
+- Valid: \`bg-zinc-950\`, \`text-slate-100\`, \`border-gray-700\`, \`md:flex\`, \`lg:grid-cols-3\`
 - **BANNED:** \`dark-950\`, \`dark-900\`, \`dark-800\`, or any \`dark-*\` as a color. Use \`zinc-950\`, \`slate-900\` instead.
-- src/index.css: ONLY \`@tailwind base;\`, \`@tailwind components;\`, \`@tailwind utilities;\` + plain CSS (no @apply with custom colors).
-- Custom colors: add to tailwind.config.js theme.extend.colors and output that file.
+- **No invalid classes:** \`flex-col-center\` doesn't exist. Use \`flex flex-col items-center\`. Check Tailwind docs.
+- **index.css:** ONLY \`@tailwind base;\`, \`@tailwind components;\`, \`@tailwind utilities;\` + plain CSS. No \`@apply\` with custom colors.
+- **Inline styles:** \`style={{\` must have matching \`}}\`. Use \`style={{ color: 'red' }}\` not \`style={{ color: 'red'\`.
 
-### 3. GRACEFUL DEGRADATION — one broken part must not crash the app
+### 4. GRACEFUL DEGRADATION — one broken part must not crash the app
 - **Wrap every Route in ErrorBoundary:** \`<Route path="/docs" element={<ErrorBoundary><Docs /></ErrorBoundary>} />\`
 - If one page has a runtime error, only that route shows "Something went wrong" — nav, other pages, layout keep working.
 - Always output ErrorBoundary.jsx and use it for every Route element.
 
-### 4. COMMON ERRORS TO AVOID
+### 5. COMMON ERRORS TO AVOID
 - **NEVER Next.js**: No next, next/link, next/image, src/app/, App Router. Vite + React ONLY.
 - **Phosphor Icons**: NEVER \`import { Icon }\` — use \`import { CheckIcon, StarIcon, HouseIcon }\` etc.
 - **Component exports**: Every component file MUST have \`export default\` or \`export function\`.
 - **package.json**: MUST include \`@phosphor-icons/react\` and \`react-router-dom\` (for multi-page).
 - **Vite**: No "use client". Use standard React. Use <a> or react-router Link, <img> for images.
+- **Image paths:** Use \`/image.png\` for public assets or \`{{IMAGE:prompt}}\` for AI images. No broken relative paths.
 
 ## BEFORE OUTPUT — VALIDATION CHECKLIST (run every time)
 
 1. **Import audit:** For every file with imports, list each import path. For each: "File X exists in my output: YES/NO." All must be YES.
 2. **Output order:** Did I output all pages before App.jsx? App.jsx imports must reference files already output.
-3. **Tailwind audit:** Grep for \`dark-\` (as color). If found → replace with zinc/slate/gray. No @apply with custom classes in index.css.
-4. **ErrorBoundary:** Did I output ErrorBoundary.jsx? Does App.jsx wrap every Route element in <ErrorBoundary>?
-5. **Icons:** All use Phosphor (CheckIcon, StarIcon). No Lucide, Heroicons, Feather.
-6. **Exports:** Every imported component has export default or export { X }.
-7. **package.json:** Includes @phosphor-icons/react, react-router-dom (if multi-page).
-8. **Typography:** NOT Inter. Shadows: soft, no harsh blacks.`;
+3. **Syntax audit:** Every string, template literal, JSX tag, and bracket is closed. No unterminated literals.
+4. **Tailwind audit:** Grep for \`dark-\` (as color). If found → replace with zinc/slate/gray. No invalid class names.
+5. **ErrorBoundary:** Did I output ErrorBoundary.jsx? Does App.jsx wrap every Route element in <ErrorBoundary>?
+6. **Icons:** All use Phosphor (CheckIcon, StarIcon). No Lucide, Heroicons, Feather.
+7. **Exports:** Every imported component has export default or export { X }.
+8. **package.json:** Includes @phosphor-icons/react, react-router-dom (if multi-page). Valid JSON, no trailing commas.
+9. **File completeness:** Each ---FILE:path--- block contains the ENTIRE file. No truncated output.
+10. **Typography:** NOT Inter. Shadows: soft, no harsh blacks.`;
 
 /** Wraps user prompt with full-frontend emphasis. */
 export function enhanceUserPrompt(prompt) {
-  return prompt.trim() + '\n\n[COMPLETE Vite + React project. Zero errors: (1) Output pages BEFORE App.jsx — every import must have a file. (2) Tailwind: zinc/slate/gray only — never dark-950. (3) Wrap every Route in ErrorBoundary so one broken page does not crash the app. Full, shippable frontend.]';
+  return prompt.trim() + '\n\n[COMPLETE Vite + React project. ZERO ERRORS: (1) Output pages BEFORE App.jsx — every import must have a file. (2) Close all strings, JSX tags, brackets — no unterminated literals. (3) Tailwind: zinc/slate/gray only — no dark-950. (4) Wrap every Route in ErrorBoundary. (5) Each file must be complete — no truncated output. Full, shippable, runnable frontend.]';
 }
 
 /** System prompt for edit requests — user wants to modify existing code. */

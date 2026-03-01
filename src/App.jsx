@@ -304,7 +304,7 @@ function AppBody({
                           >
                             <span className="flex items-center gap-1.5">
                               <i className={`ph ${provider === 'groq' ? 'ph-fill' : 'ph'} ph-lightning text-sm`}></i>
-                              Kimi K2
+                              Kimi K2 0905
                             </span>
                           </button>
                           <button
@@ -570,7 +570,7 @@ function AppBody({
                       >
                         <span className="flex items-center gap-1.5">
                           <i className={`ph ${provider === 'groq' ? 'ph-fill' : 'ph'} ph-lightning text-sm`}></i>
-                          Kimi K2
+                          Kimi K2 0905
                         </span>
                       </button>
                       <button

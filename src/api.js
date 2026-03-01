@@ -17,13 +17,13 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'moonshotai/kimi-k2-instruct',
+      model: 'moonshotai/kimi-k2-instruct-0905',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userContent },
       ],
       stream: true,
-      temperature: 0.7,
+      temperature: 0.5,
       max_tokens: 16384,
     }),
   });
@@ -43,7 +43,7 @@ export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, co
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'moonshotai/kimi-k2-instruct',
+      model: 'moonshotai/kimi-k2-instruct-0905',
       messages: [
         { role: 'system', content: EDIT_SYSTEM_PROMPT },
         { role: 'user', content: prompt },
@@ -95,7 +95,7 @@ export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles =
         system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: [{ role: 'user', parts: [{ text: userContent }] }],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.5,
           maxOutputTokens: 32000,
         },
       }),
@@ -254,14 +254,17 @@ const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;
  * ALWAYS uses Gemini API for images (even when text is from Kimi/Groq).
  * Pass geminiApiKey when available (VITE_GEMINI_API_KEY) so images work with Kimi.
  */
-const FIX_ERRORS_PROMPT = `You are a code reviewer. This Vite + React project may have errors:
-1. **Missing package.json dependencies** — If App.jsx or any file imports react-router-dom or @phosphor-icons/react, package.json MUST include them. Add "react-router-dom": "^6.20.0" and "@phosphor-icons/react": "^2.1.6" to dependencies.
-2. **File not found** — Every import path must have a corresponding output file. Fix or remove broken imports.
-3. **Styling errors** — Invalid Tailwind classes (e.g. dark-950), wrong Phosphor icon imports.
-4. **Missing exports** — Every imported component must exist and be exported.
-5. **Responsive** — Ensure layouts work at 375px, 768px, 1024px. Add min-w-0, overflow-hidden where needed.
+const FIX_ERRORS_PROMPT = `You are a code reviewer. This Vite + React project may have errors. Fix ALL of them:
 
-Fix ALL errors. Output ONLY the changed files in ---FILE:path--- format. No explanations. If nothing to fix, output a single line: NO_CHANGES_NEEDED.`;
+1. **Unterminated literals** — Unclosed strings, template literals, JSX tags, or brackets. Add the missing closing characters. Example: \`style={{ color: 'red'\` → \`style={{ color: 'red' }}\`
+2. **Missing package.json dependencies** — If any file imports react-router-dom or @phosphor-icons/react, package.json MUST include them. Add "react-router-dom": "^6.20.0" and "@phosphor-icons/react": "^2.1.6" to dependencies.
+3. **File not found / phantom imports** — Every import must have a corresponding file. Either create the missing file or remove the import. Check path casing (./pages/Home vs ./pages/home).
+4. **Styling errors** — Invalid Tailwind (dark-950 → zinc-950). Wrong Phosphor imports (Icon → CheckIcon, StarIcon). Invalid class names.
+5. **Missing exports** — Every imported component must exist and have export default or export { X }.
+6. **JSON syntax** — package.json: no trailing commas, valid JSON.
+7. **Responsive** — Add min-w-0, overflow-hidden on flex children. Ensure layouts work at 375px, 768px, 1024px.
+
+Output ONLY the changed files in ---FILE:path--- format. Each file must be complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
 
 /** Post-generation: use the OTHER model to check and fix errors. Returns merged files or null. */
 export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey) {
@@ -280,7 +283,7 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'moonshotai/kimi-k2-instruct',
+          model: 'moonshotai/kimi-k2-instruct-0905',
           messages: [{ role: 'user', content: prompt }],
           stream: false,
           temperature: 0.2,
