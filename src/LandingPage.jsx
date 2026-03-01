@@ -123,6 +123,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
   const [comparisonRef, comparisonVisible] = useScrollReveal(0.1);
   const [useCasesRef, useCasesVisible] = useScrollReveal(0.1);
   const [valueRef, valueVisible] = useScrollReveal(0.2);
+  const [footerRef, footerVisible] = useScrollReveal(0.1);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [faqOpen, setFaqOpen] = useState(null);
 
@@ -140,10 +141,10 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       {/* hero */}
       <section className={`relative min-h-[90vh] flex flex-col justify-center ${sectionCl} overflow-hidden`}>
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url('/hero-bg.png')` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface/60 to-surface" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface/40 to-surface" />
         <div className={`relative ${maxW} w-full`}>
           <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
             <div>
@@ -196,12 +197,12 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
 
       {/* stats */}
       <section ref={statsRef} className={`relative py-24 border-t ${borderCl} overflow-hidden`}>
-        <div className="absolute inset-0 bg-cover bg-center opacity-[0.12]" style={{ backgroundImage: `url('/lander-stats-bg.png')` }} aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-b from-surface/85 via-surface/95 to-surface" aria-hidden />
+        <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('/lander-stats-bg.png')` }} aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/85 to-surface" aria-hidden />
         <div className={`relative ${maxW} ${sectionCl} transition-all duration-700 ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-16 md:gap-24">
             {STATS.map((stat, i) => (
-              <div key={i} className="text-center">
+              <div key={i} className={`text-center transition-all duration-500 ease-out ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: `${i * 80}ms` }}>
                 <p className="text-2xl md:text-3xl font-medium text-text-primary tracking-tight">{stat.value}</p>
                 <p className="text-xs text-text-muted mt-2">{stat.label}</p>
               </div>
@@ -212,7 +213,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
 
       {/* marquee */}
       <section ref={marqueeRef} className={`py-24 border-t ${borderCl} overflow-hidden`}>
-        <div className={`transition-all duration-700 ${marqueeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+        <div className={`transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${marqueeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <p className={`${labelCl} text-center mb-12`}>tech</p>
           <div className="marquee-track">
             {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
@@ -229,8 +230,8 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
 
       {/* bento 1 */}
       <section ref={bentoRef} className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
-        <div className="absolute inset-0 bg-cover bg-center opacity-[0.12]" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-b from-surface/85 via-surface/95 to-surface" aria-hidden />
+        <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/85 to-surface" aria-hidden />
         <div className={`relative ${maxW} transition-all duration-700 ${bentoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <p className={labelCl}>how it works</p>
           <h2 className={headingCl}>one prompt. full project.</h2>
@@ -275,9 +276,9 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
         <div className={`${maxW} transition-all duration-700 ${comparisonVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <p className={labelCl}>the difference</p>
           <h2 className={headingCl}>traditional vs jasmine</h2>
-          <div className={`${cardCl} rounded-lg overflow-hidden mt-16`}>
+          <div className={`${cardCl} rounded-lg overflow-hidden mt-16 transition-all duration-500 ${comparisonVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'}`} style={{ transitionDelay: '150ms' }}>
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-inherit">
-              <div className="p-8">
+              <div className={`p-8 transition-all duration-500 ${comparisonVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`} style={{ transitionDelay: '250ms' }}>
                 <p className="text-xs text-text-muted mb-4">traditional</p>
                 <ul className="space-y-3">
                   {COMPARISON.map((c, i) => (
@@ -285,10 +286,10 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                   ))}
                 </ul>
               </div>
-              <div className="p-8 flex items-center justify-center">
+              <div className={`p-8 flex items-center justify-center transition-all duration-500 ${comparisonVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`} style={{ transitionDelay: '350ms' }}>
                 <i className="ph ph-arrow-right text-lg text-text-muted" />
               </div>
-              <div className="p-8">
+              <div className={`p-8 transition-all duration-500 ${comparisonVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}`} style={{ transitionDelay: '450ms' }}>
                 <p className="text-xs text-[var(--color-accent)] mb-4">jasmine</p>
                 <ul className="space-y-3">
                   {COMPARISON.map((c, i) => (
@@ -320,8 +321,8 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
 
       {/* bento 2 */}
       <section ref={bento2Ref} className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
-        <div className="absolute inset-0 bg-cover bg-center opacity-[0.12]" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-b from-surface/85 via-surface/95 to-surface" aria-hidden />
+        <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/85 to-surface" aria-hidden />
         <div className={`relative ${maxW} transition-all duration-700 ${bento2Visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <p className={labelCl}>output quality</p>
           <h2 className={headingCl}>world-class. every time.</h2>
@@ -409,7 +410,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           <p className="text-base text-text-secondary mb-12 max-w-md mx-auto">
             no signup. no credit card. generate as many projects as you want. the code is yours.
           </p>
-          <div className={`${cardCl} rounded-lg p-12 inline-block`}>
+          <div className={`${cardCl} rounded-lg p-12 inline-block transition-all duration-600 ease-[cubic-bezier(0.22,1,0.36,1)] ${valueVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}`} style={{ transitionDelay: '200ms' }}>
             <p className="text-3xl font-medium text-text-primary">$0</p>
             <p className="text-xs text-text-muted mt-1">per month</p>
           </div>
@@ -450,8 +451,8 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       </section>
 
       {/* footer */}
-      <footer className={`${sectionCl} py-20 border-t ${borderCl}`}>
-        <div className={`${maxW} flex flex-col md:flex-row items-center justify-between gap-6`}>
+      <footer ref={footerRef} className={`${sectionCl} py-20 border-t ${borderCl}`}>
+        <div className={`${maxW} flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-700 ${footerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
               <img src="/logo-mark.png" alt="" className="w-full h-full object-contain" />
