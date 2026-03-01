@@ -701,6 +701,7 @@ function App() {
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState(null);
+  const [e2bBadgeDismissed, setE2bBadgeDismissed] = useState(() => localStorage.getItem('jasmine_e2b_badge_dismissed') === 'true');
   const saveTimeoutRef = useRef(null);
 
   const textareaRef = useRef(null);
@@ -1342,6 +1343,24 @@ function App() {
           onGoogle={signInWithGoogle}
           theme={theme}
         />
+      )}
+      {!e2bBadgeDismissed && (
+        <div className={`fixed bottom-4 left-4 z-50 flex items-center gap-1 rounded-lg border ${theme === 'light' ? 'border-zinc-200 bg-white/95' : 'border-white/10 bg-surface/95'} backdrop-blur-sm shadow-lg p-1.5 pr-1`}>
+          <a href="https://e2b.dev/startups" target="_blank" rel="noopener noreferrer" className="shrink-0" title="Sponsored by E2B for Startups">
+            <img src="https://img.shields.io/badge/SPONSORED%20BY-E2B%20FOR%20STARTUPS-ff8800?style=for-the-badge" alt="Sponsored by E2B for Startups" className="h-6" />
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              setE2bBadgeDismissed(true);
+              localStorage.setItem('jasmine_e2b_badge_dismissed', 'true');
+            }}
+            className="p-1 rounded hover:bg-white/10 text-text-muted hover:text-text-primary transition-colors"
+            aria-label="Close badge"
+          >
+            <i className="ph ph-x text-sm"></i>
+          </button>
+        </div>
       )}
     </div>
   );
