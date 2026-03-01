@@ -51,22 +51,28 @@ html {
   transition: background-color 0.2s var(--ease-premium), color 0.2s var(--ease-premium);
 }
 
-h1, h2, h3, .font-display {
+h1, h2, h3, h4, .font-display, .heading {
   font-family: var(--font-display);
   letter-spacing: -0.02em;
+  text-transform: none;
 }
 
-/* Subtle 3D text effect for headers */
-h1, h2, h3, .text-3d {
+/* Subtle 3D text effect for all headers */
+h1, h2, h3, h4, .heading, .text-3d {
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.04),
     0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
-html.light h1, html.light h2, html.light h3, html.light .text-3d {
+html.light h1, html.light h2, html.light h3, html.light h4, html.light .heading, html.light .text-3d {
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.8),
     0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* 3D for light text on dark (e.g. Auth left panel) */
+.text-3d-dark {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 body {
@@ -276,7 +282,7 @@ html.light .btn-ghost:hover {
 /* Horizontal marquee — infinite scroll */
 @keyframes marquee {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  100% { transform: translateX(-25%); }
 }
 
 .marquee-track {

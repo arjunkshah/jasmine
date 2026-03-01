@@ -104,7 +104,7 @@ function useScrollReveal(threshold = 0.1) {
 
 const sectionCl = 'px-6 md:px-12 lg:px-24';
 const labelCl = 'text-xs tracking-[0.12em] text-text-muted mb-6';
-const headingCl = 'text-2xl md:text-3xl font-semibold text-text-primary mb-4 leading-[1.2] font-display';
+const headingCl = 'text-2xl md:text-3xl font-semibold text-text-primary mb-4 leading-[1.2] font-display text-3d';
 const maxW = 'max-w-4xl mx-auto';
 
 function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
@@ -140,8 +140,8 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       <section ref={heroRef} className={`relative min-h-[90vh] flex flex-col justify-center ${sectionCl} overflow-hidden`}>
         {/* Center content */}
         <div className={`relative flex flex-col items-center text-center max-w-2xl mx-auto transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className={`${labelCl} font-display`}>the world's best designer</p>
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.1] text-text-primary mb-6 font-display">
+          <p className={`${labelCl} font-display text-3d`}>the world's best designer</p>
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.1] text-text-primary mb-6 font-display text-3d">
             design anything.
           </h1>
           <p className="text-base md:text-lg text-text-secondary leading-[1.6] mb-12">
@@ -181,7 +181,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
         <div className={`transition-all duration-700 ${marqueeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <p className={`${labelCl} text-center mb-12`}>tech</p>
           <div className="marquee-track">
-            {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
+            {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
               <div key={i} className="flex items-center gap-3 mx-10 shrink-0">
                 <div className={`w-12 h-12 rounded-lg ${cardCl} flex items-center justify-center p-2`}>
                   <img src={item.logo} alt={item.label} className="w-6 h-6 object-contain opacity-60" />

@@ -81,7 +81,7 @@ export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSucc
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <button
             onClick={onClose}
-            className="absolute top-6 right-6 p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            className="absolute top-6 right-6 p-2 text-white/70 hover:text-white transition-colors"
             aria-label="Close"
           >
             <i className="ph ph-x text-xl"></i>
@@ -93,7 +93,7 @@ export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSucc
               </div>
               <span className="text-lg font-semibold text-white tracking-tight">jasmine</span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight leading-[1.15] max-w-md">
+            <h1 className="text-3xl font-bold text-white tracking-tight leading-[1.15] max-w-md text-3d-dark">
               The world's best designer.
             </h1>
             <p className="mt-3 text-white/70 text-sm max-w-sm">
@@ -124,12 +124,12 @@ export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSucc
               </div>
               <span className="font-semibold text-text-primary">jasmine</span>
             </div>
-            <button onClick={onClose} className="p-2 text-text-muted hover:text-text-primary rounded-lg">
+            <button onClick={onClose} className="p-2 text-text-muted hover:text-text-primary transition-colors">
               <i className="ph ph-x text-lg"></i>
             </button>
           </div>
 
-          <h2 className="text-2xl font-bold text-text-primary tracking-tight mb-1">
+          <h2 className="text-3d text-2xl font-bold text-text-primary tracking-tight mb-1">
             {mode === 'signin' ? 'Welcome back' : 'Create account'}
           </h2>
           <p className="text-sm text-text-muted mb-8">
