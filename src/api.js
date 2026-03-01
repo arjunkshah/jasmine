@@ -259,10 +259,11 @@ const FIX_ERRORS_PROMPT = `You are a code reviewer. This Vite + React project ma
 1. **Unterminated literals** — Unclosed strings, template literals, JSX tags, or brackets. Add the missing closing characters. Example: \`style={{ color: 'red'\` → \`style={{ color: 'red' }}\`
 2. **Missing package.json dependencies** — If any file imports react-router-dom or @phosphor-icons/react, package.json MUST include them. Add "react-router-dom": "^6.20.0" and "@phosphor-icons/react": "^2.1.6" to dependencies.
 3. **File not found / phantom imports** — Every import must have a corresponding file. Either create the missing file or remove the import. Check path casing (./pages/Home vs ./pages/home).
-4. **Styling errors** — Invalid Tailwind (dark-950 → zinc-950). Wrong Phosphor imports (Icon → CheckIcon, StarIcon). Invalid class names.
-5. **Missing exports** — Every imported component must exist and have export default or export { X }.
-6. **JSON syntax** — package.json: no trailing commas, valid JSON.
-7. **Responsive** — Add min-w-0, overflow-hidden on flex children. Ensure layouts work at 375px, 768px, 1024px.
+4. **main.jsx casing (CRITICAL)** — JavaScript is case-sensitive. Fix: React (not react), ReactDOM (not reactdom), createRoot (not createroot), getElementById (not getelementbyid), App (not app). Import from './App.jsx' not './app.jsx'. Use <React.StrictMode> not <react.strictmode>.
+5. **Styling errors** — Invalid Tailwind (dark-950 → zinc-950). Wrong Phosphor imports (Icon → CheckIcon, StarIcon). Invalid class names.
+6. **Missing exports** — Every imported component must exist and have export default or export { X }.
+7. **JSON syntax** — package.json: no trailing commas, valid JSON.
+8. **Responsive** — Add min-w-0, overflow-hidden on flex children. Ensure layouts work at 375px, 768px, 1024px.
 
 Output ONLY the changed files in ---FILE:path--- format. Each file must be complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
 
@@ -326,9 +327,12 @@ export async function replaceImagePlaceholders(text, apiBase = '', geminiApiKey 
   const matches = [...text.matchAll(IMAGE_PLACEHOLDER_REGEX)];
   if (matches.length === 0) return text;
 
+  const key = (geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '').trim();
+  const placeholder = (prompt) => `https://placehold.co/800x600?text=${encodeURIComponent(prompt.slice(0, 30))}`;
+
   let result = text;
   const seen = new Set();
-  const key = geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
+  let skipApi = false;
 
   for (const match of matches) {
     const full = match[0];
@@ -336,23 +340,34 @@ export async function replaceImagePlaceholders(text, apiBase = '', geminiApiKey 
     if (seen.has(full)) continue;
     seen.add(full);
 
+    if (skipApi) {
+      result = result.split(full).join(placeholder(prompt));
+      continue;
+    }
+
     try {
-      const body = { prompt };
-      if (key) body.apiKey = key;
       const res = await fetch(`${apiBase}/api/generate-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ prompt, apiKey: key }),
       });
-      const data = await res.json();
-      if (data.image) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.image) {
         result = result.split(full).join(data.image);
       } else {
-        result = result.split(full).join(`https://placehold.co/800x600?text=${encodeURIComponent(prompt.slice(0, 30))}`);
+        result = result.split(full).join(placeholder(prompt));
+        const errMsg = (data?.error || '').toLowerCase();
+        if (!res.ok) {
+          if (errMsg.includes('key') || errMsg.includes('gemini') || errMsg.includes('required')) {
+            skipApi = true;
+            console.warn('[Jasmine] Image gen disabled (no API key). Add GEMINI_API_KEY in Vercel env. Using placeholders.');
+          } else if (data?.error) console.warn('[Jasmine] image gen:', data.error);
+        }
       }
     } catch (e) {
       console.warn('[Jasmine] image gen failed:', prompt?.slice(0, 50), e?.message);
-      result = result.split(full).join(`https://placehold.co/800x600?text=${encodeURIComponent(prompt.slice(0, 30))}`);
+      result = result.split(full).join(placeholder(prompt));
+      skipApi = true;
     }
   }
   return result;

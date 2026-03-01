@@ -585,6 +585,7 @@ You MUST generate Vite + React projects. NEVER use Next.js, next/link, next/imag
 - Use Vite (vite.config.js, index.html, src/main.jsx)
 - Use react-router-dom for multi-page navigation (BrowserRouter, Routes, Route, Link)
 - Use standard React: <img>, <a>, useState, useEffect — no "use client"
+- **main.jsx casing:** React, ReactDOM, createRoot, getElementById, App — exact casing required. Never use lowercase (react, reactdom, app).
 
 Structure: index.html, src/main.jsx, src/App.jsx, src/components/, Tailwind.
 ${JASMINE_DESIGN_PROCESS}
@@ -686,6 +687,7 @@ export default { plugins: { tailwindcss: {}, autoprefixer: {} } }
 
 ---FILE:src/main.jsx---
 \`\`\`jsx
+// CRITICAL: Use exact casing — React, ReactDOM, createRoot, getElementById, App. Never lowercase.
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
