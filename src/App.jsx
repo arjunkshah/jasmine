@@ -1353,7 +1353,6 @@ function App() {
           <E2BBadge
             showClose
             onClose={() => setE2bBadgeDismissed(true)}
-            theme={theme}
           />
         </div>
       )}

@@ -3,8 +3,7 @@ const E2B_BADGE_URL = 'https://uilwcam5kj.ufs.sh/f/pcCLEhYqZ204w1rLMw40tuZMShPRc
 /**
  * E2B for Startups badge — official design from E2B
  */
-export default function E2BBadge({ className = '', showClose = false, onClose, theme = 'dark' }) {
-  const isLight = theme === 'light';
+export default function E2BBadge({ className = '', showClose = false, onClose }) {
   return (
     <div className={`inline-flex items-stretch overflow-hidden ${className}`}>
       <a
@@ -20,11 +19,7 @@ export default function E2BBadge({ className = '', showClose = false, onClose, t
         <button
           type="button"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
-          className={`flex items-center justify-center w-7 h-8 border-l shrink-0 transition-colors ${
-            isLight
-              ? 'bg-white hover:bg-zinc-100 text-zinc-500 hover:text-black border-zinc-200'
-              : 'bg-zinc-800/90 hover:bg-zinc-700 text-zinc-400 hover:text-white border-white/10'
-          }`}
+          className="flex items-center justify-center w-7 h-8 bg-white hover:bg-zinc-100 text-zinc-500 hover:text-black border-l border-zinc-200 shrink-0 transition-colors"
           aria-label="Close badge"
         >
           <i className="ph ph-x text-sm" />
