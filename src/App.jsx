@@ -323,7 +323,7 @@ function AppBody({
                       </div>
                       <button
                         type="button"
-                        onClick={generate}
+                        onClick={firebaseConfigured && !user ? onSignInClick : generate}
                         disabled={isGenerating}
                         className="btn-premium flex items-center gap-2 px-8 py-3 text-[#0a0a0b] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none"
                       >
@@ -331,6 +331,11 @@ function AppBody({
                           <>
                             <i className="ph ph-circle-notch text-lg animate-spin-slow"></i>
                             <span>Generating</span>
+                          </>
+                        ) : firebaseConfigured && !user ? (
+                          <>
+                            <i className="ph ph-sign-in text-lg"></i>
+                            <span>Sign in to generate</span>
                           </>
                         ) : (
                           <>
@@ -781,6 +786,11 @@ function App() {
   }, [showLanding, sandboxRetryTrigger, theme]);
 
   const generate = async () => {
+    if (firebaseConfigured && !user) {
+      setShowAuthModal(true);
+      setError('Sign in to generate');
+      return;
+    }
     if (!prompt.trim()) {
       setError('Enter a prompt to generate');
       textareaRef.current?.focus();
