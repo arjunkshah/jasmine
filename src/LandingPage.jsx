@@ -138,6 +138,11 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
     <div className="flex-1 overflow-y-auto">
       {/* hero */}
       <section ref={heroRef} className={`relative min-h-[90vh] flex flex-col justify-center ${sectionCl} overflow-hidden`}>
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url('/hero-bg.png')` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface/60 to-surface" />
         <div className={`relative ${maxW} w-full transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
             <div>
