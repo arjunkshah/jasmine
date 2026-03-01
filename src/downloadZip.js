@@ -1,5 +1,16 @@
 import JSZip from 'jszip';
 
+/** Paths that belong to the Jasmine tool, not generated projects. Exclude these. */
+const JASMINE_TOOL_PATHS = [
+  /^api\//, /^server\//, /^docs\//, /^e2b-template\//, /^scripts\//, /^patches\//,
+  /vite-plugin-api/, /systemPrompt/, /downloadZip\.js$/,
+];
+
+function isJasmineToolPath(path) {
+  if (!path || typeof path !== 'string') return false;
+  return JASMINE_TOOL_PATHS.some((re) => re.test(path));
+}
+
 /**
  * Create and download a ZIP of the project files.
  * @param {{ files: Record<string, string> }} project - { files: { path: content } }
@@ -7,7 +18,12 @@ import JSZip from 'jszip';
  */
 export async function downloadProjectAsZip(project, fallbackRaw = '') {
   const zip = new JSZip();
-  const files = project?.files && typeof project.files === 'object' ? project.files : {};
+  let files = project?.files && typeof project.files === 'object' ? project.files : {};
+
+  // Filter out Jasmine tool paths — only package generated project files
+  files = Object.fromEntries(
+    Object.entries(files).filter(([path]) => !isJasmineToolPath(path))
+  );
 
   if (Object.keys(files).length > 0) {
     for (const [path, content] of Object.entries(files)) {
