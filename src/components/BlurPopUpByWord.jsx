@@ -18,7 +18,7 @@ export default function BlurPopUpByWord({ text, className = '', wordDelay = 0.04
           animate="animate"
           variants={blurPopUp}
           transition={{
-            duration: 0.6,
+            duration: 0.7,
             delay: idx * wordDelay,
             ease: [0.22, 1, 0.36, 1],
           }}

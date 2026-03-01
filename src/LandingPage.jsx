@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import BlurPopUp from './components/BlurPopUp';
+import HeroGlowLines from './components/HeroGlowLines';
 
 const BENTO_ITEMS = [
   { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'world\'s best designer', desc: 'law firms, restaurants, saas, portfolios. one prompt. jasmine crafts it.' },
@@ -145,6 +146,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           style={{ backgroundImage: `url('/hero-bg.png')` }}
         />
         <div className={`absolute inset-0 ${isLight ? 'bg-gradient-to-b from-transparent via-surface/40 to-surface' : 'bg-gradient-to-b from-black/40 via-surface/75 to-surface'}`} />
+        <HeroGlowLines />
         <div className={`relative ${maxW} w-full`}>
           <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
             <div className={!isLight ? '[text-shadow:0_1px_2px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.4)]' : ''}>

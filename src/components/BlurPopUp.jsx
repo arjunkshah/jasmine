@@ -13,7 +13,7 @@ export default function BlurPopUp({ children, delay = 0, className = '' }) {
       animate="animate"
       variants={blurPopUp}
       transition={{
-        duration: 0.7,
+        duration: 0.8,
         delay,
         ease: [0.22, 1, 0.36, 1],
       }}
