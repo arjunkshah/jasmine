@@ -213,11 +213,11 @@ Output files in this exact order. App.jsx imports from ./pages/X → you MUST ou
 
 - All app code in src/
 - Tailwind: zinc, slate, gray only. Never dark-950 → use zinc-950
-- Phosphor icons: import { HouseIcon, CheckIcon } from '@phosphor-icons/react'. HomeIcon does NOT exist → HouseIcon
+- Phosphor icons: import { HouseIcon, CheckIcon } from '@phosphor-icons/react'. Each icon ONCE — never duplicate: import { UserIcon } not import { UserIcon, UserIcon, UserIcon }. HomeIcon does NOT exist → HouseIcon
 - react-router-dom: BrowserRouter, Routes, Route, Link. Wrap every <Route> in <ErrorBoundary>
 - main.jsx: React, ReactDOM, createRoot, getElementById, App — exact casing
 - package.json: Valid JSON. No trailing commas. Must include react, react-dom, react-router-dom, @phosphor-icons/react
-- No phantom imports. No truncation. Every string/bracket/JSX tag closed
+- No phantom imports. NO TRUNCATION — every file 100% complete. Never cut mid-line (e.g. className="tex). Every string/bracket/JSX tag closed
 
 🔍 PRE-OUTPUT CHECKLIST
 
@@ -236,7 +236,7 @@ Generate immediately.`;
 export function enhanceUserPrompt(prompt) {
   return prompt.trim() + `
 
-[CRITICAL: Generate ENOUGH code. Never truncate. Every file FULLY complete.
+[CRITICAL: Generate ENOUGH code. NEVER truncate — every file 100% complete to the last character. No cutting mid-line or mid-tag.
 - OUTPUT FORMAT: Each file MUST be ---FILE:path--- then newline then \`\`\`lang then newline then content then \`\`\`. No commentary between files.
 - NAV = PAGES: Every header link = a full page.
 - Sections: Home 5+, other pages 4+.

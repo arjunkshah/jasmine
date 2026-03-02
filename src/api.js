@@ -393,7 +393,7 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 5. **Missing exports** — Every imported component must exist with export default or export { X }.
 6. **package.json** — Valid JSON, no trailing commas.
 7. **Responsive** — min-w-0, overflow-hidden on flex children.
-8. **Phosphor icons** — NEVER use: HomeIcon, MailIcon, EmailIcon, Family, FamilyIcon, SearchIcon, MenuIcon, CloseIcon. Use: HouseIcon, EnvelopeIcon, UsersIcon, MagnifyingGlassIcon, ListIcon, XIcon. Valid: HouseIcon, UserIcon, UsersIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, MagnifyingGlassIcon, ListIcon, XIcon, GearIcon.
+8. **Phosphor icons** — Each icon imported ONCE. Never: import { UserIcon, UserIcon, UserIcon }. Use: import { UserIcon } and reference it multiple times in JSX. NEVER use: HomeIcon, MailIcon, etc. Use: HouseIcon, EnvelopeIcon, UsersIcon, MagnifyingGlassIcon, ListIcon, XIcon. Valid: HouseIcon, UserIcon, UsersIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, MagnifyingGlassIcon, ListIcon, XIcon, GearIcon.
 9. **Invalid RegExp** — Valid flags: g, i, m, s, u, y.
 
 Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;

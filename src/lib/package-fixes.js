@@ -104,6 +104,25 @@ const LUCIDE_TO_PHOSPHOR = {
 };
 
 /**
+ * Deduplicate Phosphor icon imports. AI sometimes outputs import { UserIcon, UserIcon, UserIcon }.
+ * Mutates files in place.
+ */
+function deduplicatePhosphorImports(files) {
+  if (!files || typeof files !== 'object') return;
+  const phosphorImportRe = /import\s*\{\s*([^}]+)\s*\}\s*from\s*['"]@phosphor-icons\/react['"]/g;
+  for (const [path, content] of Object.entries(files)) {
+    if (typeof content !== 'string' || !path.match(/\.(jsx?|tsx?)$/)) continue;
+    const next = content.replace(phosphorImportRe, (match, namesStr) => {
+      const names = namesStr.split(',').map((s) => s.trim().split(/\s+as\s+/)[0].trim()).filter(Boolean);
+      const unique = [...new Set(names)];
+      if (unique.length === names.length) return match;
+      return `import { ${unique.join(', ')} } from '@phosphor-icons/react'`;
+    });
+    if (next !== content) files[path] = next;
+  }
+}
+
+/**
  * Fix Phosphor icon imports — invalid/non-existent exports → valid ones.
  * Mutates files in place.
  */
@@ -169,6 +188,7 @@ export function fixLucideToPhosphor(files) {
 
 /** Run all package export fixes. */
 export function applyPackageFixes(files) {
+  deduplicatePhosphorImports(files);
   fixPhosphorIcons(files);
   fixLucideToPhosphor(files);
   return files;
