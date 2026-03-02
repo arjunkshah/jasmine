@@ -351,7 +351,8 @@ export function extractNextProject(text) {
   if (!text || typeof text !== 'string') return null;
   const files = {};
   try {
-    const regex = /---FILE:([^\n-]+)---\s*```(?:\w+)?\s*\n([\s\S]*?)```/g;
+    // Path: chars until --- (allows dashes in filenames like some-file.jsx)
+    const regex = /---FILE:([^\n]+?)---\s*```(?:\w+)?\s*\n([\s\S]*?)```/g;
     let match;
     while ((match = regex.exec(text)) !== null) {
       const path = match[1].trim();
@@ -376,11 +377,6 @@ export function projectToRaw(project) {
 
 const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;
 
-/**
- * Replace {{IMAGE:prompt}} placeholders with AI-generated images.
- * ALWAYS uses Gemini API for images (even when text is from Kimi/Groq).
- * Pass geminiApiKey when available (VITE_GEMINI_API_KEY) so images work with Kimi.
- */
 const FIX_ERRORS_PROMPT = `You are a code reviewer. Review this Vite + React project and fix ALL errors.
 
 ## DEPENDENCIES (CRITICAL)
@@ -465,12 +461,12 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
   return null;
 }
 
-export async function replaceImagePlaceholders(text, apiBase = '', geminiApiKey = '') {
+/** Replace {{IMAGE:prompt}} placeholders with AI-generated images. Uses Nano Banana Pro (Replicate) — server needs REPLICATE_API_TOKEN. */
+export async function replaceImagePlaceholders(text, apiBase = '', _unused = '') {
   if (!text || typeof text !== 'string') return text;
   const matches = [...text.matchAll(IMAGE_PLACEHOLDER_REGEX)];
   if (matches.length === 0) return text;
 
-  const key = (geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '').trim();
   const placeholder = (prompt) => `https://placehold.co/800x600?text=${encodeURIComponent(prompt.slice(0, 30))}`;
 
   let result = text;
@@ -492,7 +488,7 @@ export async function replaceImagePlaceholders(text, apiBase = '', geminiApiKey 
       const res = await fetch(`${apiBase}/api/generate-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, apiKey: key }),
+        body: JSON.stringify({ prompt }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.image) {
@@ -501,9 +497,9 @@ export async function replaceImagePlaceholders(text, apiBase = '', geminiApiKey 
         result = result.split(full).join(placeholder(prompt));
         const errMsg = (data?.error || '').toLowerCase();
         if (!res.ok) {
-          if (errMsg.includes('key') || errMsg.includes('gemini') || errMsg.includes('required')) {
+          if (errMsg.includes('token') || errMsg.includes('replicate') || errMsg.includes('required')) {
             skipApi = true;
-            console.warn('[Jasmine] Image gen disabled. Add GEMINI_API_KEY or VITE_GEMINI_API_KEY in Vercel env. Using placeholders.');
+            console.warn('[Jasmine] Image gen disabled. Add REPLICATE_API_TOKEN in Vercel env. Using placeholders.');
           } else if (data?.error) console.warn('[Jasmine] image gen:', data.error);
         }
       }
