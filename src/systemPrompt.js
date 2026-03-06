@@ -290,23 +290,29 @@ When generating code, FOLLOW THIS PROCESS:
 6. Then generate EVERY SINGLE component file you imported
 7. Do NOT stop until all imports are satisfied
 
-Use this XML format for React components only (DO NOT create tailwind.config.js - it already exists):
+OUTPUT FORMAT (CRITICAL - parsing depends on this exact format):
+Each file MUST use ---FILE:path--- then newline then \`\`\`lang then newline then content then \`\`\`.
+NO text or commentary between file blocks. Path: use forward slashes (e.g. src/App.jsx).
 
-<file path="src/index.css">
+Example:
+---FILE:src/index.css---
+\`\`\`css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-</file>
+\`\`\`
 
-<file path="src/App.jsx">
-// Main App component that imports and uses other components
-// Use Tailwind classes: className="min-h-screen bg-gray-50"
-</file>
+---FILE:src/App.jsx---
+\`\`\`jsx
+// Main App component - use Tailwind: className="min-h-screen bg-gray-50"
+\`\`\`
 
-<file path="src/components/Example.jsx">
-// Your React component code here
-// Use Tailwind classes for ALL styling
-</file>
+---FILE:src/components/Example.jsx---
+\`\`\`jsx
+// Your React component - Tailwind for ALL styling
+\`\`\`
+
+DO NOT create tailwind.config.js, vite.config.js, or package.json - they already exist.
 
 CRITICAL COMPLETION RULES:
 1. NEVER say "I'll continue with the remaining components"
