@@ -248,10 +248,70 @@ function ensureRequiredFiles(files) {
   }
 }
 
+/**
+ * Force Tailwind v3 in package.json. AI often outputs tailwindcss ^4 or @tailwindcss/vite.
+ * Tailwind v4 has a different structure (no preflight.css) and breaks with postcss.config.js.
+ * E2B boilerplate uses v3 + postcss — we must keep that.
+ */
+function fixTailwindVersion(files) {
+  if (!files || typeof files !== 'object') return;
+  const pkgRaw = files['package.json'];
+  if (!pkgRaw || typeof pkgRaw !== 'string') return;
+  try {
+    const pkg = JSON.parse(pkgRaw);
+    const dev = pkg.devDependencies || {};
+    let changed = false;
+    if (dev.tailwindcss && !/^3\./.test(dev.tailwindcss)) {
+      dev.tailwindcss = '^3.3.0';
+      changed = true;
+    }
+    if (dev['@tailwindcss/vite']) {
+      delete dev['@tailwindcss/vite'];
+      changed = true;
+    }
+    if (changed) {
+      pkg.devDependencies = dev;
+      files['package.json'] = JSON.stringify(pkg, null, 2);
+    }
+  } catch (_) {}
+}
+
+/**
+ * Ensure index.css uses Tailwind v3 directives, not v4 @import "tailwindcss".
+ */
+function fixIndexCssTailwind(files) {
+  if (!files || typeof files !== 'object') return;
+  const css = files['src/index.css'];
+  if (!css || typeof css !== 'string') return;
+  if (css.includes('@import "tailwindcss"') || css.includes("@import 'tailwindcss'")) {
+    files['src/index.css'] = MINIMAL_INDEX_CSS;
+  }
+}
+
+/**
+ * Remove @tailwindcss/vite from vite.config — we use postcss + tailwind v3.
+ */
+function fixViteConfigTailwind(files) {
+  if (!files || typeof files !== 'object') return;
+  for (const path of ['vite.config.js', 'vite.config.ts']) {
+    const content = files[path];
+    if (!content || typeof content !== 'string') continue;
+    if (!content.includes('@tailwindcss/vite') && !content.includes('tailwindcss()')) continue;
+    let next = content
+      .replace(/import\s+tailwindcss\s+from\s+['"]@tailwindcss\/vite['"]\s*;?\s*\n?/g, '')
+      .replace(/,?\s*tailwindcss\(\)\s*,?/g, '');
+    next = next.replace(/,(\s*,)+/g, ',');
+    if (next !== content) files[path] = next;
+  }
+}
+
 /** Run all package export fixes. */
 export function applyPackageFixes(files) {
   fixInvalidRegexFlags(files);
   ensureRequiredFiles(files);
+  fixTailwindVersion(files);
+  fixIndexCssTailwind(files);
+  fixViteConfigTailwind(files);
   deduplicatePhosphorImports(files);
   fixPhosphorIcons(files);
   fixLucideToPhosphor(files);

@@ -402,6 +402,23 @@ export function ensurePackageDependencies(files) {
   return files;
 }
 
+/** Extract slash commands from AI output. Returns [{ cmd, arg }] e.g. [{ cmd: 'web-search', arg: 'React trends' }]. */
+export function extractSlashCommands(text) {
+  if (!text || typeof text !== 'string') return [];
+  const commands = [];
+  const lines = text.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const m = trimmed.match(/^\/(\w+)(?:\s+(.+))?$/);
+    if (m) {
+      const cmd = m[1].toLowerCase();
+      const arg = (m[2] || '').trim();
+      commands.push({ cmd, arg });
+    }
+  }
+  return commands;
+}
+
 /** Extract summary from edit response (text before first ---FILE:---). */
 export function extractEditSummary(text) {
   if (!text || typeof text !== 'string') return null;
@@ -409,6 +426,22 @@ export function extractEditSummary(text) {
   if (idx < 0) return text.trim() || null;
   const summary = text.slice(0, idx).trim();
   return summary.length > 0 ? summary : null;
+}
+
+/** Extract the file currently being streamed (last ---FILE:--- block, may be partial). Returns { path, content } or null. */
+export function extractStreamingFile(text) {
+  if (!text || typeof text !== 'string') return null;
+  const lastIdx = text.lastIndexOf('---FILE:');
+  if (lastIdx < 0) return null;
+  const block = text.slice(lastIdx);
+  const pathMatch = block.match(/---FILE:([^\n]+)---\s*\n?/);
+  if (!pathMatch) return null;
+  const path = pathMatch[1].trim();
+  const afterHeader = block.slice(pathMatch[0].length);
+  const codeMatch = afterHeader.match(/^```\w*\s*\n?([\s\S]*)/);
+  let content = codeMatch ? codeMatch[1].trim() : '';
+  if (content.endsWith('```')) content = content.slice(0, -3).trimEnd();
+  return path ? { path, content } : null;
 }
 
 /** Parse multi-file output (---FILE:path---). Returns { files: { path: content } } or null. */
@@ -461,6 +494,7 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 8. **Phosphor icons** — Each icon imported ONCE. Never: import { UserIcon, UserIcon, UserIcon }. Use: import { UserIcon } and reference it multiple times in JSX. NEVER use: HomeIcon, MailIcon, etc. Use: HouseIcon, EnvelopeIcon, UsersIcon, MagnifyingGlassIcon, ListIcon, XIcon. Valid: HouseIcon, UserIcon, UsersIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, MagnifyingGlassIcon, ListIcon, XIcon, GearIcon.
 9. **Invalid RegExp** — ONLY valid flags: g, i, m, s, u, y. Remove x, e, duplicates. Invalid flags cause SyntaxError.
 10. **src/index.css** — If missing, add with @tailwind base; @tailwind components; @tailwind utilities;
+11. **Tailwind v3 ONLY** — Use tailwindcss ^3.3.0 with postcss + autoprefixer. NEVER use tailwindcss ^4 or @tailwindcss/vite. index.css must use @tailwind base/components/utilities, NOT @import "tailwindcss". Remove @tailwindcss/vite from vite.config.
 
 Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
 

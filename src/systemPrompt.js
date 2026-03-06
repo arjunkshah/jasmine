@@ -365,7 +365,27 @@ CRITICAL: When files are provided in the context:
 2. Find the relevant file(s) from the provided context
 3. Generate ONLY the files that need changes
 4. Do NOT ask to see files - they are already provided in the context above
-5. Make the requested change immediately`;
+5. Make the requested change immediately
+
+SLASH COMMANDS (output on a line by itself when the user asks for these actions):
+- /sandbox-state — Get current sandbox status (preview URL, sandbox ID)
+- /deploy — Deploy the project to preview
+- /create — Create a new sandbox
+- /apply — Apply the current code to the sandbox
+- /create-and-apply — Create a sandbox and apply code in one step (if no sandbox exists)
+- /web-search <query> — Search the web (e.g. /web-search React design trends 2024)
+- /download — Download the project as a ZIP file
+- /fix-errors — Auto-fix errors in the generated code
+- /netlify-deploy — Deploy the project to Netlify
+- /generate-image <prompt> — Generate an image from a text prompt (e.g. /generate-image sunset over mountains)
+- /retry — Retry applying code to preview (when preview failed)
+- /open-preview — Open the preview URL in a new browser tab
+- /copy-url — Copy the preview URL to clipboard
+- /list-files — List generated files in chat
+- /health — Check API and sandbox health status
+- /help — List all available commands
+
+When the user says "deploy it", "apply the changes", "create a sandbox", "search for X", "download the project", "fix the errors", "deploy to Netlify", "generate an image of X", "retry preview", "open the preview", "copy the link", "what files did you create", "check health", or "what can you do", output the corresponding command. Also use your best judgement for these tools. Do not solely depend on the user's input. Use the image generation, web search, sandbox state tools etc. to the best of your ability to produce the best output.`;
 }
 
 /** System prompt for generation (new projects). */

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { extractNextProject } from './api';
+import { extractNextProject, extractStreamingFile } from './api';
 
 /** Build tree from file paths: { 'src/app/page.tsx': '...' } -> { src: { app: { 'page.tsx': content } } } */
 function buildTree(files) {
@@ -88,11 +88,18 @@ function TreeItem({ name, value, path, selectedPath, onSelect, depth = 0, isLigh
 
 function CodeViewer({ content, path, isStreaming, isLight }) {
   const lines = content.split('\n');
+  const scrollRef = useRef(null);
 
   const codeBg = isLight ? 'bg-zinc-100/80' : 'bg-black/30';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
   const lineNumCl = isLight ? 'text-zinc-400' : 'text-zinc-500';
   const codeCl = isLight ? 'text-zinc-800' : 'text-zinc-300';
+
+  useEffect(() => {
+    if (isStreaming && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [content, isStreaming]);
 
   return (
     <div className={`h-full flex flex-col rounded-xl overflow-hidden ${codeBg} border ${borderCl}`}>
@@ -102,7 +109,7 @@ function CodeViewer({ content, path, isStreaming, isLight }) {
           <span className="text-sm font-medium text-text-primary truncate">{path || 'output'}</span>
         </div>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div ref={scrollRef} className="flex-1 overflow-auto">
         <div className="flex min-h-full">
           <div className={`flex-none py-4 pl-4 pr-3 text-right select-none text-[13px] font-mono ${lineNumCl}`} aria-hidden>
             {lines.map((_, i) => (
@@ -130,22 +137,33 @@ export default function FileExplorer({ files, streamingRaw, isStreaming, onSelec
     return parsed?.files || {};
   }, [files, streamingRaw]);
 
-  const tree = useMemo(() => buildTree(project), [project]);
-  const prevFileCountRef = useRef(0);
+  const streamingFile = useMemo(() => {
+    if (!isStreaming || !streamingRaw) return null;
+    return extractStreamingFile(streamingRaw);
+  }, [isStreaming, streamingRaw]);
 
-  // Auto-open the file currently being streamed (last complete file)
-  useEffect(() => {
-    const keys = Object.keys(project);
-    const count = keys.length;
-    if (isStreaming && count > 0 && count > prevFileCountRef.current) {
-      prevFileCountRef.current = count;
-      const lastPath = keys[keys.length - 1];
-      const content = project[lastPath];
-      setSelectedPath(lastPath);
-      setSelectedContent(typeof content === 'string' ? content : String(content));
+  const displayProject = useMemo(() => {
+    const out = { ...project };
+    if (streamingFile && !(streamingFile.path in out)) {
+      out[streamingFile.path] = streamingFile.content;
     }
-    if (!isStreaming) prevFileCountRef.current = count;
-  }, [project, isStreaming]);
+    return out;
+  }, [project, streamingFile]);
+
+  const tree = useMemo(() => buildTree(displayProject), [displayProject]);
+
+  // During streaming: switch tab to the file being streamed and keep content in sync
+  useEffect(() => {
+    if (isStreaming && streamingFile) {
+      setSelectedPath(streamingFile.path);
+      setSelectedContent(streamingFile.content);
+    } else if (isStreaming && Object.keys(project).length > 0) {
+      const keys = Object.keys(project);
+      const lastPath = keys[keys.length - 1];
+      setSelectedPath(lastPath);
+      setSelectedContent(project[lastPath] ?? '');
+    }
+  }, [isStreaming, streamingFile, project]);
 
   const handleSelect = (path, content) => {
     setSelectedPath(path);
