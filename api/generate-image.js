@@ -1,10 +1,17 @@
 /**
- * Gemini image generation — tries REST API and SDK with multiple models.
- * Uses VITE_GEMINI_API_KEY (or GEMINI_API_KEY) from env.
+ * Image generation — Vercel AI Gateway (preferred) or Gemini REST/SDK.
+ * AI Gateway: google/gemini-2.5-flash-image-preview (requires AI_GATEWAY_API_KEY)
+ * Fallback: Gemini (requires GEMINI_API_KEY or VITE_GEMINI_API_KEY)
  */
 export const config = { maxDuration: 60 };
 
-const MODELS = [
+const GATEWAY_IMAGE_MODELS = [
+  'google/gemini-2.5-flash-image-preview',
+  'google/gemini-2.5-flash-image',
+  'google/gemini-3-pro-image',
+];
+
+const GEMINI_MODELS = [
   'gemini-2.0-flash-preview-image-generation',
   'gemini-2.0-flash-exp-image-generation',
   'gemini-2.0-flash-exp',
@@ -22,9 +29,47 @@ function extractImage(response) {
   return null;
 }
 
+/** Try Vercel AI Gateway image models (modalities: text, image). */
+async function tryGateway(apiKey, text) {
+  for (const model of GATEWAY_IMAGE_MODELS) {
+    try {
+      const res = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: text }],
+          modalities: ['text', 'image'],
+          stream: false,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const images = data.choices?.[0]?.message?.images;
+      if (images?.length) {
+        const img = images[0];
+        if (img?.type === 'image_url' && img?.image_url?.url) {
+          const url = img.image_url.url;
+          const m = url.match(/^data:([^;]+);base64,(.+)$/);
+          if (m) return { base64: m[2], mimeType: m[1] || 'image/png' };
+        }
+      }
+    } catch (e) {
+      console.warn('[generate-image] Gateway', model, 'failed:', e?.message);
+    }
+  }
+  return null;
+}
+
 /** Try Gemini REST API directly (bypasses SDK). */
 async function tryRestApi(apiKey, text) {
-  for (const model of MODELS) {
+  for (const model of GEMINI_MODELS) {
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -54,7 +99,7 @@ async function tryRestApi(apiKey, text) {
 
 /** Try @google/genai SDK. */
 async function trySdk(apiKey, text) {
-  for (const model of MODELS) {
+  for (const model of GEMINI_MODELS) {
     try {
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey });
@@ -93,17 +138,26 @@ export default async function handler(req, res) {
   if (!prompt || typeof prompt !== 'string') {
     return sendJson(res, 400, { error: 'Missing prompt' });
   }
-  const apiKey = (typeof clientApiKey === 'string' ? clientApiKey : '').trim()
+  const gatewayKey = (process.env.AI_GATEWAY_API_KEY || '').trim();
+  const geminiKey = (typeof clientApiKey === 'string' ? clientApiKey : '').trim()
     || (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
-  if (!apiKey) {
-    return sendJson(res, 503, {
-      error: 'GEMINI_API_KEY or VITE_GEMINI_API_KEY required. Add in Vercel → Settings → Environment Variables.',
-    });
-  }
 
   const text = prompt.trim();
-  let img = await tryRestApi(apiKey, text);
-  if (!img) img = await trySdk(apiKey, text);
+  let img = null;
+
+  if (gatewayKey) {
+    img = await tryGateway(gatewayKey, text);
+  }
+  if (!img && geminiKey) {
+    img = await tryRestApi(geminiKey, text);
+    if (!img) img = await trySdk(geminiKey, text);
+  }
+
+  if (!img && !gatewayKey && !geminiKey) {
+    return sendJson(res, 503, {
+      error: 'AI_GATEWAY_API_KEY or GEMINI_API_KEY required. Add in Vercel → Settings → Environment Variables.',
+    });
+  }
 
   if (img) {
     return sendJson(res, 200, {
@@ -113,6 +167,6 @@ export default async function handler(req, res) {
   }
 
   return sendJson(res, 500, {
-    error: 'Image generation failed. Ensure your Gemini API key has image generation access (Google AI Studio).',
+    error: 'Image generation failed. With AI Gateway: ensure AI_GATEWAY_API_KEY is valid. With Gemini: ensure your key has image generation access (Google AI Studio).',
   });
 }

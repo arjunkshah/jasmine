@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { generateWithGroq, generateWithGemini, editWithGroq, editWithGemini, extractNextProject, extractEditSummary, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery } from './api';
+import { generateWithGroq, generateWithGemini, generateWithGateway, editWithGroq, editWithGemini, editWithGateway, extractNextProject, extractEditSummary, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
@@ -37,6 +37,8 @@ function AppBody({
   setChatInput,
   provider,
   setProvider,
+  gatewayModel,
+  setGatewayModel,
   error,
   deployUrl,
   sandboxStarting,
@@ -332,6 +334,30 @@ function AppBody({
                               Gemini
                             </span>
                           </button>
+                          <button
+                            onClick={() => { setProvider('ai-gateway'); setGatewayModel('kimi-k2.5'); }}
+                            className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                              provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
+                            }`}
+                            title="Vercel AI Gateway — Kimi K2.5"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <i className={`ph ${provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5' ? 'ph-fill' : 'ph'} ph-rocket-launch text-sm`}></i>
+                              Kimi K2.5
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => { setProvider('ai-gateway'); setGatewayModel('gpt-5.4'); }}
+                            className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                              provider === 'ai-gateway' && gatewayModel === 'gpt-5.4' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
+                            }`}
+                            title="Vercel AI Gateway — GPT 5.4"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <i className={`ph ${provider === 'ai-gateway' && gatewayModel === 'gpt-5.4' ? 'ph-fill' : 'ph'} ph-sparkle text-sm`}></i>
+                              GPT 5.4
+                            </span>
+                          </button>
                         </div>
                         <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                           {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
@@ -600,6 +626,30 @@ function AppBody({
                           Gemini
                         </span>
                       </button>
+                      <button
+                        onClick={() => { setProvider('ai-gateway'); setGatewayModel('kimi-k2.5'); }}
+                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                          provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
+                        }`}
+                        title="Vercel AI Gateway — Kimi K2.5"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <i className={`ph ${provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5' ? 'ph-fill' : 'ph'} ph-rocket-launch text-sm`}></i>
+                          Kimi K2.5
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => { setProvider('ai-gateway'); setGatewayModel('gpt-5.4'); }}
+                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                          provider === 'ai-gateway' && gatewayModel === 'gpt-5.4' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
+                        }`}
+                        title="Vercel AI Gateway — GPT 5.4"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <i className={`ph ${provider === 'ai-gateway' && gatewayModel === 'gpt-5.4' ? 'ph-fill' : 'ph'} ph-sparkle text-sm`}></i>
+                          GPT 5.4
+                        </span>
+                      </button>
                     </div>
                     <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                       {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
@@ -692,6 +742,7 @@ function App() {
   const [netlifyUrl, setNetlifyUrl] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [provider, setProvider] = useState(() => localStorage.getItem('jasmine_provider') || 'groq');
+  const [gatewayModel, setGatewayModel] = useState(() => localStorage.getItem('jasmine_gateway_model') || 'kimi-k2.5');
   const [error, setError] = useState('');
   const [streamingRaw, setStreamingRaw] = useState('');
   const [showLanding, setShowLanding] = useState(() => {
@@ -761,6 +812,9 @@ function App() {
   useEffect(() => {
     localStorage.setItem('jasmine_provider', provider);
   }, [provider]);
+  useEffect(() => {
+    localStorage.setItem('jasmine_gateway_model', gatewayModel);
+  }, [gatewayModel]);
 
   useEffect(() => {
     localStorage.setItem('jasmine_show_landing', String(showLanding));
@@ -789,6 +843,7 @@ function App() {
         html: data.html ?? generatedHTML,
         chatMessages: data.chatMessages ?? chatMessages,
         provider: data.provider ?? provider,
+        gatewayModel: data.gatewayModel ?? gatewayModel,
       };
       try {
         if (currentProjectId) {
@@ -805,7 +860,7 @@ function App() {
         console.warn('[Jasmine] saveProject failed:', e?.message);
       }
     },
-    [firebaseConfigured, user, currentProjectId, prompt, generatedProject, generatedHTML, chatMessages, provider]
+    [firebaseConfigured, user, currentProjectId, prompt, generatedProject, generatedHTML, chatMessages, provider, gatewayModel]
   );
 
   const debouncedSave = useCallback(() => {
@@ -825,6 +880,7 @@ function App() {
     setStreamingRaw('');
     setChatMessages(full.chatMessages?.length ? full.chatMessages : [{ role: 'user', content: full.prompt || '' }, { role: 'assistant', content: 'Loaded.' }]);
     setProvider(full.provider || 'groq');
+    setGatewayModel(full.gatewayModel || 'kimi-k2.5');
     setCurrentProjectId(full.id);
     setShowLanding(false);
     setRightTab('files');
@@ -987,7 +1043,7 @@ function App() {
     const key = provider === 'groq'
       ? import.meta.env.VITE_GROQ_API_KEY
       : import.meta.env.VITE_GEMINI_API_KEY;
-    if (!key) {
+    if (provider !== 'ai-gateway' && !key) {
       setError(`Add VITE_${provider === 'groq' ? 'GROQ' : 'GEMINI'}_API_KEY to your .env file`);
       return;
     }
@@ -1040,7 +1096,7 @@ function App() {
       const onChunk = (chunk) => setStreamingRaw(chunk);
 
       let searchContext = [];
-      const searchQuery = await decideSearchQuery(prompt, provider, key, apiBase);
+      const searchQuery = await decideSearchQuery(prompt, provider, key, apiBase, gatewayModel);
       if (searchQuery) {
         try {
           searchContext = await webSearch(searchQuery, apiBase);
@@ -1052,8 +1108,13 @@ function App() {
         }
       }
 
-      const generateFn = provider === 'groq' ? generateWithGroq : generateWithGemini;
-      let result = await generateFn(key, prompt, onChunk, contextFiles, searchContext);
+      const generateFn = provider === 'ai-gateway'
+        ? (_, p, onC, cf, sc) => generateWithGateway(apiBase, gatewayModel, p, onC, cf, sc)
+        : provider === 'groq'
+          ? generateWithGroq
+          : generateWithGemini;
+      const genKey = provider === 'ai-gateway' ? '' : key;
+      let result = await generateFn(genKey, prompt, onChunk, contextFiles, searchContext);
 
       const project = extractNextProject(result);
       if (project?.files) {
@@ -1071,7 +1132,7 @@ function App() {
       if (project?.files) {
         const groqKey = import.meta.env.VITE_GROQ_API_KEY || '';
         const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-        const fixedFiles = await fixProjectErrors(project, provider, groqKey, geminiKey);
+        const fixedFiles = await fixProjectErrors(project, provider, groqKey, geminiKey, apiBase, gatewayModel);
         if (fixedFiles && Object.keys(fixedFiles).length > 0) {
           project.files = fixedFiles;
           setGeneratedProject({ ...project, files: fixedFiles });
@@ -1189,7 +1250,7 @@ function App() {
     const msg = chatInput.trim();
     if (!msg || isEditing) return;
     const key = provider === 'groq' ? import.meta.env.VITE_GROQ_API_KEY : import.meta.env.VITE_GEMINI_API_KEY;
-    if (!key) { setError('API key required'); return; }
+    if (provider !== 'ai-gateway' && !key) { setError('API key required'); return; }
 
     setChatMessages((prev) => [...prev, { role: 'user', content: msg }]);
     setChatInput('');
@@ -1206,11 +1267,17 @@ function App() {
     }
 
     try {
-      const editFn = provider === 'groq' ? editWithGroq : editWithGemini;
-      const result = await editFn(key, currentCode, msg, (chunk) => setStreamingRaw(chunk), contextFiles);
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      const editFn = provider === 'ai-gateway'
+        ? (_, c, m, onC, cf) => editWithGateway(apiBase, gatewayModel, c, m, onC, cf)
+        : provider === 'groq'
+          ? editWithGroq
+          : editWithGemini;
+      const editKey = provider === 'ai-gateway' ? '' : key;
+      const result = await editFn(editKey, currentCode, msg, (chunk) => setStreamingRaw(chunk), contextFiles);
       const project = extractNextProject(result);
       if (project?.files) {
-        const apiBase = import.meta.env.VITE_API_URL || '';
+        const editApiBase = import.meta.env.VITE_API_URL || '';
         const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
         const replaced = {};
         for (const [path, content] of Object.entries(project.files)) {
@@ -1321,6 +1388,8 @@ function App() {
     setChatInput,
     provider,
     setProvider,
+    gatewayModel,
+    setGatewayModel,
     error,
     deployUrl,
     sandboxStarting,

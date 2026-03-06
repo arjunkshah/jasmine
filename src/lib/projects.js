@@ -24,6 +24,7 @@ export async function createProject(userId, data) {
     html: data.html || '',
     chatMessages: data.chatMessages || [],
     provider: data.provider || 'groq',
+    gatewayModel: data.gatewayModel || 'kimi-k2.5',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

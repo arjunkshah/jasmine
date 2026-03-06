@@ -186,8 +186,72 @@ export function fixLucideToPhosphor(files) {
   return files;
 }
 
+/** Valid RegExp flags in JavaScript. Invalid flags cause SyntaxError. */
+const VALID_REGEX_FLAGS = new Set('gimsuy');
+
+/**
+ * Sanitize regex flags: keep only g, i, m, s, u, y; remove duplicates.
+ * AI often outputs invalid flags (e.g. x, e, or duplicates) causing "Invalid regular expression flags".
+ */
+function sanitizeRegexFlags(flags) {
+  if (!flags || typeof flags !== 'string') return '';
+  const seen = new Set();
+  let out = '';
+  for (const c of flags) {
+    if (VALID_REGEX_FLAGS.has(c) && !seen.has(c)) {
+      seen.add(c);
+      out += c;
+    }
+  }
+  return out;
+}
+
+/**
+ * Fix invalid RegExp flags in generated code. Mutates files in place.
+ * Handles: /pattern/flags and new RegExp('pattern', 'flags')
+ * Valid JS flags: g, i, m, s, u, y. Invalid (e.g. x, e) cause SyntaxError.
+ */
+function fixInvalidRegexFlags(files) {
+  if (!files || typeof files !== 'object') return;
+  for (const [path, content] of Object.entries(files)) {
+    if (typeof content !== 'string') continue;
+    let next = content;
+    // Regex literal: /pattern/flags — pattern = (?:[^/\\]|\\.)* to allow \/ inside
+    next = next.replace(/\/((?:[^/\\]|\\.)*)\/([gimsuy]*)([^gimsuy\s]*)/g, (m, pat, valid, invalid) => {
+      if (!invalid) return m;
+      const fixed = sanitizeRegexFlags(valid + invalid);
+      return '/' + pat + '/' + fixed;
+    });
+    // new RegExp('pattern', 'flags') or new RegExp(pattern, "flags")
+    next = next.replace(/new\s+RegExp\s*\(\s*([^,)]+)\s*,\s*['"`]([^'"`]*)['"`]\s*\)/g, (m, pat, flags) => {
+      const fixed = sanitizeRegexFlags(flags);
+      if (fixed === flags) return m;
+      const quote = m.includes("'") ? "'" : m.includes('"') ? '"' : '`';
+      return `new RegExp(${pat}, ${quote}${fixed}${quote})`;
+    });
+    if (next !== content) files[path] = next;
+  }
+}
+
+const MINIMAL_INDEX_CSS = `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+`;
+
+/**
+ * Ensure required files exist. Prevents 500 on src/index.css when AI omits it.
+ */
+function ensureRequiredFiles(files) {
+  if (!files || typeof files !== 'object') return;
+  if (files['src/main.jsx'] && !files['src/index.css']) {
+    files['src/index.css'] = MINIMAL_INDEX_CSS;
+  }
+}
+
 /** Run all package export fixes. */
 export function applyPackageFixes(files) {
+  fixInvalidRegexFlags(files);
+  ensureRequiredFiles(files);
   deduplicatePhosphorImports(files);
   fixPhosphorIcons(files);
   fixLucideToPhosphor(files);

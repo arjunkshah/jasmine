@@ -17,8 +17,24 @@ function buildContextBlock(files, searchContext = null) {
 }
 
 /** Ask the AI if it needs to search the web for this prompt. Returns search query or null. */
-export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '') {
-  if (!prompt?.trim() || !apiKey) return null;
+export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '', gatewayModel = 'kimi-k2.5') {
+  if (!prompt?.trim()) return null;
+  if (provider === 'ai-gateway') {
+    try {
+      const res = await fetch(`${apiBase}/api/decide-search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, model: gatewayModel }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => ({}));
+      return data.query || null;
+    } catch (e) {
+      console.warn('[Jasmine] decideSearchQuery (gateway) failed:', e?.message);
+      return null;
+    }
+  }
+  if (!apiKey) return null;
   const msg = `User wants to build: "${prompt.slice(0, 200)}". Do you need to search the web for current info (trends, references, examples)? Reply with exactly SEARCH:query (one short query, e.g. "2024 web design trends") or NO_SEARCH.`;
   try {
     if (provider === 'groq') {
@@ -175,6 +191,55 @@ export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles =
   }
 
   return streamGeminiResponse(response, onChunk);
+}
+
+/** Generate via Vercel AI Gateway (kimi-k2.5, gpt-5.4). No client API key — uses server AI_GATEWAY_API_KEY. */
+export async function generateWithGateway(apiBase, modelId, prompt, onChunk, contextFiles = [], searchContext = null) {
+  const contextBlock = buildContextBlock(contextFiles, searchContext);
+  const userContent = enhanceUserPrompt(prompt) + contextBlock;
+
+  const response = await fetch(`${apiBase}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: userContent,
+      model: modelId || 'kimi-k2.5',
+      systemPrompt: SYSTEM_PROMPT,
+      contextFiles: [],
+      searchContext: [],
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `AI Gateway error: ${response.status}`);
+  }
+
+  return streamResponse(response, onChunk);
+}
+
+/** Edit via Vercel AI Gateway. */
+export async function editWithGateway(apiBase, modelId, currentCode, userMessage, onChunk, contextFiles = []) {
+  const contextBlock = buildContextBlock(contextFiles);
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+
+  const response = await fetch(`${apiBase}/api/edit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      model: modelId || 'kimi-k2.5',
+      systemPrompt: EDIT_SYSTEM_PROMPT,
+      contextFiles,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `AI Gateway error: ${response.status}`);
+  }
+
+  return streamResponse(response, onChunk);
 }
 
 async function streamResponse(response, onChunk) {
@@ -394,13 +459,36 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 6. **package.json** — Valid JSON, no trailing commas.
 7. **Responsive** — min-w-0, overflow-hidden on flex children.
 8. **Phosphor icons** — Each icon imported ONCE. Never: import { UserIcon, UserIcon, UserIcon }. Use: import { UserIcon } and reference it multiple times in JSX. NEVER use: HomeIcon, MailIcon, etc. Use: HouseIcon, EnvelopeIcon, UsersIcon, MagnifyingGlassIcon, ListIcon, XIcon. Valid: HouseIcon, UserIcon, UsersIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, MagnifyingGlassIcon, ListIcon, XIcon, GearIcon.
-9. **Invalid RegExp** — Valid flags: g, i, m, s, u, y.
+9. **Invalid RegExp** — ONLY valid flags: g, i, m, s, u, y. Remove x, e, duplicates. Invalid flags cause SyntaxError.
+10. **src/index.css** — If missing, add with @tailwind base; @tailwind components; @tailwind utilities;
 
 Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
 
 /** Post-generation: use the OTHER model to review and fix errors. Runs up to 2 passes. Returns merged files or null. */
-export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey) {
+export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey, apiBase = '', gatewayModel = 'kimi-k2.5') {
   if (!project?.files || Object.keys(project.files).length === 0) return null;
+
+  if (primaryProvider === 'ai-gateway') {
+    const otherModel = gatewayModel === 'kimi-k2.5' ? 'gpt-5.4' : 'kimi-k2.5';
+    try {
+      const res = await fetch(`${apiBase}/api/fix-errors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project, modelId: otherModel }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => ({}));
+      if (!data.fixed || !data.files) return null;
+      let current = { ...data.files };
+      applyPackageFixes(current);
+      ensurePackageDependencies(current);
+      return current;
+    } catch (e) {
+      console.warn('[Jasmine] fixProjectErrors (gateway) failed:', e?.message);
+      return null;
+    }
+  }
+
   const otherProvider = primaryProvider === 'groq' ? 'gemini' : 'groq';
   const key = otherProvider === 'groq' ? groqKey : geminiKey;
   if (!key) return null;

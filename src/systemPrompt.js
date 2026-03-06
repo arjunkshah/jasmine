@@ -217,6 +217,7 @@ Output files in this exact order. App.jsx imports from ./pages/X → you MUST ou
 - react-router-dom: BrowserRouter, Routes, Route, Link. Wrap every <Route> in <ErrorBoundary>
 - main.jsx: React, ReactDOM, createRoot, getElementById, App — exact casing
 - package.json: Valid JSON. No trailing commas. Must include react, react-dom, react-router-dom, @phosphor-icons/react
+- RegExp: ONLY valid flags g, i, m, s, u, y. NEVER use x, e, or duplicates — causes "Invalid regular expression flags" SyntaxError.
 - No phantom imports. NO TRUNCATION — every file 100% complete. Never cut mid-line (e.g. className="tex). Every string/bracket/JSX tag closed
 
 🔍 PRE-OUTPUT CHECKLIST
@@ -263,4 +264,5 @@ CRITICAL: Make MINIMAL, TARGETED edits. Output ONLY the files you modified.
 \`\`\`
 
 Phosphor Icons only. No phantom imports. Tailwind: zinc/slate/gray. Wrap every Route in ErrorBoundary.
+RegExp: ONLY flags g, i, m, s, u, y — never x or e. ALWAYS include src/index.css with @tailwind directives.
 Output ONLY changed files. Be surgical.`;
