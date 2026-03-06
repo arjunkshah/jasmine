@@ -523,63 +523,27 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
     }
   }
 
-  const otherProvider = primaryProvider === 'groq' ? 'gemini' : 'groq';
-  const key = otherProvider === 'groq' ? groqKey : geminiKey;
-  if (!key) return null;
-
-  const runFix = async (files) => {
-    const raw = projectToRaw({ files });
-    const prompt = `${FIX_ERRORS_PROMPT}\n\nCURRENT PROJECT:\n${raw.slice(0, 25000)}`;
-    if (otherProvider === 'groq') {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'moonshotai/kimi-k2-instruct-0905',
-          messages: [{ role: 'user', content: prompt }],
-          stream: false,
-          temperature: 0.2,
-          max_tokens: 16384,
-        }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content || '';
-    }
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-      {
+  // When primary is gemini, use ai-gateway for fix (no groq). When primary is ai-gateway, handled above.
+  if (primaryProvider === 'gemini') {
+    try {
+      const res = await fetch(`${apiBase}/api/fix-errors`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 16384 },
-        }),
-      }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  };
-
-  try {
-    let current = { ...project.files };
-    applyPackageFixes(current);
-    let madeChanges = false;
-    for (let pass = 0; pass < 2; pass++) {
-      const result = await runFix(current);
-      if (!result || result.includes('NO_CHANGES_NEEDED')) break;
-      const fixed = extractNextProject(result);
-      if (!fixed?.files || Object.keys(fixed.files).length === 0) break;
-      current = { ...current, ...fixed.files };
+        body: JSON.stringify({ project, modelId: 'kimi-k2.5' }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => ({}));
+      if (!data.fixed || !data.files) return null;
+      let current = { ...data.files };
       applyPackageFixes(current);
       ensurePackageDependencies(current);
-      madeChanges = true;
+      return current;
+    } catch (e) {
+      console.warn('[Jasmine] fixProjectErrors (gateway fallback) failed:', e?.message);
+      return null;
     }
-    return madeChanges ? current : null;
-  } catch (e) {
-    console.warn('[Jasmine] fix pass failed:', e?.message);
   }
+
   return null;
 }
 

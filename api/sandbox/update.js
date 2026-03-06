@@ -39,7 +39,12 @@ export default async function handler(req, res) {
   }
 
   // Fix Phosphor + Lucide (open-lovable style: prevent "does not provide an export named X")
-  applyPackageFixes(files);
+  try {
+    applyPackageFixes(files);
+  } catch (fixErr) {
+    logErr('applyPackageFixes failed:', fixErr?.message || fixErr);
+    // Continue without fixes — generated code may still work
+  }
 
   // Ensure package.json has all deps from imports (AI often uses react-intersection-observer, framer-motion, etc.)
   const pkgRaw = files['package.json'];

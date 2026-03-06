@@ -8,9 +8,9 @@ import { heroContainer, heroItem } from './lib/animations';
 
 const BENTO_ITEMS = [
   { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'world\'s best designer', desc: 'law firms, restaurants, saas, portfolios. one prompt. jasmine crafts it.' },
-  { span: '', icon: 'ph-lightning', title: 'kimi k2 0905', desc: 'blazing fast via groq' },
+  { span: '', icon: 'ph-rocket-launch', title: 'kimi k2.5', desc: 'default via ai gateway' },
   { span: '', icon: 'ph-palette', title: 'gemini', desc: 'creative depth' },
-  { span: '', icon: 'ph-rocket-launch', title: 'ai gateway', desc: 'kimi k2.5, gpt 5.4' },
+  { span: '', icon: 'ph-sparkle', title: 'gpt 5.4', desc: 'via ai gateway' },
   { span: 'md:col-span-2', icon: 'ph-sparkle', title: 'anti-ai-slop craft', desc: 'premium typography, phosphor icons, blur-reveal.' },
   { span: '', icon: 'ph-stack', title: 'full project', desc: 'src/, typescript, tailwind. deploy.' },
 ];
@@ -54,7 +54,7 @@ const HORIZONTAL_FEATURES = [
 
 const FAQ_ITEMS = [
   { q: 'what can i build?', a: 'full sites for law firms, restaurants, saas, portfolios, agencies — anything you can describe. jasmine is the world\'s best designer. vite, react, tailwind.' },
-  { q: 'how does it work?', a: 'describe what you want in one prompt. jasmine — the world\'s best designer — uses kimi k2 0905, gemini, or Vercel AI Gateway (Kimi K2.5, GPT 5.4) to craft it. edit in real time, download or deploy to Netlify.' },
+  { q: 'how does it work?', a: 'describe what you want in one prompt. jasmine — the world\'s best designer — uses Kimi K2.5 (default), Gemini, or GPT 5.4 via Vercel AI Gateway. edit in real time, download or deploy to Netlify.' },
   { q: 'is it really free?', a: 'yes. generate and export as many projects as you want. no signup, no credit card required.' },
   { q: 'can i use the output commercially?', a: 'absolutely. the code you generate is yours.' },
 ];

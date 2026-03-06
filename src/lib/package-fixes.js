@@ -187,7 +187,7 @@ export function fixLucideToPhosphor(files) {
 }
 
 /** Valid RegExp flags in JavaScript. Invalid flags cause SyntaxError. */
-const VALID_REGEX_FLAGS = new Set('gimsuy');
+const VALID_REGEX_FLAGS = new Set('gimsuy'); // d (hasIndices) is ES2022, omit for broad compat
 
 /**
  * Sanitize regex flags: keep only g, i, m, s, u, y; remove duplicates.
@@ -215,21 +215,25 @@ function fixInvalidRegexFlags(files) {
   if (!files || typeof files !== 'object') return;
   for (const [path, content] of Object.entries(files)) {
     if (typeof content !== 'string') continue;
-    let next = content;
-    // Regex literal: /pattern/flags — pattern = (?:[^/\\]|\\.)* to allow \/ inside
-    next = next.replace(/\/((?:[^/\\]|\\.)*)\/([gimsuy]*)([^gimsuy\s]*)/g, (m, pat, valid, invalid) => {
-      if (!invalid) return m;
-      const fixed = sanitizeRegexFlags(valid + invalid);
-      return '/' + pat + '/' + fixed;
-    });
-    // new RegExp('pattern', 'flags') or new RegExp(pattern, "flags")
-    next = next.replace(/new\s+RegExp\s*\(\s*([^,)]+)\s*,\s*['"`]([^'"`]*)['"`]\s*\)/g, (m, pat, flags) => {
-      const fixed = sanitizeRegexFlags(flags);
-      if (fixed === flags) return m;
-      const quote = m.includes("'") ? "'" : m.includes('"') ? '"' : '`';
-      return `new RegExp(${pat}, ${quote}${fixed}${quote})`;
-    });
-    if (next !== content) files[path] = next;
+    try {
+      let next = content;
+      // Regex literal: /pattern/flags — pattern = (?:[^/\\]|\\.)* to allow \/ inside
+      next = next.replace(/\/((?:[^/\\]|\\.)*)\/([gimsuy]*)([^gimsuy\s]*)/g, (m, pat, valid, invalid) => {
+        if (!invalid) return m;
+        const fixed = sanitizeRegexFlags(valid + invalid);
+        return '/' + pat + '/' + fixed;
+      });
+      // new RegExp('pattern', 'flags') or new RegExp(pattern, "flags")
+      next = next.replace(/new\s+RegExp\s*\(\s*([^,)]+)\s*,\s*['"`]([^'"`]*)['"`]\s*\)/g, (m, pat, flags) => {
+        const fixed = sanitizeRegexFlags(flags);
+        if (fixed === flags) return m;
+        const quote = m.includes("'") ? "'" : m.includes('"') ? '"' : '`';
+        return `new RegExp(${pat}, ${quote}${fixed}${quote})`;
+      });
+      if (next !== content) files[path] = next;
+    } catch (e) {
+      console.warn('[package-fixes] fixInvalidRegexFlags failed for', path, e?.message);
+    }
   }
 }
 

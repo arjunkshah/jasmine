@@ -352,9 +352,9 @@ function AppBody({
 
           <div className="flex items-center gap-1">
             {onThemeToggle ? (
-              <button
+          <button
                 onClick={onThemeToggle}
-                className="p-2 text-text-muted hover:text-text-primary transition-colors"
+            className="p-2 text-text-muted hover:text-text-primary transition-colors"
                 title={themeForToggle === 'dark' ? 'Switch to light' : 'Switch to dark'}
               >
                 <i className={`ph text-lg ${themeForToggle === 'dark' ? 'ph-sun' : 'ph-moon'}`}></i>
@@ -380,8 +380,8 @@ function AppBody({
                     <button onClick={onSignOut} className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.04] flex items-center gap-2">
                       <i className="ph ph-sign-out"></i>
                       Sign out
-                    </button>
-                  </div>
+          </button>
+        </div>
                 </div>
               ) : (
                 <button onClick={onSignInClick} className="btn-premium px-3 py-1.5 text-sm">
@@ -503,8 +503,8 @@ function AppBody({
                             Preview live — code applies as you generate
                           </a>
                         ) : null}
-                      </div>
-                    )}
+                  </div>
+                )}
                     <div className="prompt-container overflow-hidden rounded-xl">
                     <textarea
                       ref={textareaRef}
@@ -539,54 +539,24 @@ function AppBody({
                           <i className="ph ph-paperclip"></i>
                           Attach
                         </button>
-                        <div className={`flex items-center rounded-lg p-0.5 border ${borderCl} ${isLight ? 'bg-zinc-100/80' : 'bg-white/[0.04]'}`}>
-                          <button
-                            onClick={() => setProvider('groq')}
-                            className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                              provider === 'groq' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
-                            }`}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              <i className={`ph ${provider === 'groq' ? 'ph-fill' : 'ph'} ph-lightning text-sm`}></i>
-                              Kimi K2 0905
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => setProvider('gemini')}
-                            className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                              provider === 'gemini' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
-                            }`}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              <i className={`ph ${provider === 'gemini' ? 'ph-fill' : 'ph'} ph-palette text-sm`}></i>
-                              Gemini
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => { setProvider('ai-gateway'); setGatewayModel('kimi-k2.5'); }}
-                            className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                              provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
-                            }`}
-                            title="Vercel AI Gateway — Kimi K2.5"
-                          >
-                            <span className="flex items-center gap-1.5">
-                              <i className={`ph ${provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5' ? 'ph-fill' : 'ph'} ph-rocket-launch text-sm`}></i>
-                              Kimi K2.5
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => { setProvider('ai-gateway'); setGatewayModel('gpt-5.4'); }}
-                            className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                              provider === 'ai-gateway' && gatewayModel === 'gpt-5.4' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
-                            }`}
-                            title="Vercel AI Gateway — GPT 5.4"
-                          >
-                            <span className="flex items-center gap-1.5">
-                              <i className={`ph ${provider === 'ai-gateway' && gatewayModel === 'gpt-5.4' ? 'ph-fill' : 'ph'} ph-sparkle text-sm`}></i>
-                              GPT 5.4
-                            </span>
-                          </button>
-                        </div>
+                        <select
+                          value={provider === 'gemini' ? 'gemini' : gatewayModel}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === 'gemini') {
+                              setProvider('gemini');
+                            } else {
+                              setProvider('ai-gateway');
+                              setGatewayModel(v);
+                            }
+                          }}
+                          className={`min-w-[7rem] text-xs font-medium rounded-lg px-3 py-1.5 pr-8 border ${borderCl} ${isLight ? 'bg-zinc-50 text-zinc-800 hover:bg-zinc-100' : 'bg-white/[0.06] text-text-primary hover:bg-white/[0.08]'} cursor-pointer appearance-none bg-no-repeat bg-[length:12px] bg-[right_0.5rem_center]`}
+                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
+                        >
+                          <option value="kimi-k2.5">Kimi K2.5</option>
+                          <option value="gemini">Gemini</option>
+                          <option value="gpt-5.4">GPT 5.4</option>
+                        </select>
                         <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                           {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                         </span>
@@ -615,7 +585,7 @@ function AppBody({
                         )}
                       </button>
                     </div>
-                  </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -626,7 +596,7 @@ function AppBody({
                   <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
                     Open <i className="ph ph-arrow-square-out text-base"></i>
                   </a>
-                </div>
+                  </div>
               )}
               {netlifyUrl && (
                 <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-jasmine-500/10 border border-jasmine-500/20 text-jasmine-400 text-sm flex items-center justify-between gap-3">
@@ -649,13 +619,13 @@ function AppBody({
                         Retry
                       </button>
                     ) : null}
-                  </div>
+                </div>
                   {error.toLowerCase().includes('sandbox') && hasOutput && (
                     <p className="text-emerald-400/90 text-xs">
                       Your project is ready — download the ZIP and run <code className="bg-white/10 px-1 rounded">npm install && npm run dev</code> locally.
                     </p>
-                  )}
-                </div>
+              )}
+            </div>
               )}
             </div>
             </Panel>
@@ -699,7 +669,7 @@ function AppBody({
                       <i className="ph ph-download-simple text-lg"></i>
                     </button>
                   </div>
-                </div>
+                  </div>
 
                 <div className={`flex-1 relative min-h-0 ${isLight ? 'bg-zinc-50' : 'bg-surface-raised'}`}>
 
@@ -720,14 +690,14 @@ function AppBody({
                         <>
                           <div className="flex-none flex items-center justify-between px-3 py-2 border-b border-zinc-800 gap-2">
                             <span className="text-xs text-text-muted">Live preview</span>
-                            <div className="flex items-center gap-2">
-                              <button
+                  <div className="flex items-center gap-2">
+                          <button
                                 type="button"
                                 onClick={() => setPreviewRetryKey((k) => k + 1)}
                                 className="text-xs text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1"
                               >
                                 Retry <i className="ph ph-arrow-clockwise text-sm"></i>
-                              </button>
+                          </button>
                               <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1">
                                 Open <i className="ph ph-arrow-square-out text-sm"></i>
                               </a>
@@ -817,9 +787,9 @@ function AppBody({
                           <i className="ph ph-x text-sm"></i>
                         </button>
                       </span>
-                    ))}
-                  </div>
-                )}
+                        ))}
+                      </div>
+                    )}
                 <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                   <div className="flex items-center gap-3">
                     <button
@@ -830,55 +800,25 @@ function AppBody({
                     >
                       <i className="ph ph-paperclip"></i>
                       Attach
-                    </button>
-                    <div className={`flex items-center rounded-lg p-0.5 border ${borderCl} ${isLight ? 'bg-zinc-100/80' : 'bg-white/[0.04]'}`}>
-                      <button
-                        onClick={() => setProvider('groq')}
-                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                          provider === 'groq' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
-                        }`}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <i className={`ph ${provider === 'groq' ? 'ph-fill' : 'ph'} ph-lightning text-sm`}></i>
-                          Kimi K2 0905
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => setProvider('gemini')}
-                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                          provider === 'gemini' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
-                        }`}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <i className={`ph ${provider === 'gemini' ? 'ph-fill' : 'ph'} ph-palette text-sm`}></i>
-                          Gemini
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => { setProvider('ai-gateway'); setGatewayModel('kimi-k2.5'); }}
-                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                          provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
-                        }`}
-                        title="Vercel AI Gateway — Kimi K2.5"
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <i className={`ph ${provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5' ? 'ph-fill' : 'ph'} ph-rocket-launch text-sm`}></i>
-                          Kimi K2.5
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => { setProvider('ai-gateway'); setGatewayModel('gpt-5.4'); }}
-                        className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                          provider === 'ai-gateway' && gatewayModel === 'gpt-5.4' ? (isLight ? 'bg-white text-text-primary shadow-sm border border-zinc-200' : 'bg-white/[0.08] text-text-primary') : 'text-text-muted hover:text-text-secondary'
-                        }`}
-                        title="Vercel AI Gateway — GPT 5.4"
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <i className={`ph ${provider === 'ai-gateway' && gatewayModel === 'gpt-5.4' ? 'ph-fill' : 'ph'} ph-sparkle text-sm`}></i>
-                          GPT 5.4
-                        </span>
-                      </button>
-                    </div>
+                        </button>
+                    <select
+                      value={provider === 'gemini' ? 'gemini' : gatewayModel}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === 'gemini') {
+                          setProvider('gemini');
+                        } else {
+                          setProvider('ai-gateway');
+                          setGatewayModel(v);
+                        }
+                      }}
+                      className={`min-w-[7rem] text-xs font-medium rounded-lg px-3 py-1.5 pr-8 border ${borderCl} ${isLight ? 'bg-zinc-50 text-zinc-800 hover:bg-zinc-100' : 'bg-white/[0.06] text-text-primary hover:bg-white/[0.08]'} cursor-pointer appearance-none bg-no-repeat bg-[length:12px] bg-[right_0.5rem_center]`}
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
+                    >
+                      <option value="kimi-k2.5">Kimi K2.5</option>
+                      <option value="gemini">Gemini</option>
+                      <option value="gpt-5.4">GPT 5.4</option>
+                    </select>
                     <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                       {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                     </span>
@@ -906,10 +846,10 @@ function AppBody({
                       </>
                     )}
                   </button>
+                  </div>
                 </div>
-              </div>
-              </div>
-            </div>
+                        </div>
+                        </div>
             {(deployUrl || netlifyUrl || error) && (
               <div className="flex-none space-y-0">
                 {deployUrl && (
@@ -918,7 +858,7 @@ function AppBody({
                     <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
                       Open <i className="ph ph-arrow-square-out text-base"></i>
                     </a>
-                  </div>
+                      </div>
                 )}
                 {netlifyUrl && (
                   <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-jasmine-500/10 border border-jasmine-500/20 text-jasmine-400 text-sm flex items-center justify-between gap-3">
@@ -926,8 +866,8 @@ function AppBody({
                     <a href={netlifyUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
                       View site <i className="ph ph-rocket-launch text-base"></i>
                     </a>
-                  </div>
-                )}
+                    </div>
+                  )}
                 {error && (
                   <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -949,10 +889,10 @@ function AppBody({
                     )}
                   </div>
                 )}
+                  </div>
+            )}
               </div>
             )}
-          </div>
-        )}
       </div>
     </>
   );
@@ -969,8 +909,15 @@ function App() {
   const [netlifyDeploying, setNetlifyDeploying] = useState(false);
   const [netlifyUrl, setNetlifyUrl] = useState(null);
   const [chatInput, setChatInput] = useState('');
-  const [provider, setProvider] = useState(() => localStorage.getItem('jasmine_provider') || 'groq');
-  const [gatewayModel, setGatewayModel] = useState(() => localStorage.getItem('jasmine_gateway_model') || 'kimi-k2.5');
+  const [provider, setProvider] = useState(() => {
+    const p = localStorage.getItem('jasmine_provider');
+    return p === 'groq' ? 'ai-gateway' : (p || 'ai-gateway');
+  });
+  const [gatewayModel, setGatewayModel] = useState(() => {
+    const p = localStorage.getItem('jasmine_provider');
+    const m = localStorage.getItem('jasmine_gateway_model');
+    return p === 'groq' ? 'kimi-k2.5' : (m || 'kimi-k2.5');
+  });
   const [error, setError] = useState('');
   const [streamingRaw, setStreamingRaw] = useState('');
   const [showLanding, setShowLanding] = useState(() => {
@@ -1795,7 +1742,7 @@ function App() {
         )}
         <div className="flex-1 flex flex-col min-h-0 min-w-0">
           <AppBody {...appBodyProps} onThemeToggle={handleThemeToggle} />
-        </div>
+      </div>
       </div>
       {showAuthModal && (
         <AuthPage
