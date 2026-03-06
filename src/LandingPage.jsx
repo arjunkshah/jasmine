@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import BlurPopUp from './components/BlurPopUp';
+import BlurPopUpInView from './components/BlurPopUpInView';
 import HeroGlowLines from './components/HeroGlowLines';
+import { heroContainer, heroItem } from './lib/animations';
 
 const BENTO_ITEMS = [
   { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'world\'s best designer', desc: 'law firms, restaurants, saas, portfolios. one prompt. jasmine crafts it.' },
@@ -87,44 +90,12 @@ const COMPARISON = [
   { traditional: 'generic templates', jasmine: 'custom craft' },
 ];
 
-function useScrollReveal(threshold = 0.1) {
-  const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => setVisible(e.isIntersecting),
-      { threshold, rootMargin: '0px 0px -50px 0px' }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [threshold]);
-
-  return [ref, visible];
-}
-
 const sectionCl = 'px-6 md:px-12 lg:px-24';
 const labelCl = 'text-xs tracking-[0.12em] text-text-muted mb-6';
 const headingCl = 'text-2xl md:text-3xl font-semibold text-text-primary mb-4 leading-[1.2] font-display text-3d';
 const maxW = 'max-w-4xl mx-auto';
 
 function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
-  const [marqueeRef, marqueeVisible] = useScrollReveal(0.1);
-  const [bentoRef, bentoVisible] = useScrollReveal(0.05);
-  const [stepsRef, stepsVisible] = useScrollReveal(0.1);
-  const [carouselRef, carouselVisible] = useScrollReveal(0.2);
-  const [horizontalRef, horizontalVisible] = useScrollReveal(0.1);
-  const [cardsRef, cardsVisible] = useScrollReveal(0.1);
-  const [faqRef, faqVisible] = useScrollReveal(0.1);
-  const [ctaRef, ctaVisible] = useScrollReveal(0.2);
-  const [statsRef, statsVisible] = useScrollReveal(0.1);
-  const [bento2Ref, bento2Visible] = useScrollReveal(0.05);
-  const [comparisonRef, comparisonVisible] = useScrollReveal(0.1);
-  const [useCasesRef, useCasesVisible] = useScrollReveal(0.1);
-  const [valueRef, valueVisible] = useScrollReveal(0.2);
-  const [footerRef, footerVisible] = useScrollReveal(0.1);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [faqOpen, setFaqOpen] = useState(null);
 
@@ -198,24 +169,30 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       </section>
 
       {/* stats */}
-      <section ref={statsRef} className={`relative py-24 border-t ${borderCl} overflow-hidden`}>
+      <section className={`relative py-24 border-t ${borderCl} overflow-hidden`}>
         <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('/lander-stats-bg.png')` }} aria-hidden />
         <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/85 to-surface" aria-hidden />
-        <div className={`relative ${maxW} ${sectionCl} transition-all duration-700 ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+        <motion.div
+          className={`relative ${maxW} ${sectionCl}`}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={heroContainer}
+        >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-16 md:gap-24">
             {STATS.map((stat, i) => (
-              <div key={i} className={`text-center transition-all duration-500 ease-out ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: `${i * 80}ms` }}>
+              <motion.div key={i} variants={heroItem} className="text-center">
                 <p className="text-2xl md:text-3xl font-medium text-text-primary tracking-tight">{stat.value}</p>
                 <p className="text-xs text-text-muted mt-2">{stat.label}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* marquee */}
-      <section ref={marqueeRef} className={`py-24 border-t ${borderCl} overflow-hidden`}>
-        <div className={`transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${marqueeVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+      <section className={`py-24 border-t ${borderCl} overflow-hidden`}>
+        <BlurPopUpInView>
           <p className={`${labelCl} text-center mb-12`}>tech</p>
           <div className="marquee-track">
             {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
@@ -227,60 +204,78 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
               </div>
             ))}
           </div>
-        </div>
+        </BlurPopUpInView>
       </section>
 
       {/* bento 1 */}
-      <section ref={bentoRef} className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
+      <section className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
         <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
         <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/85 to-surface" aria-hidden />
-        <div className={`relative ${maxW} transition-all duration-700 ${bentoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className={labelCl}>how it works</p>
-          <h2 className={headingCl}>one prompt. full project.</h2>
+        <motion.div
+          className={`relative ${maxW}`}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.05 }}
+          variants={heroContainer}
+        >
+          <motion.p variants={heroItem} className={labelCl}>how it works</motion.p>
+          <motion.h2 variants={heroItem} className={headingCl}>one prompt. full project.</motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 [grid-auto-rows:minmax(140px,auto)]">
             {BENTO_ITEMS.map((item, i) => (
-              <div
+              <motion.div
                 key={i}
-                className={`${item.span} ${cardCl} rounded-lg p-6 flex flex-col justify-between transition-all duration-300 ${bentoVisible ? 'opacity-100' : 'opacity-0'}`}
-                style={{ transitionDelay: `${i * 60}ms` }}
+                variants={heroItem}
+                className={`${item.span} ${cardCl} rounded-lg p-6 flex flex-col justify-between`}
               >
                 <i className={`ph ${item.icon} text-lg text-text-muted mb-3 block`}></i>
                 <h3 className="text-sm font-medium text-text-primary mb-1">{item.title}</h3>
                 <p className="text-xs text-text-secondary leading-relaxed">{item.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* steps */}
-      <section ref={stepsRef} className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <div className={`${maxW} transition-all duration-700 ${stepsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className={labelCl}>process</p>
-          <h2 className={headingCl}>three steps. zero friction.</h2>
+      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
+        <motion.div
+          className={maxW}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={heroContainer}
+        >
+          <motion.p variants={heroItem} className={labelCl}>process</motion.p>
+          <motion.h2 variants={heroItem} className={headingCl}>three steps. zero friction.</motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
             {STEPS.map((step, i) => (
-              <div key={i} className={`${cardCl} rounded-lg p-8 transition-all duration-300 ${stepsVisible ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: `${i * 80}ms` }}>
+              <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg p-8`}>
                 <span className="text-2xl font-medium text-text-muted">{step.num}</span>
                 <div className="mt-4 flex items-center gap-2">
                   <i className={`ph ${step.icon} text-lg text-text-muted`}></i>
                   <h3 className="text-sm font-medium text-text-primary">{step.label}</h3>
                 </div>
                 <p className="text-text-secondary text-sm mt-2 leading-relaxed">{step.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* comparison */}
-      <section ref={comparisonRef} className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <div className={`${maxW} transition-all duration-700 ${comparisonVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className={labelCl}>the difference</p>
-          <h2 className={headingCl}>traditional vs jasmine</h2>
-          <div className={`${cardCl} rounded-lg overflow-hidden mt-16 transition-all duration-500 ${comparisonVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'}`} style={{ transitionDelay: '150ms' }}>
+      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
+        <motion.div
+          className={maxW}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={heroContainer}
+        >
+          <motion.p variants={heroItem} className={labelCl}>the difference</motion.p>
+          <motion.h2 variants={heroItem} className={headingCl}>traditional vs jasmine</motion.h2>
+          <motion.div variants={heroItem} className={`${cardCl} rounded-lg overflow-hidden mt-16`}>
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-inherit">
-              <div className={`p-8 transition-all duration-500 ${comparisonVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`} style={{ transitionDelay: '250ms' }}>
+              <div className="p-8">
                 <p className="text-xs text-text-muted mb-4">traditional</p>
                 <ul className="space-y-3">
                   {COMPARISON.map((c, i) => (
@@ -288,10 +283,10 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                   ))}
                 </ul>
               </div>
-              <div className={`p-8 flex items-center justify-center transition-all duration-500 ${comparisonVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`} style={{ transitionDelay: '350ms' }}>
+              <div className="p-8 flex items-center justify-center">
                 <i className="ph ph-arrow-right text-lg text-text-muted" />
               </div>
-              <div className={`p-8 transition-all duration-500 ${comparisonVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}`} style={{ transitionDelay: '450ms' }}>
+              <div className="p-8">
                 <p className="text-xs text-[var(--color-accent)] mb-4">jasmine</p>
                 <ul className="space-y-3">
                   {COMPARISON.map((c, i) => (
@@ -300,49 +295,61 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 </ul>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* use cases */}
-      <section ref={useCasesRef} className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <div className={`${maxW} transition-all duration-700 ${useCasesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className={labelCl}>industries</p>
-          <h2 className={headingCl}>built for every vertical.</h2>
+      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
+        <motion.div
+          className={maxW}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={heroContainer}
+        >
+          <motion.p variants={heroItem} className={labelCl}>industries</motion.p>
+          <motion.h2 variants={heroItem} className={headingCl}>built for every vertical.</motion.h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-16">
             {USE_CASES.map((uc, i) => (
-              <div key={i} className={`${cardCl} rounded-lg p-6 transition-all duration-300 ${useCasesVisible ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: `${i * 60}ms` }}>
+              <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg p-6`}>
                 <i className={`ph ${uc.icon} text-lg text-text-muted mb-2 block`}></i>
                 <h3 className="text-sm font-medium text-text-primary mb-1">{uc.label}</h3>
                 <p className="text-xs text-text-secondary">{uc.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* bento 2 */}
-      <section ref={bento2Ref} className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
+      <section className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
         <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
         <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/85 to-surface" aria-hidden />
-        <div className={`relative ${maxW} transition-all duration-700 ${bento2Visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className={labelCl}>output quality</p>
-          <h2 className={headingCl}>world-class. every time.</h2>
+        <motion.div
+          className={`relative ${maxW}`}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.05 }}
+          variants={heroContainer}
+        >
+          <motion.p variants={heroItem} className={labelCl}>output quality</motion.p>
+          <motion.h2 variants={heroItem} className={headingCl}>world-class. every time.</motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 [grid-auto-rows:minmax(120px,auto)]">
             {BENTO_OUTPUT.map((item, i) => (
-              <div key={i} className={`${item.span} ${cardCl} rounded-lg p-6 flex flex-col justify-between transition-all duration-300 ${bento2Visible ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: `${i * 60}ms` }}>
+              <motion.div key={i} variants={heroItem} className={`${item.span} ${cardCl} rounded-lg p-6 flex flex-col justify-between`}>
                 <i className={`ph ${item.icon} text-lg text-text-muted mb-2 block`}></i>
                 <h3 className="text-sm font-medium text-text-primary mb-1">{item.title}</h3>
                 <p className="text-xs text-text-secondary leading-relaxed">{item.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* testimonial */}
-      <section ref={carouselRef} className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <div className={`${maxW} transition-all duration-700 ${carouselVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
+        <BlurPopUpInView className={maxW}>
           <p className={labelCl}>what people say</p>
           <h2 className={headingCl}>built for designers who care.</h2>
           <div className="relative min-h-[240px] mt-16">
@@ -360,73 +367,90 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
               ))}
             </div>
           </div>
-        </div>
+        </BlurPopUpInView>
       </section>
 
       {/* horizontal features */}
-      <section ref={horizontalRef} className={`py-32 border-t ${borderCl}`}>
-        <div className={`transition-all duration-700 ${horizontalVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+      <section className={`py-32 border-t ${borderCl}`}>
+        <motion.div
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={heroContainer}
+        >
           <div className={`${sectionCl} mb-16`}>
-            <p className={labelCl}>built-in craft</p>
-            <h2 className={headingCl}>every detail, handled.</h2>
+            <motion.p variants={heroItem} className={labelCl}>built-in craft</motion.p>
+            <motion.h2 variants={heroItem} className={headingCl}>every detail, handled.</motion.h2>
           </div>
           <div className="relative overflow-x-auto overflow-y-hidden pb-4 scrollbar-hide">
             <div className="flex gap-4 w-max pl-6 md:pl-24 pr-6 md:pr-24">
               {HORIZONTAL_FEATURES.map((f, i) => (
-                <div key={i} className={`shrink-0 w-[260px] ${cardCl} rounded-lg p-6 transition-all duration-300 ${horizontalVisible ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: `${i * 50}ms` }}>
+                <motion.div key={i} variants={heroItem} className={`shrink-0 w-[260px] ${cardCl} rounded-lg p-6`}>
                   <i className={`ph ${f.icon} text-lg text-text-muted mb-2 block`}></i>
                   <h3 className="text-sm font-medium text-text-primary mb-1">{f.title}</h3>
                   <p className="text-xs text-text-secondary">{f.desc}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* example cards */}
-      <section ref={cardsRef} className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <div className={`${maxW} transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className={labelCl}>try these</p>
-          <h2 className={headingCl}>one click to start.</h2>
+      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
+        <motion.div
+          className={maxW}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={heroContainer}
+        >
+          <motion.p variants={heroItem} className={labelCl}>try these</motion.p>
+          <motion.h2 variants={heroItem} className={headingCl}>one click to start.</motion.h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-16">
             {EXAMPLE_CARDS.map((card, i) => (
-              <div key={i} className={`${cardCl} rounded-lg p-6 flex flex-col transition-all duration-300 hover:border-accent/30 ${cardsVisible ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: `${i * 50}ms` }}>
+              <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg p-6 flex flex-col hover:border-accent/30`}>
                 <span className="text-xs text-text-muted">{card.label}</span>
                 <p className="text-text-secondary text-sm mt-2 leading-relaxed flex-1">{card.desc}</p>
                 <button onClick={() => onSelectPrompt(card.prompt)} className="btn-premium mt-4 w-full py-2.5 rounded-md flex items-center justify-center gap-2 text-sm">
                   <i className="ph ph-magic-wand text-base"></i>
                   try it
                 </button>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* pricing */}
-      <section ref={valueRef} className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <div className={`${maxW} text-center transition-all duration-700 ${valueVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
+        <BlurPopUpInView className={`${maxW} text-center`}>
           <p className={labelCl}>pricing</p>
           <h2 className={headingCl}>free forever.</h2>
           <p className="text-base text-text-secondary mb-12 max-w-md mx-auto">
             no signup. no credit card. generate as many projects as you want. the code is yours.
           </p>
-          <div className={`${cardCl} rounded-lg p-12 inline-block transition-all duration-600 ease-[cubic-bezier(0.22,1,0.36,1)] ${valueVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}`} style={{ transitionDelay: '200ms' }}>
+          <div className={`${cardCl} rounded-lg p-12 inline-block`}>
             <p className="text-3xl font-medium text-text-primary">$0</p>
             <p className="text-xs text-text-muted mt-1">per month</p>
           </div>
-        </div>
+        </BlurPopUpInView>
       </section>
 
       {/* faq */}
-      <section ref={faqRef} className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <div className={`${maxW} transition-all duration-700 ${faqVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-          <p className={labelCl}>faq</p>
-          <h2 className={headingCl}>questions? answers.</h2>
+      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
+        <motion.div
+          className={maxW}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={heroContainer}
+        >
+          <motion.p variants={heroItem} className={labelCl}>faq</motion.p>
+          <motion.h2 variants={heroItem} className={headingCl}>questions? answers.</motion.h2>
           <div className="space-y-2 mt-16">
             {FAQ_ITEMS.map((item, i) => (
-              <div key={i} className={`${cardCl} rounded-lg overflow-hidden transition-all duration-300 ${faqVisible ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: `${i * 60}ms` }}>
+              <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg overflow-hidden`}>
                 <button onClick={() => setFaqOpen(faqOpen === i ? null : i)} className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
                   <span className="text-sm font-medium text-text-primary">{item.q}</span>
                   <i className={`ph ph-caret-down text-text-muted transition-transform duration-200 ${faqOpen === i ? 'rotate-180' : ''}`}></i>
@@ -434,27 +458,27 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 <div className={`overflow-hidden transition-all duration-300 ${faqOpen === i ? 'max-h-48' : 'max-h-0'}`}>
                   <p className="px-6 pb-4 text-text-secondary text-sm leading-relaxed">{item.a}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* cta */}
-      <section ref={ctaRef} className={`${sectionCl} py-40 border-t ${borderCl}`}>
-        <div className={`${maxW} text-center transition-all duration-700 ${ctaVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+      <section className={`${sectionCl} py-40 border-t ${borderCl}`}>
+        <BlurPopUpInView className={`${maxW} text-center`} amount={0.2}>
           <h2 className={headingCl}>ready to design?</h2>
           <p className="text-base text-text-secondary mb-12">the world's best designer. one prompt.</p>
           <button onClick={onStartDesigning} className="btn-premium inline-flex items-center gap-2 text-sm px-10 py-3">
             <i className="ph ph-rocket-launch text-base"></i>
             start designing
           </button>
-        </div>
+        </BlurPopUpInView>
       </section>
 
       {/* footer */}
-      <footer ref={footerRef} className={`${sectionCl} py-20 border-t ${borderCl}`}>
-        <div className={`${maxW} flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-700 ${footerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+      <footer className={`${sectionCl} py-20 border-t ${borderCl}`}>
+        <BlurPopUpInView className={`${maxW} flex flex-col md:flex-row items-center justify-between gap-6`}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
               <img src="/logo-mark.png" alt="" className="w-full h-full object-contain" />
@@ -466,7 +490,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             <span>·</span>
             <span>vite · react · tailwind</span>
           </div>
-        </div>
+        </BlurPopUpInView>
       </footer>
     </div>
   );
