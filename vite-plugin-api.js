@@ -5,8 +5,8 @@
 import 'dotenv/config';
 import express from 'express';
 import { checkE2B, createSandbox, connectSandbox, writeFiles } from './server/sandbox.js';
-import { getBoilerplate } from './api/lib/e2b.js';
-import { sandboxConfig } from './api/lib/sandbox-config.js';
+import { getBoilerplate } from './lib/sandbox/e2b.js';
+import { sandboxConfig } from './lib/sandbox/sandbox-config.js';
 
 const cfg = sandboxConfig.e2b;
 const port = cfg.vitePort ?? cfg.nextPort ?? 5173;

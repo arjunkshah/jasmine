@@ -7,8 +7,8 @@
  */
 import 'dotenv/config';
 import { Sandbox } from 'e2b';
-import { sandboxConfig } from '../api/lib/sandbox-config.js';
-import { getBoilerplate } from '../api/lib/e2b.js';
+import { sandboxConfig } from '../lib/sandbox/sandbox-config.js';
+import { getBoilerplate } from '../lib/sandbox/e2b.js';
 
 const E2B_API_KEY = process.env.E2B_API_KEY;
 const cfg = sandboxConfig.e2b;

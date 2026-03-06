@@ -8,8 +8,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { checkE2B, createSandbox, connectSandbox, writeFiles } from './sandbox.js';
-import { getBoilerplate } from '../api/lib/e2b.js';
-import { sandboxConfig } from '../api/lib/sandbox-config.js';
+import { getBoilerplate } from '../lib/sandbox/e2b.js';
+import { sandboxConfig } from '../lib/sandbox/sandbox-config.js';
 
 dotenv.config();
 

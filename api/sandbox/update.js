@@ -3,8 +3,8 @@
  * Write files → npm install (if package.json changed) → restart Vite. No build step.
  * @see https://github.com/firecrawl/open-lovable (useLegacyPeerDeps, package fixes)
  */
-import { getBoilerplate, checkE2B } from '../lib/e2b.js';
-import { sandboxConfig } from '../lib/sandbox-config.js';
+import { getBoilerplate, checkE2B } from '../../lib/sandbox/e2b.js';
+import { sandboxConfig } from '../../lib/sandbox/sandbox-config.js';
 import { applyPackageFixes } from '../../src/lib/package-fixes.js';
 
 export const config = { maxDuration: 120 };

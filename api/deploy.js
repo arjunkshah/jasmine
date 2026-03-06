@@ -2,8 +2,8 @@
  * Deploy project files to E2B sandbox — open-lovable approach: Vite + React
  * Creates sandbox, writes files, npm install, npm run dev. No build step.
  */
-import { getBoilerplate, checkE2B } from './lib/e2b.js';
-import { sandboxConfig } from './lib/sandbox-config.js';
+import { getBoilerplate, checkE2B } from '../lib/sandbox/e2b.js';
+import { sandboxConfig } from '../lib/sandbox/sandbox-config.js';
 
 export const config = { maxDuration: 120 };
 

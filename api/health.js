@@ -1,5 +1,5 @@
 /** Health check for Vercel deployment - verify E2B is configured */
-import { checkE2B } from './lib/e2b.js';
+import { checkE2B } from '../lib/sandbox/e2b.js';
 
 export default function handler(req, res) {
   const err = checkE2B();

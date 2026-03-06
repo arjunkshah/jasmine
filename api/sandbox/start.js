@@ -2,8 +2,8 @@
  * E2B sandbox start — open-lovable approach: Vite + React
  * No build step: npm install → npm run dev. Port 5173. Hot-reload on file write.
  */
-import { getBoilerplate, checkE2B } from '../lib/e2b.js';
-import { sandboxConfig } from '../lib/sandbox-config.js';
+import { getBoilerplate, checkE2B } from '../../lib/sandbox/e2b.js';
+import { sandboxConfig } from '../../lib/sandbox/sandbox-config.js';
 
 export const config = { maxDuration: 120 };
 
