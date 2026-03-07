@@ -406,8 +406,11 @@ function AppBody({
   onSignInClick,
   onSignOut,
   firebaseConfigured,
-  onStartDesigning,
+    onStartDesigning,
   onSelectPrompt,
+  onOpenPost,
+  onBackToList,
+  blogSlug,
 }) {
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
@@ -561,8 +564,8 @@ function AppBody({
             <BlogPage
               onStartDesigning={onStartDesigning}
               onBackHome={onShowHome}
-              onOpenPost={handleOpenBlogPost}
-              onBackToList={handleBackToBlogList}
+              onOpenPost={onOpenPost}
+              onBackToList={onBackToList}
               activeSlug={blogSlug}
               theme={theme}
           />
@@ -2089,6 +2092,9 @@ function App() {
     firebaseConfigured,
     onStartDesigning: handleStartDesigning,
     onSelectPrompt: handleSelectPrompt,
+    onOpenPost: handleOpenBlogPost,
+    onBackToList: handleBackToBlogList,
+    blogSlug,
     htmlMode,
     setHtmlMode,
   };
