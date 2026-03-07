@@ -103,7 +103,10 @@ function StopJugglingSection({ isLight, borderCl }) {
   const cellCl = isLight ? 'bg-white border-neutral-200' : 'bg-white/[0.04] border-white/10';
 
   return (
-    <section ref={ref} className={`px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${borderCl}`}>
+    <section ref={ref} className={`relative overflow-hidden px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${borderCl}`}>
+      <div className="absolute inset-0 pointer-events-none">
+        <img src="/auth-bg.png" alt="" className={`w-full h-full object-cover object-center ${isLight ? 'opacity-[0.06]' : 'opacity-[0.04]'}`} />
+      </div>
       <div className="max-w-6xl mx-auto">
         <motion.div
           className="text-center mb-16"
@@ -119,7 +122,7 @@ function StopJugglingSection({ isLight, borderCl }) {
             <BlurPopUpByWordInView text="Notes, design, chat, preview, export — Jasmine keeps it all in one place." wordDelay={0.02} />
           </p>
         </motion.div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="relative grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {STOP_JUGGLING_ITEMS.map((item, idx) => (
             <motion.div
               key={item.title}
@@ -145,8 +148,11 @@ function TestimonialsSection({ isLight, borderCl }) {
   const cardCl = isLight ? 'bg-white border-neutral-200' : 'bg-white/[0.04] border-white/10';
 
   return (
-    <section ref={ref} className={`px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${borderCl}`}>
-      <div className="max-w-5xl mx-auto">
+    <section ref={ref} className={`relative overflow-hidden px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${borderCl}`}>
+      <div className="absolute inset-0 pointer-events-none">
+        <img src="/og-image.png" alt="" className={`w-full h-full object-cover object-center ${isLight ? 'opacity-[0.05]' : 'opacity-[0.03]'}`} />
+      </div>
+      <div className="relative max-w-5xl mx-auto">
         <motion.div
           className="text-center mb-14"
           initial={{ opacity: 0, y: 32 }}
@@ -216,9 +222,12 @@ function IdeasSection({ isLight, onStartDesigning }) {
   const inView = useInView(ref, { once: true, amount: 0.2 });
 
   return (
-    <section ref={ref} className={`px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${isLight ? 'border-neutral-200' : 'border-white/10'}`}>
+    <section ref={ref} className={`relative overflow-hidden px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${isLight ? 'border-neutral-200' : 'border-white/10'}`}>
+      <div className="absolute inset-0 pointer-events-none">
+        <img src="/auth-bg.png" alt="" className={`w-full h-full object-cover object-center ${isLight ? 'opacity-[0.05]' : 'opacity-[0.03]'}`} />
+      </div>
       <motion.div
-        className="max-w-3xl mx-auto text-center"
+        className="relative max-w-3xl mx-auto text-center"
         initial={{ opacity: 0, y: 32 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -299,9 +308,9 @@ function BentoSection({ isLight }) {
 
   const cells = [
     { span: 'col-span-2 row-span-2', title: 'Hero', desc: 'Badge, headline, CTA, trust bar.', icon: 'ph-sparkle', image: '/lander-bento-bg.png' },
-    { span: 'col-span-1', title: 'Features', desc: 'Grid of highlights.', icon: 'ph-squares-four' },
+    { span: 'col-span-1', title: 'Features', desc: 'Grid of highlights.', icon: 'ph-squares-four', image: '/og-image.png' },
     { span: 'col-span-1', title: 'Pricing', desc: 'Plans and tiers.', icon: 'ph-currency-dollar' },
-    { span: 'col-span-1', title: 'Testimonials', desc: 'Social proof.', icon: 'ph-quotes' },
+    { span: 'col-span-1', title: 'Testimonials', desc: 'Social proof.', icon: 'ph-quotes', image: '/empty-state.png' },
     { span: 'col-span-1', title: 'Footer', desc: 'Links and CTA.', icon: 'ph-link' },
   ];
 
@@ -542,13 +551,31 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           >
-            {FEATURE_SETS.map((item) => (
-              <Card key={item.title} className="p-6 md:p-8 flex flex-col gap-4 h-full" isLight={isLight}>
-                <div className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${isLight ? 'bg-neutral-100 text-neutral-700' : 'bg-white/10 text-text-secondary'}`}>
-                  <i className={`ph ${item.icon} text-lg`} />
-                </div>
-                <h3 className="text-lg font-semibold">{item.title}</h3>
-                <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
+            {FEATURE_SETS.map((item, idx) => (
+              <Card key={item.title} className={`p-0 flex flex-col overflow-hidden ${idx === 0 ? '' : ''}`} isLight={isLight}>
+                {idx === 0 ? (
+                  <>
+                    <div className="relative h-36 overflow-hidden">
+                      <img src="/og-image.png" alt="" className="w-full h-full object-cover object-center" />
+                      <div className={`absolute inset-0 bg-gradient-to-t ${isLight ? 'from-white to-transparent' : 'from-[var(--color-surface-raised)] to-transparent'}`} />
+                    </div>
+                    <div className="p-6 md:p-8 flex flex-col gap-4 flex-1">
+                      <div className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${isLight ? 'bg-neutral-100 text-neutral-700' : 'bg-white/10 text-text-secondary'}`}>
+                        <i className={`ph ${item.icon} text-lg`} />
+                      </div>
+                      <h3 className="text-lg font-semibold">{item.title}</h3>
+                      <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-6 md:p-8 flex flex-col gap-4 h-full">
+                    <div className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${isLight ? 'bg-neutral-100 text-neutral-700' : 'bg-white/10 text-text-secondary'}`}>
+                      <i className={`ph ${item.icon} text-lg`} />
+                    </div>
+                    <h3 className="text-lg font-semibold">{item.title}</h3>
+                    <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
+                  </div>
+                )}
               </Card>
             ))}
           </motion.div>
@@ -666,7 +693,13 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           >
             {EXAMPLE_CARDS.map((card, idx) => (
-              <Card key={card.label} className={`p-6 flex flex-col gap-4 h-full border-0 shadow-sm ${PASTEL_CARD_COLORS[idx % PASTEL_CARD_COLORS.length]}`} isLight={isLight}>
+              <Card key={card.label} className={`p-0 flex flex-col gap-0 h-full border-0 shadow-sm overflow-hidden ${PASTEL_CARD_COLORS[idx % PASTEL_CARD_COLORS.length]}`} isLight={isLight}>
+                {idx === 0 && (
+                  <div className="relative h-28 overflow-hidden">
+                    <img src="/lander-bento-bg.png" alt="" className="w-full h-full object-cover object-center" />
+                  </div>
+                )}
+                <div className="p-6 flex flex-col gap-4 flex-1">
                 <div className="flex items-center gap-3">
                   <div className={`h-9 w-9 rounded-full flex items-center justify-center font-semibold ${isLight ? 'bg-neutral-100 border border-neutral-200 text-neutral-700' : 'bg-white/20 border border-white/20 text-text-primary'}`}>
                     {card.label[0]}
@@ -683,6 +716,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 >
                   Use this prompt <i className="ph ph-arrow-right" />
                 </button>
+                </div>
               </Card>
             ))}
           </motion.div>
@@ -729,9 +763,12 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       <IdeasSection isLight={isLight} onStartDesigning={onStartDesigning} />
 
       {/* CTA — OpenNote-style warm yellow footer */}
-      <section className="px-6 md:px-12 lg:px-20 py-24 md:py-32 bg-[#FCCD4F] text-[var(--color-text-primary)]">
+      <section className="relative overflow-hidden px-6 md:px-12 lg:px-20 py-24 md:py-32 bg-[#FCCD4F] text-[var(--color-text-primary)]">
+        <div className="absolute inset-0 pointer-events-none">
+          <img src="/hero-bg.png" alt="" className="w-full h-full object-cover object-center opacity-[0.08]" />
+        </div>
         <motion.div
-          className="max-w-3xl mx-auto text-center space-y-8"
+          className="relative max-w-3xl mx-auto text-center space-y-8"
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
