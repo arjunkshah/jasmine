@@ -663,7 +663,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
               <i className="ph ph-magic-wand text-lg"></i>
               Start designing
             </button>
-            <button onClick={() => onSelectPrompt(EXAMPLE_CARDS[1].prompt)} className={`flex items-center gap-2 w-full sm:w-auto justify-center px-8 py-3 text-sm font-semibold ${isLight ? 'border-[#0a0a0b] text-[#0a0a0b] hover:bg-black/5' : 'btn-ghost border-white/20 text-text-primary hover:bg-white/10'}`}>
+            <button onClick={() => onSelectPrompt(EXAMPLE_CARDS[1].prompt)} className={`flex items-center gap-2 w-full sm:w-auto justify-center px-8 py-3 text-sm font-semibold ${isLight ? 'bg-white border border-[#0a0a0b] text-[#0a0a0b] hover:bg-neutral-50' : 'btn-ghost border-white/20 text-text-primary hover:bg-white/10'}`}>
               Try SaaS prompt
           </button>
         </div>
