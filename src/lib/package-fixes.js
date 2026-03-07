@@ -253,6 +253,34 @@ function ensureRequiredFiles(files) {
 }
 
 /**
+ * Force Vite 4.x in package.json. AI often outputs vite ^5 or ^6.
+ * Vite 5/6/7 have different internal chunk structure — causes "Cannot find module dep-*.js".
+ * E2B template uses npm create vite@4 — we must match.
+ */
+function fixViteVersion(files) {
+  if (!files || typeof files !== 'object') return;
+  const pkgRaw = files['package.json'];
+  if (!pkgRaw || typeof pkgRaw !== 'string') return;
+  try {
+    const pkg = JSON.parse(pkgRaw);
+    const dev = pkg.devDependencies || {};
+    let changed = false;
+    if (dev.vite && !/^4\./.test(dev.vite)) {
+      dev.vite = '^4.3.9';
+      changed = true;
+    }
+    if (dev['@vitejs/plugin-react'] && !/^4\./.test(dev['@vitejs/plugin-react'])) {
+      dev['@vitejs/plugin-react'] = '^4.0.0';
+      changed = true;
+    }
+    if (changed) {
+      pkg.devDependencies = dev;
+      files['package.json'] = JSON.stringify(pkg, null, 2);
+    }
+  } catch (_) {}
+}
+
+/**
  * Force Tailwind v3 in package.json. AI often outputs tailwindcss ^4 or @tailwindcss/vite.
  * Tailwind v4 has a different structure (no preflight.css) and breaks with postcss.config.js.
  * E2B boilerplate uses v3 + postcss — we must keep that.
@@ -313,6 +341,7 @@ function fixViteConfigTailwind(files) {
 export function applyPackageFixes(files) {
   fixInvalidRegexFlags(files);
   ensureRequiredFiles(files);
+  fixViteVersion(files);
   fixTailwindVersion(files);
   fixIndexCssTailwind(files);
   fixViteConfigTailwind(files);

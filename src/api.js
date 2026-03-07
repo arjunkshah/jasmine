@@ -513,7 +513,7 @@ const FIX_ERRORS_PROMPT = `You are a code reviewer. Review this Vite + React pro
 ## DEPENDENCIES (CRITICAL)
 Scan EVERY file for import/require statements. For each npm package (not relative paths like ./ or ../):
 - If package.json dependencies does NOT include it, ADD it with a sensible version.
-- Use common versions: react-router-dom ^6.20.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, @radix-ui/* ^1.0.0. NEVER use lucide-react — use @phosphor-icons/react only. For unknown packages use * (accept any version).
+- Use common versions: vite ^4.3.9, @vitejs/plugin-react ^4.0.0, react-router-dom ^6.20.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, @radix-ui/* ^1.0.0. NEVER use lucide-react — use @phosphor-icons/react only. NEVER use vite ^5 or ^6 — use vite ^4.3.9 only. For unknown packages use * (accept any version).
 - NEVER remove a dependency that is imported. ALWAYS add missing ones. Add ANY package — we install everything (unknown packages get *).
 
 ## OTHER FIXES
@@ -528,6 +528,7 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 9. **Invalid RegExp** — ONLY valid flags: g, i, m, s, u, y. Remove x, e, duplicates. Invalid flags cause SyntaxError.
 10. **src/index.css** — If missing, add with @tailwind base; @tailwind components; @tailwind utilities;
 11. **Tailwind v3 ONLY** — Use tailwindcss ^3.3.0 with postcss + autoprefixer. NEVER use tailwindcss ^4 or @tailwindcss/vite. index.css must use @tailwind base/components/utilities, NOT @import "tailwindcss". Remove @tailwindcss/vite from vite.config.
+12. **Vite v4 ONLY** — Use vite ^4.3.9 and @vitejs/plugin-react ^4.0.0 in devDependencies. NEVER use vite ^5, ^6, or ^7 — causes "Cannot find module dep-*.js" in preview.
 
 Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
 

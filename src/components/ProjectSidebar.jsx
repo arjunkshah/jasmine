@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { listProjects } from '../lib/projects';
+import BlurPopUpByWord from './BlurPopUpByWord';
 
 export default function ProjectSidebar({
   isOpen,
@@ -10,6 +11,7 @@ export default function ProjectSidebar({
   onDeleteProject,
   onNewProject,
   onSpinUpSandbox,
+  onRefresh,
   loadingProjects,
   theme,
   user,
@@ -54,9 +56,19 @@ export default function ProjectSidebar({
             >
               <i className="ph ph-folder-open text-jasmine-400 text-lg"></i>
             </button>
-            Projects
+            <BlurPopUpByWord text="Projects" wordDelay={0.03} />
           </h3>
           <div className="flex items-center gap-1">
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={loadingProjects}
+                className="p-2 text-text-muted hover:text-text-primary rounded-lg transition-colors disabled:opacity-50"
+                title="Refresh projects"
+              >
+                <i className={`ph ph-arrow-clockwise text-lg ${loadingProjects ? 'animate-spin' : ''}`}></i>
+              </button>
+            )}
             <button
               onClick={() => { onNewProject?.(); if (user) onClose(); }}
               className="p-2 text-text-muted hover:text-text-primary rounded-lg transition-colors"

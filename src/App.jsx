@@ -4,6 +4,7 @@ import { generateWithGroq, generateWithGemini, generateWithGateway, editWithGroq
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import FileExplorer from './FileExplorer';
+import BlurPopUpByWord from './components/BlurPopUpByWord';
 import AuthPage from './components/AuthPage';
 import E2BBadge from './components/E2BBadge';
 import StatusBubble from './components/StatusBubble';
@@ -326,8 +327,12 @@ function AppBody({
               <img src="/logo-mark.png" alt="Jasmine" className="w-full h-full object-contain" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-text-primary">jasmine</span>
-              <span className="text-[10px] text-text-muted tracking-wider">ai</span>
+              <span className="text-sm font-medium text-text-primary">
+                <BlurPopUpByWord text="jasmine" wordDelay={0.02} />
+              </span>
+              <span className="text-[10px] text-text-muted tracking-wider">
+                <BlurPopUpByWord text="ai" wordDelay={0.04} />
+              </span>
             </div>
           </div>
 
@@ -389,8 +394,12 @@ function AppBody({
                 {hasOutput ? (
                   <>
                     <div className={`flex-none px-4 py-3 border-b ${borderCl}`}>
-                      <p className="text-xs text-text-muted tracking-wider">chat</p>
-                      <p className="text-sm text-text-secondary mt-0.5">ask to edit your design</p>
+                      <p className="text-xs text-text-muted tracking-wider">
+                        <BlurPopUpByWord text="chat" wordDelay={0.02} />
+                      </p>
+                      <p className="text-sm text-text-secondary mt-0.5">
+                        <BlurPopUpByWord text="ask to edit your design" wordDelay={0.03} />
+                      </p>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                       {chatMessages.map((m, i) => (
@@ -622,14 +631,14 @@ function AppBody({
                       className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${rightTab === 'files' ? 'bg-surface-overlay text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
                     >
                       <i className="ph ph-folder"></i>
-                      Files
+                      <BlurPopUpByWord text="Files" wordDelay={0.02} />
                     </button>
                     <button
                       onClick={() => setRightTab('preview')}
                       className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${rightTab === 'preview' ? 'bg-surface-overlay text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
                     >
                       <i className="ph ph-eye"></i>
-                      Preview
+                      <BlurPopUpByWord text="Preview" wordDelay={0.02} />
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
@@ -997,17 +1006,25 @@ function App() {
   }, [showLanding]);
 
   // Fetch projects when user logs in
+  const refreshProjects = useCallback(() => {
+    if (!firebaseConfigured || !user) return;
+    setLoadingProjects(true);
+    listProjects(user.uid)
+      .then(setProjects)
+        .catch((e) => {
+        console.warn('[Jasmine] listProjects failed:', e?.message);
+        setError(`Projects failed to load: ${e?.message || 'Unknown error'}. Ensure Firestore rules and indexes are deployed (\`firebase deploy --only firestore\`).`);
+      })
+      .finally(() => setLoadingProjects(false));
+  }, [firebaseConfigured, user?.uid]);
+
   useEffect(() => {
     if (!firebaseConfigured || !user) {
       setProjects([]);
       return;
     }
-    setLoadingProjects(true);
-    listProjects(user.uid)
-      .then(setProjects)
-      .catch((e) => console.warn('[Jasmine] listProjects failed:', e?.message))
-      .finally(() => setLoadingProjects(false));
-  }, [firebaseConfigured, user?.uid]);
+    refreshProjects();
+  }, [firebaseConfigured, user?.uid, refreshProjects]);
 
   const saveProject = useCallback(
     async (data) => {
@@ -1034,6 +1051,7 @@ function App() {
         }
       } catch (e) {
         console.warn('[Jasmine] saveProject failed:', e?.message);
+        setError(`Save failed: ${e?.message || 'Unknown error'}. Check Firestore rules and indexes.`);
       }
     },
     [firebaseConfigured, user, currentProjectId, prompt, generatedProject, generatedHTML, chatMessages, provider, gatewayModel]
@@ -1393,7 +1411,7 @@ function App() {
         const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }];
         try {
           await saveProject({ files: project.files, html: result, chatMessages: finalMessages });
-          listProjects(user.uid).then(setProjects).catch(() => {});
+          refreshProjects();
         } catch (e) {
           setProjects((prev) => {
             const entry = { id: `temp-${Date.now()}`, name: prompt?.slice(0, 50) || 'Untitled', prompt, files: project.files, ...project };
@@ -1565,7 +1583,7 @@ function App() {
     }
   };
 
-  const hasOutput = generatedHTML || streamingRaw;
+  const hasOutput = generatedHTML || streamingRaw || isGenerating;
   const isLight = theme === 'light';
   const base = 'bg-surface text-text-primary';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
@@ -1689,6 +1707,7 @@ function App() {
             onDeleteProject={handleDeleteProject}
             onNewProject={handleNewProject}
             onSpinUpSandbox={spinUpSandbox}
+            onRefresh={refreshProjects}
             loadingProjects={loadingProjects}
             theme={theme}
           />

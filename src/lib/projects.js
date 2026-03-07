@@ -11,7 +11,7 @@ import {
   orderBy,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, isFirebaseConfigured } from './firebase';
 
 const PROJECTS = 'projects';
 const FIRESTORE_LIMIT = 900 * 1024; // ~900KB (Firestore doc limit 1MB)
@@ -41,6 +41,7 @@ function fitPayload(data) {
 }
 
 export async function createProject(userId, data) {
+  if (!isFirebaseConfigured() || !db) throw new Error('Firebase not configured');
   const payload = fitPayload({ userId, ...data });
   const ref = await addDoc(collection(db, PROJECTS), {
     ...payload,
@@ -51,6 +52,7 @@ export async function createProject(userId, data) {
 }
 
 export async function updateProject(projectId, data) {
+  if (!isFirebaseConfigured() || !db) throw new Error('Firebase not configured');
   const ref = doc(db, PROJECTS, projectId);
   const { userId, createdAt, ...safe } = data;
   let payload = { ...safe, updatedAt: serverTimestamp() };
@@ -62,10 +64,12 @@ export async function updateProject(projectId, data) {
 }
 
 export async function deleteProject(projectId) {
+  if (!isFirebaseConfigured() || !db) throw new Error('Firebase not configured');
   await deleteDoc(doc(db, PROJECTS, projectId));
 }
 
 export async function listProjects(userId) {
+  if (!isFirebaseConfigured() || !db) return [];
   const q = query(
     collection(db, PROJECTS),
     where('userId', '==', userId),
@@ -76,6 +80,7 @@ export async function listProjects(userId) {
 }
 
 export async function getProject(projectId) {
+  if (!isFirebaseConfigured() || !db) return null;
   const ref = doc(db, PROJECTS, projectId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;

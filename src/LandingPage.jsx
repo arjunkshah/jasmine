@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
+import BlurPopUpByWordInView from './components/BlurPopUpByWordInView';
 import BlurPopUp from './components/BlurPopUp';
 import BlurPopUpInView from './components/BlurPopUpInView';
 import HeroGlowLines from './components/HeroGlowLines';
@@ -123,14 +124,16 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
             <div className={!isLight ? '[text-shadow:0_1px_2px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.4)]' : ''}>
               <BlurPopUp delay={0}>
-                <p className={`${labelCl} font-display text-3d`}>the world's best designer</p>
+                <p className={`${labelCl} font-display text-3d`}>
+                  <BlurPopUpByWord text="the world's best designer" wordDelay={0.03} />
+                </p>
               </BlurPopUp>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.1] text-text-primary mb-6 font-display text-3d">
                 <BlurPopUpByWord text="design anything." wordDelay={0.05} />
               </h1>
               <BlurPopUp delay={0.6}>
                 <p className={`text-base md:text-lg leading-[1.6] max-w-lg mb-12 ${isLight ? 'text-text-secondary' : 'text-text-secondary [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]'}`}>
-                  describe what you want. jasmine crafts it — every page, every section. the best designer, one prompt.
+                  <BlurPopUpByWord text="describe what you want. jasmine crafts it — every page, every section. the best designer, one prompt." wordDelay={0.02} />
                 </p>
               </BlurPopUp>
               <div className="flex flex-wrap gap-3">
@@ -183,8 +186,12 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-16 md:gap-24">
             {STATS.map((stat, i) => (
               <motion.div key={i} variants={heroItem} className="text-center">
-                <p className="text-2xl md:text-3xl font-medium text-text-primary tracking-tight">{stat.value}</p>
-                <p className="text-xs text-text-muted mt-2">{stat.label}</p>
+                <p className="text-2xl md:text-3xl font-medium text-text-primary tracking-tight">
+                  <BlurPopUpByWordInView text={stat.value} wordDelay={0.02} />
+                </p>
+                <p className="text-xs text-text-muted mt-2">
+                  <BlurPopUpByWordInView text={stat.label} wordDelay={0.03} />
+                </p>
               </motion.div>
             ))}
           </div>
@@ -194,7 +201,9 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       {/* marquee */}
       <section className={`py-24 border-t ${borderCl} overflow-hidden`}>
         <BlurPopUpInView>
-          <p className={`${labelCl} text-center mb-12`}>tech</p>
+          <p className={`${labelCl} text-center mb-12`}>
+            <BlurPopUpByWordInView text="tech" />
+          </p>
           <div className="marquee-track">
             {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
               <div key={i} className="flex items-center gap-3 mx-10 shrink-0">
@@ -219,8 +228,8 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           viewport={{ once: true, amount: 0.05 }}
           variants={heroContainer}
         >
-          <motion.p variants={heroItem} className={labelCl}>how it works</motion.p>
-          <motion.h2 variants={heroItem} className={headingCl}>one prompt. full project.</motion.h2>
+          <p className={labelCl}><BlurPopUpByWordInView text="how it works" /></p>
+          <h2 className={headingCl}><BlurPopUpByWordInView text="one prompt. full project." /></h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 [grid-auto-rows:minmax(140px,auto)]">
             {BENTO_ITEMS.map((item, i) => (
               <motion.div
@@ -229,8 +238,12 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 className={`${item.span} ${cardCl} rounded-lg p-6 flex flex-col justify-between`}
               >
                 <i className={`ph ${item.icon} text-lg text-text-muted mb-3 block`}></i>
-                <h3 className="text-sm font-medium text-text-primary mb-1">{item.title}</h3>
-                <p className="text-xs text-text-secondary leading-relaxed">{item.desc}</p>
+                <h3 className="text-sm font-medium text-text-primary mb-1">
+                  <BlurPopUpByWordInView text={item.title} wordDelay={0.03} />
+                </h3>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  <BlurPopUpByWordInView text={item.desc} wordDelay={0.02} />
+                </p>
               </motion.div>
             ))}
           </div>
@@ -246,17 +259,21 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           viewport={{ once: true, amount: 0.1 }}
           variants={heroContainer}
         >
-          <motion.p variants={heroItem} className={labelCl}>process</motion.p>
-          <motion.h2 variants={heroItem} className={headingCl}>three steps. zero friction.</motion.h2>
+          <p className={labelCl}><BlurPopUpByWordInView text="process" /></p>
+          <h2 className={headingCl}><BlurPopUpByWordInView text="three steps. zero friction." /></h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
             {STEPS.map((step, i) => (
               <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg p-8`}>
                 <span className="text-2xl font-medium text-text-muted">{step.num}</span>
                 <div className="mt-4 flex items-center gap-2">
                   <i className={`ph ${step.icon} text-lg text-text-muted`}></i>
-                  <h3 className="text-sm font-medium text-text-primary">{step.label}</h3>
+                  <h3 className="text-sm font-medium text-text-primary">
+                    <BlurPopUpByWordInView text={step.label} wordDelay={0.03} />
+                  </h3>
                 </div>
-                <p className="text-text-secondary text-sm mt-2 leading-relaxed">{step.desc}</p>
+                <p className="text-text-secondary text-sm mt-2 leading-relaxed">
+                  <BlurPopUpByWordInView text={step.desc} wordDelay={0.02} />
+                </p>
               </motion.div>
             ))}
           </div>
@@ -272,15 +289,19 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           viewport={{ once: true, amount: 0.1 }}
           variants={heroContainer}
         >
-          <motion.p variants={heroItem} className={labelCl}>the difference</motion.p>
-          <motion.h2 variants={heroItem} className={headingCl}>traditional vs jasmine</motion.h2>
+          <p className={labelCl}><BlurPopUpByWordInView text="the difference" /></p>
+          <h2 className={headingCl}><BlurPopUpByWordInView text="traditional vs jasmine" /></h2>
           <motion.div variants={heroItem} className={`${cardCl} rounded-lg overflow-hidden mt-16`}>
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-inherit">
               <div className="p-8">
-                <p className="text-xs text-text-muted mb-4">traditional</p>
+                <p className="text-xs text-text-muted mb-4">
+                  <BlurPopUpByWordInView text="traditional" />
+                </p>
                 <ul className="space-y-3">
                   {COMPARISON.map((c, i) => (
-                    <li key={i} className="text-text-secondary text-sm">{c.traditional}</li>
+                    <li key={i} className="text-text-secondary text-sm">
+                      <BlurPopUpByWordInView text={c.traditional} wordDelay={0.02} />
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -288,10 +309,14 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 <i className="ph ph-arrow-right text-lg text-text-muted" />
               </div>
               <div className="p-8">
-                <p className="text-xs text-[var(--color-accent)] mb-4">jasmine</p>
+                <p className="text-xs text-[var(--color-accent)] mb-4">
+                  <BlurPopUpByWordInView text="jasmine" />
+                </p>
                 <ul className="space-y-3">
                   {COMPARISON.map((c, i) => (
-                    <li key={i} className="text-text-primary text-sm font-medium">{c.jasmine}</li>
+                    <li key={i} className="text-text-primary text-sm font-medium">
+                      <BlurPopUpByWordInView text={c.jasmine} wordDelay={0.02} />
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -315,8 +340,12 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             {USE_CASES.map((uc, i) => (
               <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg p-6`}>
                 <i className={`ph ${uc.icon} text-lg text-text-muted mb-2 block`}></i>
-                <h3 className="text-sm font-medium text-text-primary mb-1">{uc.label}</h3>
-                <p className="text-xs text-text-secondary">{uc.desc}</p>
+                <h3 className="text-sm font-medium text-text-primary mb-1">
+                  <BlurPopUpByWordInView text={uc.label} wordDelay={0.03} />
+                </h3>
+                <p className="text-xs text-text-secondary">
+                  <BlurPopUpByWordInView text={uc.desc} wordDelay={0.03} />
+                </p>
               </motion.div>
             ))}
           </div>
@@ -334,14 +363,18 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           viewport={{ once: true, amount: 0.05 }}
           variants={heroContainer}
         >
-          <motion.p variants={heroItem} className={labelCl}>output quality</motion.p>
-          <motion.h2 variants={heroItem} className={headingCl}>world-class. every time.</motion.h2>
+          <p className={labelCl}><BlurPopUpByWordInView text="output quality" /></p>
+          <h2 className={headingCl}><BlurPopUpByWordInView text="world-class. every time." /></h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 [grid-auto-rows:minmax(120px,auto)]">
             {BENTO_OUTPUT.map((item, i) => (
               <motion.div key={i} variants={heroItem} className={`${item.span} ${cardCl} rounded-lg p-6 flex flex-col justify-between`}>
                 <i className={`ph ${item.icon} text-lg text-text-muted mb-2 block`}></i>
-                <h3 className="text-sm font-medium text-text-primary mb-1">{item.title}</h3>
-                <p className="text-xs text-text-secondary leading-relaxed">{item.desc}</p>
+                <h3 className="text-sm font-medium text-text-primary mb-1">
+                  <BlurPopUpByWordInView text={item.title} wordDelay={0.03} />
+                </h3>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  <BlurPopUpByWordInView text={item.desc} wordDelay={0.02} />
+                </p>
               </motion.div>
             ))}
           </div>
@@ -351,14 +384,18 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       {/* testimonial */}
       <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
         <BlurPopUpInView className={maxW}>
-          <p className={labelCl}>what people say</p>
-          <h2 className={headingCl}>built for designers who care.</h2>
+          <p className={labelCl}><BlurPopUpByWordInView text="what people say" /></p>
+          <h2 className={headingCl}><BlurPopUpByWordInView text="built for designers who care." /></h2>
           <div className="relative min-h-[240px] mt-16">
             {TESTIMONIALS.map((t, i) => (
               <div key={i} className={`transition-all duration-500 ${i === carouselIndex ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 absolute inset-x-0 top-0 pointer-events-none'}`}>
                 <blockquote className={`${cardCl} rounded-lg p-10 md:p-14`}>
-                  <p className="text-xl md:text-2xl font-medium text-text-primary leading-[1.4] mb-6">"{t.quote}"</p>
-                  <p className="text-sm text-text-muted">{t.author} · {t.role}</p>
+                  <p className="text-xl md:text-2xl font-medium text-text-primary leading-[1.4] mb-6">
+                    "<BlurPopUpByWordInView text={t.quote} wordDelay={0.03} />"
+                  </p>
+                  <p className="text-sm text-text-muted">
+                    <BlurPopUpByWordInView text={`${t.author} · ${t.role}`} wordDelay={0.04} />
+                  </p>
                 </blockquote>
               </div>
             ))}
@@ -380,16 +417,20 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           variants={heroContainer}
         >
           <div className={`${sectionCl} mb-16`}>
-            <motion.p variants={heroItem} className={labelCl}>built-in craft</motion.p>
-            <motion.h2 variants={heroItem} className={headingCl}>every detail, handled.</motion.h2>
+            <p className={labelCl}><BlurPopUpByWordInView text="built-in craft" /></p>
+            <h2 className={headingCl}><BlurPopUpByWordInView text="every detail, handled." /></h2>
           </div>
           <div className="relative overflow-x-auto overflow-y-hidden pb-4 scrollbar-hide">
             <div className="flex gap-4 w-max pl-6 md:pl-24 pr-6 md:pr-24">
               {HORIZONTAL_FEATURES.map((f, i) => (
                 <motion.div key={i} variants={heroItem} className={`shrink-0 w-[260px] ${cardCl} rounded-lg p-6`}>
                   <i className={`ph ${f.icon} text-lg text-text-muted mb-2 block`}></i>
-                  <h3 className="text-sm font-medium text-text-primary mb-1">{f.title}</h3>
-                  <p className="text-xs text-text-secondary">{f.desc}</p>
+                  <h3 className="text-sm font-medium text-text-primary mb-1">
+                    <BlurPopUpByWordInView text={f.title} wordDelay={0.03} />
+                  </h3>
+                  <p className="text-xs text-text-secondary">
+                    <BlurPopUpByWordInView text={f.desc} wordDelay={0.03} />
+                  </p>
                 </motion.div>
               ))}
             </div>
@@ -406,13 +447,17 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           viewport={{ once: true, amount: 0.1 }}
           variants={heroContainer}
         >
-          <motion.p variants={heroItem} className={labelCl}>try these</motion.p>
-          <motion.h2 variants={heroItem} className={headingCl}>one click to start.</motion.h2>
+          <p className={labelCl}><BlurPopUpByWordInView text="try these" /></p>
+          <h2 className={headingCl}><BlurPopUpByWordInView text="one click to start." /></h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-16">
             {EXAMPLE_CARDS.map((card, i) => (
               <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg p-6 flex flex-col hover:border-accent/30`}>
-                <span className="text-xs text-text-muted">{card.label}</span>
-                <p className="text-text-secondary text-sm mt-2 leading-relaxed flex-1">{card.desc}</p>
+                <span className="text-xs text-text-muted">
+                  <BlurPopUpByWordInView text={card.label} wordDelay={0.03} />
+                </span>
+                <p className="text-text-secondary text-sm mt-2 leading-relaxed flex-1">
+                  <BlurPopUpByWordInView text={card.desc} wordDelay={0.02} />
+                </p>
                 <button onClick={() => onSelectPrompt(card.prompt)} className="btn-premium mt-4 w-full py-2.5 rounded-md flex items-center justify-center gap-2 text-sm">
                   <i className="ph ph-magic-wand text-base"></i>
                   try it
@@ -426,14 +471,18 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       {/* pricing */}
       <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
         <BlurPopUpInView className={`${maxW} text-center`}>
-          <p className={labelCl}>pricing</p>
-          <h2 className={headingCl}>free forever.</h2>
+          <p className={labelCl}><BlurPopUpByWordInView text="pricing" /></p>
+          <h2 className={headingCl}><BlurPopUpByWordInView text="free forever." /></h2>
           <p className="text-base text-text-secondary mb-12 max-w-md mx-auto">
-            no signup. no credit card. generate as many projects as you want. the code is yours.
+            <BlurPopUpByWordInView text="no signup. no credit card. generate as many projects as you want. the code is yours." wordDelay={0.03} />
           </p>
           <div className={`${cardCl} rounded-lg p-12 inline-block`}>
-            <p className="text-3xl font-medium text-text-primary">$0</p>
-            <p className="text-xs text-text-muted mt-1">per month</p>
+            <p className="text-3xl font-medium text-text-primary">
+              <BlurPopUpByWordInView text="$0" />
+            </p>
+            <p className="text-xs text-text-muted mt-1">
+              <BlurPopUpByWordInView text="per month" />
+            </p>
           </div>
         </BlurPopUpInView>
       </section>
@@ -447,17 +496,21 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           viewport={{ once: true, amount: 0.1 }}
           variants={heroContainer}
         >
-          <motion.p variants={heroItem} className={labelCl}>faq</motion.p>
-          <motion.h2 variants={heroItem} className={headingCl}>questions? answers.</motion.h2>
+          <p className={labelCl}><BlurPopUpByWordInView text="faq" /></p>
+          <h2 className={headingCl}><BlurPopUpByWordInView text="questions? answers." /></h2>
           <div className="space-y-2 mt-16">
             {FAQ_ITEMS.map((item, i) => (
               <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg overflow-hidden`}>
                 <button onClick={() => setFaqOpen(faqOpen === i ? null : i)} className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
-                  <span className="text-sm font-medium text-text-primary">{item.q}</span>
+                  <span className="text-sm font-medium text-text-primary">
+                    <BlurPopUpByWordInView text={item.q} wordDelay={0.02} />
+                  </span>
                   <i className={`ph ph-caret-down text-text-muted transition-transform duration-200 ${faqOpen === i ? 'rotate-180' : ''}`}></i>
                 </button>
                 <div className={`overflow-hidden transition-all duration-300 ${faqOpen === i ? 'max-h-48' : 'max-h-0'}`}>
-                  <p className="px-6 pb-4 text-text-secondary text-sm leading-relaxed">{item.a}</p>
+                  <p className="px-6 pb-4 text-text-secondary text-sm leading-relaxed">
+                    <BlurPopUpByWordInView text={item.a} wordDelay={0.015} />
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -468,8 +521,10 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       {/* cta */}
       <section className={`${sectionCl} py-40 border-t ${borderCl}`}>
         <BlurPopUpInView className={`${maxW} text-center`} amount={0.2}>
-          <h2 className={headingCl}>ready to design?</h2>
-          <p className="text-base text-text-secondary mb-12">the world's best designer. one prompt.</p>
+          <h2 className={headingCl}><BlurPopUpByWordInView text="ready to design?" /></h2>
+          <p className="text-base text-text-secondary mb-12">
+            <BlurPopUpByWordInView text="the world's best designer. one prompt." />
+          </p>
           <button onClick={onStartDesigning} className="btn-premium inline-flex items-center gap-2 text-sm px-10 py-3">
             <i className="ph ph-rocket-launch text-base"></i>
             start designing
@@ -484,12 +539,14 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
               <img src="/logo-mark.png" alt="" className="w-full h-full object-contain" />
             </div>
-            <span className="text-sm font-medium text-text-primary">jasmine</span>
+            <span className="text-sm font-medium text-text-primary">
+              <BlurPopUpByWordInView text="jasmine" />
+            </span>
           </div>
           <div className="flex items-center gap-6 text-xs text-text-muted">
-            <span>ai website designer</span>
+            <span><BlurPopUpByWordInView text="ai website designer" wordDelay={0.04} /></span>
             <span>·</span>
-            <span>vite · react · tailwind</span>
+            <span><BlurPopUpByWordInView text="vite · react · tailwind" wordDelay={0.04} /></span>
           </div>
         </BlurPopUpInView>
       </footer>
