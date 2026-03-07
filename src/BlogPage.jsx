@@ -321,7 +321,7 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
             <div className="space-y-4 text-sm text-text-secondary leading-relaxed">
               <p><BlurPopUpByWordInView text="copy/paste prompts tuned for jasmine. hero-first structure, bento grids, faqs, and pricing sections with conversion math baked in." wordDelay={0.02} /></p>
               <p><BlurPopUpByWordInView text="every article links to the exact section order and palette we use, so you can launch the same quality in minutes." wordDelay={0.025} /></p>
-              <p><BlurPopUpByWordInView text="hit \"design with jasmine\" and the blog guidance becomes real code - vite, react, tailwind, semantic html, and seo metadata." wordDelay={0.03} /></p>
+              <p><BlurPopUpByWordInView text={'hit "design with jasmine" and the blog guidance becomes real code - vite, react, tailwind, semantic html, and seo metadata.'} wordDelay={0.03} /></p>
             </div>
             <button onClick={onStartDesigning} className="btn-premium mt-6 w-full justify-center flex items-center gap-2 text-sm py-2.5">
               <i className="ph ph-lightning"></i>
