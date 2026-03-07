@@ -53,9 +53,6 @@ export function apiPlugin() {
   api.post('/ai', async (req, res) => {
     return (await import('./api/ai.js')).default(req, res);
   });
-  api.post('/decide-search', async (req, res) => {
-    return (await import('./api/decide-search.js')).default(req, res);
-  });
   api.post('/fix-errors', async (req, res) => {
     return (await import('./api/fix-errors.js')).default(req, res);
   });
