@@ -1,12 +1,12 @@
 /**
  * Standalone admin dashboard at /admin
- * Password: zerotone (Vercel env)
+ * Password: zerotoone (Vercel env)
  * Full-screen layout with sidebar — no main app header
  */
 import { useState, useEffect } from 'react';
 import AdminDashboard from '../components/AdminDashboard';
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'zerotone';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'zerotoone';
 const ADMIN_AUTH_STORAGE = 'jasmine_admin_auth';
 
 function isAdminRoute() {
