@@ -1,5 +1,6 @@
 import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt.js';
 import { fixPhosphorIcons, applyPackageFixes } from './lib/package-fixes.js';
+import { fetchApiCompressed } from './lib/compress-api.js';
 
 export { fixPhosphorIcons, applyPackageFixes };
 
@@ -505,11 +506,7 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
   if (primaryProvider === 'ai-gateway') {
     const otherModel = gatewayModel === 'kimi-k2.5' ? 'gpt-5.4' : 'kimi-k2.5';
     try {
-      const res = await fetch(`${apiBase}/api/fix-errors`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project, modelId: otherModel }),
-      });
+      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: otherModel });
       if (!res.ok) return null;
       const data = await res.json().catch(() => ({}));
       if (!data.fixed || !data.files) return null;
@@ -526,11 +523,7 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
   // When primary is gemini, use ai-gateway for fix (no groq). When primary is ai-gateway, handled above.
   if (primaryProvider === 'gemini') {
     try {
-      const res = await fetch(`${apiBase}/api/fix-errors`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project, modelId: 'kimi-k2.5' }),
-      });
+      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: 'kimi-k2.5' });
       if (!res.ok) return null;
       const data = await res.json().catch(() => ({}));
       if (!data.fixed || !data.files) return null;

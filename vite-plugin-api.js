@@ -4,6 +4,7 @@
  */
 import 'dotenv/config';
 import express from 'express';
+import { gunzipSync } from 'node:zlib';
 import { checkE2B, createSandbox, connectSandbox, writeFiles } from './server/sandbox.js';
 import { getBoilerplate } from './lib/sandbox/e2b.js';
 import { sandboxConfig } from './lib/sandbox/sandbox-config.js';
@@ -17,9 +18,24 @@ const sendJson = (res, data) => {
   res.end(JSON.stringify(data));
 };
 
+/** Body parser: handle JSON or gzip-compressed JSON (X-Compressed: gzip). */
+async function bodyParser(req, res, next) {
+  if (req.headers['x-compressed'] === 'gzip') {
+    const chunks = [];
+    for await (const c of req) chunks.push(c);
+    try {
+      req.body = JSON.parse(gunzipSync(Buffer.concat(chunks)).toString('utf8'));
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid compressed body' });
+    }
+    return next();
+  }
+  express.json({ limit: '10mb' })(req, res, next);
+}
+
 export function apiPlugin() {
   const api = express.Router();
-  api.use(express.json({ limit: '10mb' }));
+  api.use(bodyParser);
   api.get('/health', (req, res) => {
     const err = checkE2B();
     sendJson(res, { ok: true, e2bConfigured: !err, e2bError: err?.error || null });

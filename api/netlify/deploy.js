@@ -2,8 +2,9 @@
  * Deploy project to Netlify — builds in E2B sandbox, deploys dist to Netlify.
  * Requires: NETLIFY_AUTH_TOKEN, E2B_API_KEY, E2B_TEMPLATE_ID
  */
-import { checkE2B } from '../lib/e2b.js';
-import { sandboxConfig } from '../lib/sandbox-config.js';
+import { checkE2B } from '../../lib/sandbox/e2b.js';
+import { sandboxConfig } from '../../lib/sandbox/sandbox-config.js';
+import { parseBody } from '../../lib/parse-body.js';
 import JSZip from 'jszip';
 import FormData from 'form-data';
 
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Compressed');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -41,7 +42,8 @@ export default async function handler(req, res) {
     });
   }
 
-  const { sandboxId, files } = req.body || {};
+  const body = await parseBody(req);
+  const { sandboxId, files } = body;
   if (!sandboxId && (!files || typeof files !== 'object')) {
     return res.status(400).json({ error: 'Provide sandboxId (E2B sandbox with project) or files object' });
   }

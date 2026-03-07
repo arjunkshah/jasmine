@@ -11,6 +11,7 @@ import ProjectSidebar from './components/ProjectSidebar';
 import { useAuth } from './contexts/AuthContext';
 import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
 import { trackGeneration, trackEdit, trackDeploy } from './lib/analytics';
+import { fetchApiCompressed } from './lib/compress-api';
 
 async function parseJsonResponse(res) {
   const text = await res.text();
@@ -54,11 +55,7 @@ async function runSlashCommands(commands, ctx) {
         const files = { ...generatedProject.files };
         applyPackageFixes(files);
         ensurePackageDependencies(files);
-        const res = await fetch(`${apiBase}/api/sandbox/update`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sandboxId, files }),
-        });
+        const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files });
         if (res.ok) {
           setPreviewRetryKey((k) => k + 1);
           setChatMessages((prev) => [...prev, { role: 'status', message: 'Applied to preview', details: [`${Object.keys(files).length} files`], icon: 'ph-upload-simple' }]);
@@ -71,11 +68,7 @@ async function runSlashCommands(commands, ctx) {
         const files = { ...generatedProject.files };
         applyPackageFixes(files);
         ensurePackageDependencies(files);
-        const res = await fetch(`${apiBase}/api/deploy`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ files }),
-        });
+        const res = await fetchApiCompressed(`${apiBase}/api/deploy`, { files });
         const data = await parseJsonResponse(res);
         if (data.success && data.url) {
           setDeployUrl(data.url);
@@ -109,11 +102,7 @@ async function runSlashCommands(commands, ctx) {
         const files = { ...generatedProject.files };
         applyPackageFixes(files);
         ensurePackageDependencies(files);
-        const res = await fetch(`${apiBase}/api/netlify/deploy`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sandboxId, files }),
-        });
+        const res = await fetchApiCompressed(`${apiBase}/api/netlify/deploy`, { sandboxId, files });
         const data = await parseJsonResponse(res);
         if (data.success && data.url) {
           setNetlifyUrl?.(data.url);
@@ -196,11 +185,7 @@ async function runSlashCommands(commands, ctx) {
           const files = { ...generatedProject.files };
           applyPackageFixes(files);
           ensurePackageDependencies(files);
-          const res = await fetch(`${apiBase}/api/sandbox/update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sandboxId: sid, files }),
-          });
+          const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: sid, files });
           if (res.ok) {
             setPreviewRetryKey((k) => k + 1);
             setChatMessages((prev) => [...prev, { role: 'status', message: 'Applied to preview', details: [`${Object.keys(files).length} files`], icon: 'ph-upload-simple' }]);
@@ -223,11 +208,7 @@ async function runSlashCommands(commands, ctx) {
             const files = { ...generatedProject.files };
             applyPackageFixes(files);
             ensurePackageDependencies(files);
-            const updRes = await fetch(`${apiBase}/api/sandbox/update`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sandboxId: startData.sandboxId, files }),
-            });
+            const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: startData.sandboxId, files });
             if (updRes.ok) {
               setPreviewRetryKey((k) => k + 1);
               setChatMessages((prev) => [...prev, { role: 'status', message: 'Sandbox created and applied', details: [startData.url, `${Object.keys(files).length} files`], icon: 'ph-rocket-launch' }]);
@@ -530,7 +511,7 @@ function AppBody({
                     )}
                     <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                       <div className="flex items-center gap-3">
-                        <button
+                          <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-zinc-600 hover:bg-zinc-100' : 'text-text-muted hover:bg-white/[0.06]'}`}
@@ -538,7 +519,7 @@ function AppBody({
                         >
                           <i className="ph ph-paperclip"></i>
                           Attach
-                        </button>
+                          </button>
                         <select
                           value={provider === 'gemini' ? 'gemini' : gatewayModel}
                           onChange={(e) => {
@@ -728,8 +709,8 @@ function AppBody({
                             <p className="mb-2">{(isGenerating || isEditing) ? 'Generating...' : 'No project yet.'}</p>
                             <p className="text-sm">Switch to Files to see code.</p>
                           </div>
-                        </div>
-                      )}
+                      </div>
+                    )}
                     </div>
                   )}
                 </div>
@@ -745,7 +726,7 @@ function AppBody({
                   className="text-sm text-text-muted hover:text-text-secondary mb-8"
                 >
                   ← back to overview
-                </button>
+                        </button>
                 <h1 className="text-2xl sm:text-3xl font-medium tracking-[-0.02em] leading-[1.2] text-text-primary mb-4 text-center">
                   what will you design today?
                 </h1>
@@ -966,11 +947,7 @@ function App() {
         try {
           const apiBase = import.meta.env.VITE_API_URL || '';
           console.log('[Jasmine] POST /api/sandbox/update (pending apply)', Object.keys(files).length, 'files');
-          const res = await fetch(`${apiBase}/api/sandbox/update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sandboxId, files }),
-          });
+          const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files });
           if (!res.ok) console.warn('[Jasmine] sandbox/update (pending apply)', res.status);
           else console.log('[Jasmine] sandbox/update (pending apply) ok');
         } catch (e) {
@@ -994,11 +971,7 @@ function App() {
         try {
           const apiBase = import.meta.env.VITE_API_URL || '';
           console.log('[Jasmine] POST /api/sandbox/update (post-gen/edit, files-tab source)', Object.keys(files).length, 'files');
-          const res = await fetch(`${apiBase}/api/sandbox/update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sandboxId, files }),
-          });
+          const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files });
           if (res.ok) setPreviewRetryKey((k) => k + 1);
           else console.warn('[Jasmine] sandbox/update (post-gen/edit)', res.status);
         } catch (e) {
@@ -1140,11 +1113,7 @@ function App() {
       if (data.success && data.sandboxId && data.url) {
         setDeployUrl(data.url);
         setSandboxId(data.sandboxId);
-        const updRes = await fetch(`${apiBase}/api/sandbox/update`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sandboxId: data.sandboxId, files }),
-        });
+        const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: data.sandboxId, files });
         if (!updRes.ok) console.warn('[Jasmine] sandbox/update failed:', updRes.status);
         setPreviewRetryKey((k) => k + 1);
         setRightTab('preview');
@@ -1175,11 +1144,7 @@ function App() {
     setError('');
     try {
       const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiBase}/api/sandbox/update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sandboxId: sid, files }),
-      });
+      const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: sid, files });
       if (res.ok) {
         setPreviewRetryKey((k) => k + 1);
       } else {
@@ -1363,11 +1328,7 @@ function App() {
           let updated = false;
           for (let attempt = 0; attempt < 2 && !updated; attempt++) {
             try {
-              const updRes = await fetch(`${apiBase}/api/sandbox/update`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sandboxId: currentSandboxId, files: filesToApply }),
-              });
+              const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: currentSandboxId, files: filesToApply });
               if (updRes.ok) {
                 updated = true;
               } else if (updRes.status === 504 && attempt < 1) {
@@ -1465,11 +1426,7 @@ function App() {
     setError('');
     try {
       const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiBase}/api/netlify/deploy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sandboxId: sid, files }),
-      });
+      const res = await fetchApiCompressed(`${apiBase}/api/netlify/deploy`, { sandboxId: sid, files });
       const data = await parseJsonResponse(res);
       if (data.success && data.url) {
         setNetlifyUrl(data.url);
@@ -1547,11 +1504,7 @@ function App() {
                 setChatMessages((prev) => [...prev, { role: 'status', message: 'Installing dependencies', details: deps, icon: 'ph-package', detailLabel: 'packages' }]);
               }
               setChatMessages((prev) => [...prev, { role: 'status', message: 'Applying to preview', details: [`${Object.keys(mergedFiles).length} files`], icon: 'ph-upload-simple', detailLabel: 'files' }]);
-              await fetch(`${apiBase}/api/sandbox/update`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sandboxId, files: mergedFiles }),
-              });
+              await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files: mergedFiles });
             } catch (e) {
               console.warn('[Jasmine] sandbox update (edit) failed:', e?.message);
             }
