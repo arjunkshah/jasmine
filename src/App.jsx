@@ -276,6 +276,8 @@ function AppBody({
   pushToGitHub,
   githubPushing,
   githubUrl,
+  htmlMode,
+  setHtmlMode,
   onThemeToggle,
   themeForToggle,
   retrySandbox,
@@ -1938,6 +1940,8 @@ function App() {
     onStartDesigning: handleStartDesigning,
     onSelectPrompt: handleSelectPrompt,
     onShowAdmin: () => setPage('admin'),
+    htmlMode,
+    setHtmlMode,
   };
 
   if (authLoading) {
