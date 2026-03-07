@@ -41,7 +41,7 @@ export function apiPlugin() {
     sendJson(res, { ok: true, e2bConfigured: !err, e2bError: err?.error || null });
   });
   api.get('/ping', (req, res) => sendJson(res, { ok: true, message: 'API works' }));
-  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/generate', '/api/edit', '/api/generate-image', '/api/web-search', '/api/github/push', '/api/health', '/api/test/diagnose', '/api/test/sandbox-flow'] }));
+  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/ai', '/api/generate-image', '/api/web-search', '/api/github/push', '/api/health', '/api/deploy'] }));
   api.get('/test/diagnose', async (req, res) => {
     const h = (await import('./api/test/diagnose.js')).default;
     return h(req, res);
@@ -58,11 +58,8 @@ export function apiPlugin() {
     const h = (await import('./api/admin/projects.js')).default;
     return h(req, res);
   });
-  api.post('/generate', async (req, res) => {
-    return (await import('./api/generate.js')).default(req, res);
-  });
-  api.post('/edit', async (req, res) => {
-    return (await import('./api/edit.js')).default(req, res);
+  api.post('/ai', async (req, res) => {
+    return (await import('./api/ai.js')).default(req, res);
   });
   api.post('/decide-search', async (req, res) => {
     return (await import('./api/decide-search.js')).default(req, res);
@@ -136,37 +133,7 @@ export function apiPlugin() {
     }
   });
   api.post('/deploy', async (req, res) => {
-    console.log('[api] POST /api/deploy');
-    const err = checkE2B();
-    if (err) {
-      res.statusCode = 500;
-      return sendJson(res, err);
-    }
-    const { files } = req.body || {};
-    if (!files || typeof files !== 'object') {
-      res.statusCode = 400;
-      return sendJson(res, { error: 'Missing files object' });
-    }
-    try {
-      const { sandbox, url } = await createSandbox({ theme: 'dark' });
-      await writeFiles(sandbox, files);
-      if (!files['package.json']) await sandbox.files.write('package.json', BOILERPLATE_PACKAGE);
-      if (process.env.E2B_TEMPLATE_ID) {
-        await new Promise((r) => setTimeout(r, 3000));
-      } else {
-        await sandbox.commands.run('npm install');
-        await sandbox.commands.run('pkill -f vite 2>/dev/null || true');
-        await new Promise((r) => setTimeout(r, 1500));
-        await sandbox.commands.run(`npx vite --host --port ${port}`, { background: true });
-        await new Promise((r) => setTimeout(r, cfg.startupDelayMs));
-      }
-      console.log('[api] deploy ok sandboxId=', sandbox.sandboxId, 'url=', url);
-      sendJson(res, { success: true, sandboxId: sandbox.sandboxId, url, message: 'Preview ready.' });
-    } catch (e) {
-      console.error('[api] deploy failed:', e?.message, e);
-      res.statusCode = 500;
-      sendJson(res, { error: e.message || 'Deploy failed' });
-    }
+    return (await import('./api/deploy.js')).default(req, res);
   });
 
   return {

@@ -1,0 +1,6 @@
+# Exclude to stay under Vercel Hobby 12-function limit (max 12)
+api/test/
+api/chat.js
+api/generate.js
+api/edit.js
+api/netlify/

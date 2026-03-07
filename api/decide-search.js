@@ -1,7 +1,7 @@
 /**
  * Decide if web search is needed for a prompt. Uses AI Gateway.
  */
-import { chatWithGateway } from './chat.js';
+import { chatWithGateway } from '../lib/chat.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

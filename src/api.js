@@ -199,7 +199,7 @@ export async function generateWithGateway(apiBase, modelId, prompt, onChunk, con
   const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
-  const response = await fetch(`${apiBase}/api/generate`, {
+  const response = await fetch(`${apiBase}/api/ai`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -224,7 +224,7 @@ export async function editWithGateway(apiBase, modelId, currentCode, userMessage
   const contextBlock = buildContextBlock(contextFiles);
   const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
 
-  const response = await fetch(`${apiBase}/api/edit`, {
+  const response = await fetch(`${apiBase}/api/ai`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

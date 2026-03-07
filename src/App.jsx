@@ -106,7 +106,7 @@ async function runSlashCommands(commands, ctx) {
         const files = { ...generatedProject.files };
         applyPackageFixes(files);
         ensurePackageDependencies(files);
-        const res = await fetchApiCompressed(`${apiBase}/api/netlify/deploy`, { sandboxId, files });
+        const res = await fetchApiCompressed(`${apiBase}/api/deploy`, { target: 'netlify', sandboxId, files });
         const data = await parseJsonResponse(res);
         if (data.success && data.url) {
           setNetlifyUrl?.(data.url);
@@ -1661,7 +1661,7 @@ function App() {
     setError('');
     try {
       const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetchApiCompressed(`${apiBase}/api/netlify/deploy`, { sandboxId: sid, files });
+      const res = await fetchApiCompressed(`${apiBase}/api/deploy`, { target: 'netlify', sandboxId: sid, files });
       const data = await parseJsonResponse(res);
       if (data.success && data.url) {
         setNetlifyUrl(data.url);

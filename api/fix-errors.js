@@ -1,7 +1,7 @@
 /**
  * Fix project errors using AI Gateway. Uses the "other" model for review.
  */
-import { chatWithGateway } from './chat.js';
+import { chatWithGateway } from '../lib/chat.js';
 import { parseBody } from '../lib/parse-body.js';
 import { projectToRaw, extractNextProject, ensurePackageDependencies } from '../src/api.js';
 import { applyPackageFixes } from '../src/lib/package-fixes.js';
