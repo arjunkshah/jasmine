@@ -3,6 +3,7 @@ import { Group, Panel, Separator } from 'react-resizable-panels';
 import { generateWithGroq, generateWithGemini, generateWithGateway, editWithGroq, editWithGemini, editWithGateway, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
+import BlogPage from './BlogPage';
 import FileExplorer from './FileExplorer';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import AuthPage from './components/AuthPage';
@@ -234,7 +235,9 @@ async function runSlashCommands(commands, ctx) {
 function AppBody({
   theme,
   showLanding,
-  setShowLanding,
+  activePage,
+  onShowHome,
+  onShowBlog,
   hasOutput,
   isGenerating,
   isEditing,
@@ -286,6 +289,12 @@ function AppBody({
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
   const ghostCl = isLight ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200' : 'btn-ghost';
   const inputCl = isLight ? 'bg-zinc-50 border-zinc-200 focus:border-jasmine-400' : 'input-premium';
+  const navCl = (page) => (
+    activePage === page
+      ? `px-3 py-2 rounded-lg text-sm border ${borderCl} ${isLight ? 'bg-white text-text-primary' : 'bg-white/[0.04] text-text-primary'}`
+      : 'px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary transition-colors'
+  );
+  const marketingView = activePage !== 'designer';
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -313,30 +322,47 @@ function AppBody({
       />
       <header className={`flex-none border-b ${borderCl} bg-surface z-50`}>
         <div className="flex items-center justify-between px-6 h-16">
-          <div className="flex items-center gap-3">
-            {firebaseConfigured && !sidebarOpen && (
-              <button
-                onClick={onToggleSidebar}
-                className="p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
-                title="Open projects"
-              >
-                <i className="ph ph-folder text-lg"></i>
-              </button>
-            )}
-            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
-              <img src="/logo-mark.png" alt="Jasmine" className="w-full h-full object-contain" />
+          <div className="flex items-center gap-6 min-w-0">
+            <div className="flex items-center gap-3">
+              {firebaseConfigured && !sidebarOpen && (
+                <button
+                  onClick={onToggleSidebar}
+                  className="p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+                  title="Open projects"
+                >
+                  <i className="ph ph-folder text-lg"></i>
+                </button>
+              )}
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+                <img src="/logo-mark.png" alt="Jasmine" className="w-full h-full object-contain" />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-text-primary">
+                  <BlurPopUpByWord text="jasmine" wordDelay={0.02} />
+                </span>
+                <span className="text-[10px] text-text-muted tracking-wider">
+                  <BlurPopUpByWord text="ai" wordDelay={0.04} />
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-text-primary">
-                <BlurPopUpByWord text="jasmine" wordDelay={0.02} />
-              </span>
-              <span className="text-[10px] text-text-muted tracking-wider">
-                <BlurPopUpByWord text="ai" wordDelay={0.04} />
-              </span>
+            <div className="hidden md:flex items-center gap-1">
+              <button onClick={onShowHome} className={navCl('home')}>
+                overview
+              </button>
+              <button onClick={onShowBlog} className={navCl('blog')}>
+                blog
+              </button>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
+            <button
+              onClick={onShowBlog}
+              className="md:hidden p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+              title="Blog"
+            >
+              <i className="ph ph-newspaper text-lg"></i>
+            </button>
             {onThemeToggle ? (
           <button
                 onClick={onThemeToggle}
@@ -380,12 +406,20 @@ function AppBody({
       </header>
 
       <div className="flex-1 flex min-h-0 min-w-0">
-        {showLanding && !hasOutput ? (
-          <LandingPage
-            onStartDesigning={onStartDesigning}
-            onSelectPrompt={onSelectPrompt}
-            theme={theme}
-          />
+        {marketingView ? (
+          activePage === 'blog' ? (
+            <BlogPage
+              onStartDesigning={onStartDesigning}
+              onBackHome={onShowHome}
+              theme={theme}
+            />
+          ) : (
+            <LandingPage
+              onStartDesigning={onStartDesigning}
+              onSelectPrompt={onSelectPrompt}
+              theme={theme}
+            />
+          )
         ) : hasOutput ? (
           <Group orientation="horizontal" id="jasmine-split" className="flex-1 min-h-0 min-w-0" resizeTargetMinimumSize={{ fine: 32, coarse: 44 }}>
             <Panel defaultSize="50" minSize="35" maxSize="75" className="flex flex-col min-w-0 overflow-hidden">
@@ -443,11 +477,11 @@ function AppBody({
                             </span>
                           ))}
                         </div>
-                      )}
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
                           className={`p-2.5 rounded-xl border ${borderCl} ${isLight ? 'text-zinc-600 hover:bg-zinc-50' : 'text-text-muted hover:bg-white/[0.04]'}`}
                           title="Attach files as context"
                         >
@@ -469,7 +503,7 @@ function AppBody({
                 ) : (
                   <div className="w-full max-w-2xl mx-auto">
                     <button
-                      onClick={() => setShowLanding(true)}
+                      onClick={onShowHome}
                       className="text-sm text-text-muted hover:text-text-secondary mb-8"
                     >
                       ← back to overview
@@ -731,7 +765,7 @@ function AppBody({
             <div className="flex-1 flex flex-col min-w-0 flex items-center justify-center p-6 sm:p-8">
               <div className="w-full max-w-2xl mx-auto">
                 <button
-                  onClick={() => setShowLanding(true)}
+                  onClick={onShowHome}
                   className="text-sm text-text-muted hover:text-text-secondary mb-8"
                 >
                   ← back to overview
@@ -910,8 +944,13 @@ function App() {
   });
   const [error, setError] = useState('');
   const [streamingRaw, setStreamingRaw] = useState('');
+  const [activePage, setActivePage] = useState(() => {
+    const stored = localStorage.getItem('jasmine_active_page');
+    return stored === 'blog' || stored === 'designer' ? stored : 'home';
+  });
   const [showLanding, setShowLanding] = useState(() => {
     const v = localStorage.getItem('jasmine_show_landing');
+    if (activePage === 'designer') return false;
     return v === null ? true : v === 'true';
   });
   const [theme, setTheme] = useState(() => localStorage.getItem('jasmine_theme') || 'light');
@@ -946,21 +985,41 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
+    localStorage.setItem('jasmine_active_page', activePage);
+  }, [activePage]);
+
+  useEffect(() => {
     sandboxIdRef.current = sandboxId;
     if (sandboxId && pendingSandboxApplyRef.current) {
       const files = pendingSandboxApplyRef.current;
       pendingSandboxApplyRef.current = null;
-      applyPackageFixes(files);
-      ensurePackageDependencies(files);
+      const fixed = { ...files };
+      applyPackageFixes(fixed);
+      ensurePackageDependencies(fixed);
       (async () => {
-        try {
-          const apiBase = import.meta.env.VITE_API_URL || '';
-          console.log('[Jasmine] POST /api/sandbox/update (pending apply)', Object.keys(files).length, 'files');
-          const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files });
-          if (!res.ok) console.warn('[Jasmine] sandbox/update (pending apply)', res.status);
-          else console.log('[Jasmine] sandbox/update (pending apply) ok');
-        } catch (e) {
-          console.warn('[Jasmine] sandbox update (pending apply) failed:', e?.message);
+        const apiBase = import.meta.env.VITE_API_URL || '';
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            console.log('[Jasmine] POST /api/sandbox/update (pending apply)', Object.keys(fixed).length, 'files', attempt ? `retry ${attempt}` : '');
+            const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files: fixed });
+            if (res.ok) {
+              console.log('[Jasmine] sandbox/update (pending apply) ok');
+              setPreviewRetryKey((k) => k + 1);
+              setChatMessages((prev) => [...prev, { role: 'status', message: 'Project applied to preview', details: [`${Object.keys(fixed).length} files`], icon: 'ph-upload-simple' }]);
+              return;
+            }
+            if (res.status === 504 || res.status === 413) {
+              await new Promise((r) => setTimeout(r, 3000));
+              continue;
+            }
+            const data = await res.json().catch(() => ({}));
+            setError(data?.error || `Apply failed (${res.status})`);
+            return;
+          } catch (e) {
+            console.warn('[Jasmine] sandbox update (pending apply) failed:', e?.message);
+            if (attempt < 2) await new Promise((r) => setTimeout(r, 3000));
+            else setError(e?.message || 'Apply failed');
+          }
         }
       })();
     }
@@ -1066,7 +1125,13 @@ function App() {
   }, [saveProject]);
 
   const loadProject = useCallback(async (project) => {
-    const full = project.id ? await getProject(project.id) : project;
+    let full;
+    try {
+      full = project.id ? await getProject(project.id) : project;
+    } catch (e) {
+      setError(e?.message || 'Failed to load project');
+      return;
+    }
     if (!full) return;
     setPrompt(full.prompt || '');
     setGeneratedProject(full.files ? { files: full.files } : null);
@@ -1079,10 +1144,35 @@ function App() {
     setShowLanding(false);
     setRightTab('files');
     setSidebarOpen(false);
-    if (full.files && Object.keys(full.files).length > 0) {
+    setError('');
+    const hasFiles = full.files && Object.keys(full.files).length > 0 && !full._truncated;
+    if (hasFiles) {
       pendingSandboxApplyRef.current = full.files;
+      setSandboxStarting(true);
+      try {
+        const apiBase = import.meta.env.VITE_API_URL || '';
+        const res = await fetch(`${apiBase}/api/sandbox/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme }),
+        });
+        const data = await parseJsonResponse(res);
+        if (data.success && data.sandboxId && data.url) {
+          setDeployUrl(data.url);
+          setSandboxId(data.sandboxId);
+          setRightTab('preview');
+        } else {
+          setError(data?.error || 'Sandbox start failed');
+        }
+      } catch (e) {
+        setError(e?.message || 'Sandbox failed');
+      } finally {
+        setSandboxStarting(false);
+      }
+    } else if (full._truncated) {
+      setError('Project was too large to save. Files were truncated. Try generating again with fewer/smaller files.');
     }
-  }, []);
+  }, [theme]);
 
   const handleDeleteProject = useCallback(async (project) => {
     if (!project?.id || !firebaseConfigured || !user) return;
@@ -1116,8 +1206,11 @@ function App() {
   }, []);
 
   const spinUpSandbox = useCallback(async (project) => {
-    const files = project.files;
+    let files = project.files;
     if (!files || Object.keys(files).length === 0) return;
+    files = { ...files };
+    applyPackageFixes(files);
+    ensurePackageDependencies(files);
     setSandboxStarting(true);
     setError('');
     try {
@@ -1131,10 +1224,21 @@ function App() {
       if (data.success && data.sandboxId && data.url) {
         setDeployUrl(data.url);
         setSandboxId(data.sandboxId);
-        const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: data.sandboxId, files });
-        if (!updRes.ok) console.warn('[Jasmine] sandbox/update failed:', updRes.status);
-        setPreviewRetryKey((k) => k + 1);
-        setRightTab('preview');
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: data.sandboxId, files });
+          if (updRes.ok) {
+            setPreviewRetryKey((k) => k + 1);
+            setRightTab('preview');
+            break;
+          }
+          if ((updRes.status === 504 || updRes.status === 413) && attempt < 2) {
+            await new Promise((r) => setTimeout(r, 3000));
+            continue;
+          }
+          const errData = await updRes.json().catch(() => ({}));
+          setError(errData?.error || `Apply failed (${updRes.status})`);
+          break;
+        }
       } else {
         setError(data?.error || 'Sandbox start failed');
       }
@@ -1344,13 +1448,13 @@ function App() {
           }
           setChatMessages((prev) => [...prev, { role: 'status', message: 'Applying to preview', details: [`${Object.keys(filesToApply).length} files`], icon: 'ph-upload-simple', detailLabel: 'files' }]);
           let updated = false;
-          for (let attempt = 0; attempt < 2 && !updated; attempt++) {
+          for (let attempt = 0; attempt < 3 && !updated; attempt++) {
             try {
               const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: currentSandboxId, files: filesToApply });
               if (updRes.ok) {
                 updated = true;
-              } else if (updRes.status === 504 && attempt < 1) {
-                console.warn('[Jasmine] sandbox/update 504, retrying...');
+              } else if ((updRes.status === 504 || updRes.status === 413) && attempt < 2) {
+                console.warn('[Jasmine] sandbox/update', updRes.status, 'retrying...');
                 await new Promise((r) => setTimeout(r, 3000));
               } else {
                 const data = await updRes.json().catch(() => ({}));
@@ -1358,7 +1462,7 @@ function App() {
               }
             } catch (e) {
               console.warn('[Jasmine] sandbox update failed:', e?.message);
-              if (attempt < 1) await new Promise((r) => setTimeout(r, 3000));
+              if (attempt < 2) await new Promise((r) => setTimeout(r, 3000));
               else setError(e?.message || 'Preview update failed. Click Retry to apply your code.');
             }
           }

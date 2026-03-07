@@ -539,7 +539,10 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
   if (primaryProvider === 'ai-gateway') {
     const otherModel = gatewayModel === 'kimi-k2.5' ? 'gpt-5.4' : 'kimi-k2.5';
     try {
-      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: otherModel });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: otherModel }, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) return null;
       const data = await res.json().catch(() => ({}));
       if (!data.fixed || !data.files) return null;
@@ -556,7 +559,10 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
   // When primary is gemini, use ai-gateway for fix (no groq). When primary is ai-gateway, handled above.
   if (primaryProvider === 'gemini') {
     try {
-      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: 'kimi-k2.5' });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: 'kimi-k2.5' }, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) return null;
       const data = await res.json().catch(() => ({}));
       if (!data.fixed || !data.files) return null;
