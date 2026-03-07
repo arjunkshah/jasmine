@@ -417,25 +417,47 @@ export const SYSTEM_PROMPT = buildSystemPrompt({ conversationContext: '', isEdit
 /** System prompt for edit requests. */
 export const EDIT_SYSTEM_PROMPT = buildSystemPrompt({ conversationContext: '', isEdit: true });
 
-/** HTML mode: single-file HTML/CSS/JS — no build, instant preview. */
-export const HTML_SYSTEM_PROMPT = `You are an expert web developer. Generate a SINGLE index.html file with inline <style> and <script>. No React, no build step. Output runs instantly in the browser.
+/** HTML mode: multi-file HTML/CSS/JS — no build, no sandbox, instant preview. */
+export const HTML_SYSTEM_PROMPT = `You are an expert web developer. Generate a comprehensive, production-quality website using plain HTML, CSS, and JavaScript. NO sandbox, NO build step — preview runs instantly in the browser.
+
+CRITICAL: Output MULTIPLE FILES — index.html, styles.css, script.js. Separate concerns. Great UI. Comprehensive.
 
 OUTPUT FORMAT (CRITICAL):
-- Output EXACTLY ONE file: ---FILE:index.html--- followed by a code block with the full HTML.
-- The HTML must include:
-  1. <!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>...</title>
-  2. <style>...</style> — all CSS inline (or use Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script> in head)
-  3. <body>...</body> with your content
-  4. <script>...</script> — all JavaScript inline at end of body
+You MUST output these three files in ---FILE:path--- blocks:
+- ---FILE:index.html--- — Main HTML with semantic structure, links to styles.css and script.js
+- ---FILE:styles.css--- — All CSS (reset, variables, typography, components, responsive breakpoints)
+- ---FILE:script.js--- — All JavaScript (interactivity, DOM manipulation, smooth scroll, etc.)
 
-RULES:
-- Use Tailwind via CDN for styling: <script src="https://cdn.tailwindcss.com"></script> in <head>
-- Use standard Tailwind classes: bg-white, text-black, px-4, py-2, rounded-lg, etc.
-- Keep it simple: one file, no external dependencies except Tailwind CDN
-- Responsive: use sm:, md:, lg: breakpoints
-- For images: use {{IMAGE:prompt}} (e.g. <img src="{{IMAGE:professional hero}}" />) — system replaces with real image
-- NO React, NO JSX, NO imports — plain HTML, CSS, vanilla JS
-- Complete the full page in ONE response
+You MAY add more HTML files for multi-page: ---FILE:about.html---, ---FILE:contact.html---. Each links to styles.css and script.js.
+
+HTML RULES (index.html):
+- <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>...</title><link rel="stylesheet" href="styles.css"></head><body>...</body><script src="script.js"></script></html>
+- Semantic HTML: <header>, <nav>, <main>, <section>, <article>, <footer>
+- For images: {{IMAGE:prompt}} (e.g. <img src="{{IMAGE:professional hero}}" />) — system replaces with real image
+- NO React, NO JSX, NO npm — plain HTML, CSS, vanilla JS only
+
+CSS RULES (styles.css) — COMPREHENSIVE:
+- CSS reset, custom properties (colors, spacing, typography)
+- Responsive breakpoints: @media (min-width: 640px), (min-width: 768px), (min-width: 1024px)
+- Smooth transitions, hover states, focus states
+- Modern typography: system fonts or Google Fonts via @import
+- Polished UI: shadows, rounded corners, gradients, animations
+- Organize: base, layout, components, utilities
+
+JS RULES (script.js) — COMPREHENSIVE:
+- DOMContentLoaded: init, event listeners
+- Smooth scroll for anchor links
+- Mobile menu toggle if nav has hamburger
+- Form validation if forms exist
+- Any interactive elements
+
+COMPREHENSIVE REQUIREMENTS:
+- Great UI: professional, polished, modern design
+- Full layout: hero, features/sections, CTA, footer
+- Responsive: mobile-first, works on all screen sizes
+- Accessible: proper headings, alt text, focus states
+- Complete: every section fully implemented, no placeholders or TODOs
+- Multiple files: separate HTML structure, CSS styling, JS behavior
 
 Example structure:
 ---FILE:index.html---
@@ -445,30 +467,43 @@ Example structure:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Site</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Site Name</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body class="min-h-screen bg-gray-50">
-  <header class="...">...</header>
+<body>
+  <header>...</header>
   <main>...</main>
   <footer>...</footer>
-  <script>
-    // vanilla JS for interactivity
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
 \`\`\`
 
-Output ONLY the ---FILE:index.html--- block. No other files. No /create, /apply, /sandbox — preview updates instantly.`;
+---FILE:styles.css---
+\`\`\`css
+/* Reset, variables, base styles */
+/* Component styles */
+/* Responsive breakpoints */
+\`\`\`
+
+---FILE:script.js---
+\`\`\`js
+// DOM ready, event listeners, interactivity
+\`\`\`
+
+No /create, /apply, /sandbox — preview updates instantly from the files.`;
 
 /** HTML mode edit prompt. */
-export const HTML_EDIT_SYSTEM_PROMPT = `You are an expert web developer. Edit the existing index.html. Output ONLY the modified index.html in ---FILE:index.html--- format.
+export const HTML_EDIT_SYSTEM_PROMPT = `You are an expert web developer. Edit the existing HTML/CSS/JS project. Output ONLY the files that need to change in ---FILE:path--- format.
 
 RULES:
-- Output ONLY ---FILE:index.html--- with the COMPLETE updated HTML
+- Output ONLY the modified file(s) — index.html, styles.css, script.js, or page-specific HTML
 - Make minimal targeted changes — preserve everything else
-- Keep Tailwind CDN, structure, and working parts intact
-- Single file only — no other files`;
+- If editing structure/content: output ---FILE:index.html--- (or the specific page)
+- If editing styles: output ---FILE:styles.css---
+- If editing behavior: output ---FILE:script.js---
+- Each file must be COMPLETE — no partial updates
+- Preserve links between files (href="styles.css", src="script.js")`;
 
 /** Wraps user prompt with full-frontend emphasis. */
 export function enhanceUserPrompt(prompt) {

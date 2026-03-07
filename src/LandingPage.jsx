@@ -59,57 +59,21 @@ const TESTIMONIALS = [
   { quote: 'Finally, an AI that outputs code I\'d actually ship.', author: 'Jordan', role: 'Engineer' },
 ];
 
-const UNDERSTAND_ITEMS = [
-  {
-    title: "Knows what you're building",
-    desc: "It reads your prompt and context. No re-explaining needed.",
-    icon: 'ph-eye',
-  },
-  {
-    title: 'Helps as you go',
-    desc: 'Clarifies layout, refines copy, suggests improvements.',
-    icon: 'ph-sparkle',
-  },
-];
-
-function UnderstandSection({ isLight, borderCl }) {
+function DemoVideoSection({ isLight, borderCl }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, amount: 0.15 });
 
   return (
-    <section ref={ref} className={`flex flex-col gap-20 pt-24 pb-32 lg:pt-32 px-6 md:px-12 lg:px-20 border-t ${borderCl}`}>
-      <motion.div
-        className="max-w-4xl mx-auto w-full space-y-4 text-center"
-        initial={{ opacity: 0, y: 32 }}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.02em] text-text-primary">
-          <BlurPopUpByWordInView text="AI that helps you understand, not just answer." wordDelay={0.03} />
-        </h2>
-      </motion.div>
-      <div className="max-w-4xl mx-auto w-full flex flex-col gap-20">
-        {UNDERSTAND_ITEMS.map((item, idx) => (
-          <motion.div
-            key={item.title}
-            className="flex flex-col md:flex-row md:items-start gap-6 md:gap-12"
-            initial={{ opacity: 0, y: 40 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.15 + idx * 0.15, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className={`flex-shrink-0 h-14 w-14 md:h-16 md:w-16 rounded-2xl flex items-center justify-center text-2xl ${isLight ? 'bg-neutral-100 border border-neutral-200 text-neutral-700' : 'bg-white/10 border border-white/10 text-white/80'}`}>
-              <i className={`ph ${item.icon}`} />
-            </div>
-            <div>
-              <h3 className="text-xl md:text-2xl font-semibold tracking-[-0.02em] text-text-primary mb-3">
-                <BlurPopUpByWordInView text={item.title} wordDelay={0.04} />
-              </h3>
-              <p className="text-text-secondary leading-[1.7] text-lg">
-                <BlurPopUpByWordInView text={item.desc} wordDelay={0.02} />
-              </p>
-            </div>
-          </motion.div>
-        ))}
+    <section ref={ref} className={`pt-24 pb-32 lg:pt-32 px-6 md:px-12 lg:px-20 border-t ${borderCl}`}>
+      <div className="max-w-4xl mx-auto">
+        <motion.div
+          className={`aspect-video rounded-2xl border ${isLight ? 'border-neutral-200 bg-neutral-100' : 'border-white/10 bg-white/[0.04]'} flex items-center justify-center`}
+          initial={{ opacity: 0, y: 24 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <span className="text-text-muted text-sm font-medium">Demo video coming soon</span>
+        </motion.div>
       </div>
     </section>
   );
@@ -286,55 +250,6 @@ function StatsSection({ isLight, borderCl }) {
   );
 }
 
-function StackedCardsSection({ isLight, onSelectPrompt, exampleCards }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, amount: 0.2 });
-  const cards = exampleCards.slice(0, 4);
-  const cardBase = isLight ? 'bg-white border-neutral-200 shadow-lg' : 'bg-white/[0.06] border-white/10 shadow-xl';
-
-  return (
-    <section ref={ref} className="px-6 md:px-12 lg:px-20 py-24 md:py-28">
-      <div className="max-w-4xl mx-auto">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <Badge>Layout presets</Badge>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em] mt-4 mb-4">
-            <BlurPopUpByWordInView text="Pick a prompt, watch it land." wordDelay={0.03} />
-          </h2>
-          <p className="text-text-secondary max-w-2xl mx-auto">
-            <BlurPopUpByWordInView text="Cards cascade into place — law firm, SaaS, restaurant, agency. One click and you're designing." wordDelay={0.02} />
-          </p>
-        </motion.div>
-        <div className="relative h-[320px] md:h-[380px] flex items-center justify-center">
-          {cards.map((card, idx) => (
-            <motion.div
-              key={card.label}
-              initial={{ opacity: 0, y: 60, rotate: -4 + idx * 2 }}
-              animate={inView ? { opacity: 1, y: idx * 12, rotate: -4 + idx * 2 } : {}}
-              transition={{ duration: 0.5, delay: 0.1 + idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
-              className={`absolute w-[85%] max-w-md rounded-2xl border p-6 cursor-pointer hover:scale-[1.02] hover:z-10 transition-transform ${cardBase}`}
-              style={{ zIndex: idx, top: `${20 + idx * 14}%`, left: `${10 + idx * 4}%` }}
-              onClick={() => onSelectPrompt(card.prompt)}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <span className={`h-9 w-9 rounded-full flex items-center justify-center font-semibold ${isLight ? 'bg-neutral-100 text-neutral-700' : 'bg-white/10 text-text-primary'}`}>
-                  {card.label[0]}
-                </span>
-                <span className="font-semibold text-text-primary">{card.label}</span>
-              </div>
-              <p className="text-sm text-text-secondary line-clamp-2">{card.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function BentoSection({ isLight }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, amount: 0.15 });
@@ -346,6 +261,7 @@ function BentoSection({ isLight }) {
     { span: 'col-span-1', title: 'Pricing', desc: 'Plans and tiers.', icon: 'ph-currency-dollar' },
     { span: 'col-span-1', title: 'Testimonials', desc: 'Social proof.', icon: 'ph-quotes' },
     { span: 'col-span-1', title: 'Footer', desc: 'Links and CTA.', icon: 'ph-link' },
+    { span: 'col-span-1 md:col-start-4', title: 'CTA', desc: 'Final conversion block.', icon: 'ph-arrow-right' },
   ];
 
   return (
@@ -366,7 +282,7 @@ function BentoSection({ isLight }) {
           </p>
         </motion.div>
         <motion.div
-          className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4"
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
           initial={{ opacity: 0, y: 24 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
@@ -461,7 +377,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             <button onClick={() => onSelectPrompt(EXAMPLE_CARDS[0].prompt)} className="btn-ghost flex items-center gap-2 w-full sm:w-auto justify-center px-8 py-3 text-sm font-semibold">
               Try law firm prompt
               <i className="ph ph-arrow-up-right" />
-            </button>
+          </button>
           </motion.div>
 
           <motion.div variants={heroItem}>
@@ -501,7 +417,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                     <i className="ph ph-copy" />
                     <i className="ph ph-arrow-square-out" />
                   </div>
-                </div>
+        </div>
                 <div className={`rounded-lg border overflow-hidden ${isLight ? 'border-neutral-200 bg-white' : 'border-white/10 bg-white/5'}`}>
                   <div className={`w-full h-32 ${isLight ? 'bg-neutral-100' : 'bg-white/5'} flex items-center justify-center`}>
                     <span className="text-text-muted text-sm">Live preview</span>
@@ -524,24 +440,24 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                     <div className="grid sm:grid-cols-3 gap-2">
                       {[1, 2, 3].map((n) => (
                         <div key={n} className={`h-28 rounded-lg ${isLight ? 'bg-neutral-100 border border-neutral-200' : 'bg-white/10 border border-white/10'}`} />
-                      ))}
-                    </div>
+              ))}
+            </div>
                     <div className={`h-14 rounded-lg ${isLight ? 'bg-neutral-100 border border-neutral-200' : 'bg-white/10 border border-white/10'}`} />
                     <div className={`h-10 rounded-lg ${isLight ? 'bg-neutral-100 border border-neutral-200' : 'bg-white/10 border border-white/10'}`} />
-                  </div>
+        </div>
                 </div>
               </div>
-            </div>
+          </div>
           </Card>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* AI that helps you understand */}
-      <UnderstandSection isLight={isLight} borderCl={borderCl} />
+      {/* Stop juggling — falling cards */}
+      <FallingCardsStopJugglingSection isLight={isLight} borderCl={borderCl} />
 
-      {/* stacked cards */}
-      <StackedCardsSection isLight={isLight} onSelectPrompt={onSelectPrompt} exampleCards={EXAMPLE_CARDS} />
+      {/* Demo video placeholder */}
+      <DemoVideoSection isLight={isLight} borderCl={borderCl} />
 
       {/* bento grid */}
       <BentoSection isLight={isLight} />
@@ -559,7 +475,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             <Badge>Everything in one canvas</Badge>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">
               <BlurPopUpByWordInView text="Jasmine handles the full flow." wordDelay={0.03} />
-            </h2>
+          </h2>
             <p className="text-text-secondary text-base md:text-lg leading-[1.6] max-w-2xl mx-auto">
               <BlurPopUpByWordInView text="Ideate, design, and ship from the same surface. No hopping between design files and code." wordDelay={0.02} />
             </p>
@@ -597,7 +513,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             <Badge>Aligned with how you think</Badge>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">
               <BlurPopUpByWordInView text="Capture, compose, and deploy." wordDelay={0.03} />
-            </h2>
+          </h2>
             <p className="text-text-secondary leading-[1.6] max-w-xl">
               <BlurPopUpByWordInView text="Jasmine mirrors the clean, confident layout of Opennote: soft neutrals, precise borders, and clear hierarchy. Your product copy stays yours — the craft comes from Jasmine." wordDelay={0.02} />
             </p>
@@ -611,7 +527,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                     <p className="font-semibold">{item.title}</p>
                     <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
                   </div>
-                </div>
+              </div>
               ))}
             </div>
           </motion.div>
@@ -665,7 +581,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                   </div>
                   <span className="text-sm font-medium text-text-secondary w-40">{label}</span>
                 </motion.div>
-              ))}
+                ))}
             </div>
           </Card>
           </motion.div>
@@ -685,7 +601,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             <Badge>Start from a prompt</Badge>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">
               <BlurPopUpByWordInView text="Pick a layout, keep your own words." wordDelay={0.03} />
-            </h2>
+          </h2>
           </motion.div>
           <motion.div
             className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
@@ -721,9 +637,6 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       {/* steps — prompt to preview, compact single section */}
       <PromptToPreviewSection isLight={isLight} borderCl={borderCl} />
 
-      {/* Stop juggling — falling cards */}
-      <FallingCardsStopJugglingSection isLight={isLight} borderCl={borderCl} />
-
       {/* OpenNote-style: Testimonials */}
       <TestimonialsSection isLight={isLight} borderCl={borderCl} />
 
@@ -752,8 +665,8 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             </button>
             <button onClick={() => onSelectPrompt(EXAMPLE_CARDS[1].prompt)} className="btn-ghost flex items-center gap-2 w-full sm:w-auto justify-center px-8 py-3 text-sm font-semibold border-[var(--color-text-primary)] text-[var(--color-text-primary)] hover:bg-black/5">
               Try SaaS prompt
-            </button>
-          </div>
+          </button>
+        </div>
         </motion.div>
       </section>
     </div>

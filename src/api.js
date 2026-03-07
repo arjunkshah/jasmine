@@ -506,19 +506,32 @@ export function projectToRaw(project) {
     .join('\n\n');
 }
 
-/** Get HTML string for iframe srcdoc (HTML mode). Handles index.html or combines index.html + style.css + script.js. */
+/** Get HTML string for iframe srcdoc (HTML mode). Inlines index.html + all CSS + all JS for preview. No sandbox needed. */
 export function getHtmlPreviewContent(project) {
   if (!project?.files || typeof project.files !== 'object') return '';
   const files = project.files;
-  const html = files['index.html'] ?? files['index.htm'] ?? '';
-  if (typeof html === 'string' && html.trim()) return html;
-  // Fallback: if we have style.css and script.js, build a minimal HTML
-  const css = files['style.css'] ?? files['styles.css'] ?? '';
-  const js = files['script.js'] ?? files['main.js'] ?? '';
-  if (css || js) {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.tailwindcss.com"></script>${css ? `<style>${css}</style>` : ''}</head><body></body>${js ? `<script>${js}</script>` : ''}</html>`;
+  let html = files['index.html'] ?? files['index.htm'] ?? '';
+  if (typeof html !== 'string' || !html.trim()) return '';
+  // Collect all CSS and JS from project
+  const cssFiles = Object.entries(files).filter(([p]) => /\.css$/i.test(p));
+  const jsFiles = Object.entries(files).filter(([p]) => /\.js$/i.test(p) && !p.includes('node_modules'));
+  // Inline CSS: replace <link href="*.css"> with <style>
+  for (const [path, content] of cssFiles) {
+    if (typeof content !== 'string') continue;
+    const name = path.split('/').pop();
+    const regex = new RegExp(`<link[^>]+href=["']([^"']*${name.replace('.', '\\.')})["'][^>]*>`, 'gi');
+    const safeContent = content.replace(/<\/style>/gi, '<\\/style>');
+    html = html.replace(regex, `<style>${safeContent}</style>`);
   }
-  return '';
+  // Inline JS: replace <script src="*.js"> with <script>
+  for (const [path, content] of jsFiles) {
+    if (typeof content !== 'string') continue;
+    const name = path.split('/').pop();
+    const regex = new RegExp(`<script[^>]+src=["']([^"']*${name.replace('.', '\\.')})["'][^>]*>\\s*</script>`, 'gi');
+    const safeContent = content.replace(/<\/script>/gi, '<\\/script>');
+    html = html.replace(regex, `<script>${safeContent}</script>`);
+  }
+  return html;
 }
 
 const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;

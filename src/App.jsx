@@ -19,114 +19,50 @@ import { fetchApiCompressed } from './lib/compress-api';
 
 const EASE = [0.22, 1, 0.36, 1];
 
-function AttachedFilesSection({ contextFiles, setContextFiles, fileInputRef, isLight, borderCl, compact = false }) {
+function AttachedFilesSection({ contextFiles, setContextFiles, isLight }) {
   const fileChipCl = isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10';
-  const attachBtnCl = isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]';
-
-  if (compact) {
-    return (
-      <AnimatePresence mode="wait">
-        {contextFiles.length > 0 ? (
-          <motion.div
-            key="files"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: EASE }}
-            className="overflow-hidden mb-2"
-          >
-            <div className="flex flex-wrap gap-2">
-              {contextFiles.map((f, i) => (
-                <motion.span
-                  key={`${f.name}-${i}`}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${fileChipCl}`}
-                >
-                  <i className="ph ph-file-text text-[10px]" />
-                  <span className="truncate max-w-[120px]">{f.name}</span>
-                  <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors">
-                    <i className="ph ph-x text-[10px]" />
-                  </button>
-                </motion.span>
-              ))}
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    );
-  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border ${borderCl} p-4 mb-4`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Context files</span>
-        <motion.button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${attachBtnCl}`}
-          title="Attach files (txt, md, json)"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+    <AnimatePresence mode="wait">
+      {contextFiles.length > 0 ? (
+        <motion.div
+          key="files"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.25, ease: EASE }}
+          className="overflow-hidden mb-2"
         >
-          <i className="ph ph-paperclip" />
-          Attach
-        </motion.button>
-      </div>
-      <AnimatePresence mode="popLayout">
-        {contextFiles.length === 0 ? (
-          <motion.p
-            key="empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-xs text-text-muted"
-          >
-            No files attached. Click Attach to add context for the AI.
-          </motion.p>
-        ) : (
-          <motion.div
-            key="files"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-wrap gap-2"
-          >
+          <div className="flex flex-wrap gap-2">
             {contextFiles.map((f, i) => (
               <motion.span
                 key={`${f.name}-${i}`}
-                layout
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs ${fileChipCl}`}
+                className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${fileChipCl}`}
               >
-                <i className="ph ph-file-text" />
-                <span className="truncate max-w-[140px]">{f.name}</span>
-                <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors ml-0.5">
-                  <i className="ph ph-x text-sm" />
+                <i className="ph ph-file-text text-[10px]" />
+                <span className="truncate max-w-[120px]">{f.name}</span>
+                <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors">
+                  <i className="ph ph-x text-[10px]" />
                 </button>
               </motion.span>
             ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+          </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }
 
-function HtmlModeToggle({ htmlMode, setHtmlMode, isLight }) {
+function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
   const activeCl = isLight ? 'text-white' : 'text-neutral-900';
   const inactiveCl = 'text-text-muted hover:text-text-secondary';
   const pillBg = isLight ? 'bg-[var(--color-text-primary)]' : 'bg-neutral-200';
 
   return (
-    <div className="relative flex items-center rounded-lg border border-[var(--color-border-default)] p-0.5 h-7">
+    <div className={`relative flex items-center rounded-lg border border-[var(--color-border-default)] p-0.5 h-7 min-w-[11rem] shrink-0 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
       <motion.div
         className={`absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-4px)] rounded-md ${pillBg}`}
         animate={{ x: htmlMode ? '100%' : 0 }}
@@ -135,7 +71,8 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight }) {
       <button
         type="button"
         onClick={() => setHtmlMode(false)}
-        className={`relative z-10 flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors h-full flex items-center justify-center ${!htmlMode ? activeCl : inactiveCl}`}
+        disabled={disabled}
+        className={`relative z-10 flex-1 min-w-0 px-4 py-1 text-xs font-medium rounded-md transition-colors h-full flex items-center justify-center whitespace-nowrap ${!htmlMode ? activeCl : inactiveCl}`}
         title="Vite + React — full project"
       >
         Vite + React
@@ -143,7 +80,8 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight }) {
       <button
         type="button"
         onClick={() => setHtmlMode(true)}
-        className={`relative z-10 flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors h-full flex items-center justify-center ${htmlMode ? activeCl : inactiveCl}`}
+        disabled={disabled}
+        className={`relative z-10 flex-1 min-w-0 px-4 py-1 text-xs font-medium rounded-md transition-colors h-full flex items-center justify-center whitespace-nowrap ${htmlMode ? activeCl : inactiveCl}`}
         title="HTML — single file, instant"
       >
         HTML
@@ -436,8 +374,6 @@ function AppBody({
   deployToNetlify,
   netlifyDeploying,
   netlifyUrl,
-  pushToGitHub,
-  githubPushing,
   githubUrl,
   htmlMode,
   setHtmlMode,
@@ -490,9 +426,9 @@ function AppBody({
         onChange={handleFileSelect}
       />
       <header className={`flex-none border-b ${borderCl} bg-surface z-50`}>
-        <div className="flex items-center justify-between px-6 h-16">
+          <div className="flex items-center justify-between px-6 h-16">
           <div className="flex items-center gap-6 min-w-0">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
               {firebaseConfigured && !sidebarOpen && (
                 <button
                   onClick={onToggleSidebar}
@@ -502,21 +438,28 @@ function AppBody({
                   <i className="ph ph-folder text-lg"></i>
                 </button>
               )}
-              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
-                <img src="/logo-mark.png" alt="Jasmine" className="w-full h-full object-contain" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-text-primary">
-                  <BlurPopUpByWord text="jasmine" wordDelay={0.02} />
-                </span>
-                <span className="text-[10px] text-text-muted tracking-wider">
-                  <BlurPopUpByWord text="ai" wordDelay={0.04} />
-                </span>
-              </div>
+              <button
+                type="button"
+                onClick={onShowHome}
+                className="flex items-center gap-2 rounded-lg px-1.5 py-1 text-left hover:bg-white/[0.04]"
+                title="Go to home"
+              >
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 bg-white/5">
+                  <img src="/logo-mark.png" alt="Jasmine" className="w-full h-full object-contain" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-text-primary">
+                    <BlurPopUpByWord text="jasmine" wordDelay={0.02} />
+                  </span>
+                  <span className="text-[10px] text-text-muted tracking-wider">
+                    <BlurPopUpByWord text="ai" wordDelay={0.04} />
+                  </span>
+                </div>
+              </button>
             </div>
             <div className="hidden md:flex items-center gap-1">
-              <button onClick={onShowHome} className={navCl('home')}>
-                overview
+              <button onClick={onStartDesigning} className={navCl('designer')}>
+                build
               </button>
               <button onClick={onShowBlog} className={navCl('blog')}>
                 blog
@@ -525,7 +468,14 @@ function AppBody({
           </div>
 
           <div className="flex items-center gap-1">
-            <button
+          <button
+              onClick={onStartDesigning}
+              className="md:hidden p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+              title="Build"
+            >
+              <i className="ph ph-magic-wand text-lg"></i>
+            </button>
+          <button
               onClick={onShowBlog}
               className="md:hidden p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
               title="Blog"
@@ -561,8 +511,8 @@ function AppBody({
                     <button onClick={onSignOut} className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.04] flex items-center gap-2">
                       <i className="ph ph-sign-out"></i>
                       Sign out
-                    </button>
-                  </div>
+          </button>
+        </div>
                 </div>
               ) : (
                 <button onClick={onSignInClick} className="btn-premium px-3 py-1.5 text-sm">
@@ -580,9 +530,9 @@ function AppBody({
             <BlogPage
               onStartDesigning={onStartDesigning}
               onBackHome={onShowHome}
-              theme={theme}
-            />
-          ) : (
+            theme={theme}
+          />
+        ) : (
             <LandingPage
               onStartDesigning={onStartDesigning}
               onSelectPrompt={onSelectPrompt}
@@ -639,10 +589,7 @@ function AppBody({
                       <AttachedFilesSection
                         contextFiles={contextFiles}
                         setContextFiles={setContextFiles}
-                        fileInputRef={fileInputRef}
                         isLight={isLight}
-                        borderCl={borderCl}
-                        compact
                       />
                     <div className="flex gap-2 mt-2">
                     <motion.button
@@ -690,7 +637,7 @@ function AppBody({
                     <p className="text-text-secondary text-center mb-4 text-base">
                       the world's best designer. one prompt.
                     </p>
-                    {(deployUrl || sandboxStarting) && (
+                    {(deployUrl || sandboxStarting) && !htmlMode && (
                       <div className="mb-6 flex items-center justify-center gap-2">
                         {sandboxStarting ? (
                           <span className="text-sm text-text-muted flex items-center gap-2">
@@ -705,14 +652,37 @@ function AppBody({
                         ) : null}
                   </div>
                 )}
-                    <AttachedFilesSection
-                      contextFiles={contextFiles}
-                      setContextFiles={setContextFiles}
-                      fileInputRef={fileInputRef}
-                      isLight={isLight}
-                      borderCl={borderCl}
-                    />
                     <div className="prompt-container overflow-hidden">
+                    <AnimatePresence mode="wait">
+                      {contextFiles.length > 0 && (
+                        <motion.div
+                          key="file-preview"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: EASE }}
+                          className={`overflow-hidden border-b ${borderCl}`}
+                        >
+                          <div className="flex flex-wrap items-center gap-2 px-4 py-2">
+                            {contextFiles.map((f, i) => (
+                              <motion.span
+                                key={`${f.name}-${i}`}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10'}`}
+                              >
+                                <i className="ph ph-file-text text-[10px]" />
+                                <span className="truncate max-w-[120px]">{f.name}</span>
+                                <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors">
+                                  <i className="ph ph-x text-[10px]" />
+                                </button>
+                              </motion.span>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     <textarea
                       ref={textareaRef}
                       value={prompt}
@@ -724,6 +694,16 @@ function AppBody({
                     />
                     <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                       <div className="flex items-center gap-3">
+                        <motion.button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className={`p-1.5 rounded-lg transition-colors ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]'}`}
+                          title="Attach files (txt, md, json)"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <i className="ph ph-paperclip text-base" />
+                        </motion.button>
                         <ModelSelectDropdown
                           provider={provider}
                           setProvider={setProvider}
@@ -732,6 +712,7 @@ function AppBody({
                           isLight={isLight}
                           borderCl={borderCl}
                         />
+                        <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} disabled={isGenerating || isEditing} />
                         <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                           {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                         </span>
@@ -762,10 +743,10 @@ function AppBody({
                         )}
                       </motion.button>
                     </div>
-                    </div>
+                  </div>
                   </div>
                 )}
-              </div>
+                </div>
 
               {deployUrl && (
                 <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center justify-between gap-3">
@@ -773,7 +754,7 @@ function AppBody({
                   <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
                     Open <i className="ph ph-arrow-square-out text-base"></i>
                   </a>
-                  </div>
+                    </div>
               )}
                 {netlifyUrl && (
                   <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-jasmine-500/10 border border-jasmine-500/20 text-jasmine-400 text-sm flex items-center justify-between gap-3">
@@ -789,7 +770,7 @@ function AppBody({
                     <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
                       View repo <i className="ph ph-arrow-square-out text-base"></i>
                     </a>
-                  </div>
+              </div>
                 )}
               {error && (
                 <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-2">
@@ -804,13 +785,13 @@ function AppBody({
                         Retry
                       </button>
                     ) : null}
-                </div>
+                  </div>
                   {error.toLowerCase().includes('sandbox') && hasOutput && (
                     <p className="text-emerald-400/90 text-xs">
                       Your project is ready — download the ZIP and run <code className="bg-white/10 px-1 rounded">npm install && npm run dev</code> locally.
                     </p>
               )}
-            </div>
+                </div>
               )}
             </div>
             </Panel>
@@ -820,37 +801,24 @@ function AppBody({
             <Panel defaultSize="50" minSize="25" maxSize="65" className="flex flex-col min-w-0 overflow-hidden">
               <div className="flex-1 flex flex-col min-w-0">
                 <div className={`flex-none flex items-center justify-between px-5 h-14 border-b ${borderCl} bg-surface-raised/80 backdrop-blur-xl`}>
-                  <div className="relative flex gap-1">
-                    <motion.button
+                  <div className="flex gap-2">
+                    <button
                       onClick={() => setRightTab('files')}
-                      className={`relative z-10 flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${rightTab === 'files' ? 'text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      className={`flex items-center justify-center gap-2 min-w-[5.5rem] px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${rightTab === 'files' ? `text-text-primary ${isLight ? 'bg-neutral-200/80' : 'bg-surface-overlay'}` : `text-text-muted hover:text-text-secondary`}`}
                     >
                       <i className="ph ph-folder"></i>
-                      <BlurPopUpByWord text="Files" wordDelay={0.02} />
-                    </motion.button>
-                    <motion.button
+                      Files
+                    </button>
+                    <button
                       onClick={() => setRightTab('preview')}
-                      className={`relative z-10 flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${rightTab === 'preview' ? 'text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      className={`flex items-center justify-center gap-2 min-w-[5.5rem] px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${rightTab === 'preview' ? `text-text-primary ${isLight ? 'bg-neutral-200/80' : 'bg-surface-overlay'}` : `text-text-muted hover:text-text-secondary`}`}
                     >
                       <i className="ph ph-eye"></i>
-                      <BlurPopUpByWord text="Preview" wordDelay={0.02} />
-                    </motion.button>
-                    <motion.div
-                      className={`absolute bottom-1.5 top-1.5 rounded-lg -z-0 ${isLight ? 'bg-neutral-200/80' : 'bg-surface-overlay'}`}
-                      initial={false}
-                      animate={{
-                        left: rightTab === 'files' ? 4 : '50%',
-                        width: 'calc(50% - 6px)',
-                      }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
+                      Preview
+                    </button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} />
+                    <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} disabled={isGenerating || isEditing} />
                     {deployUrl && !htmlMode && (
                       <a href={deployUrl} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Open preview">
                         <i className="ph ph-eye text-lg"></i>
@@ -864,14 +832,6 @@ function AppBody({
                     >
                       {netlifyDeploying ? <i className="ph ph-circle-notch text-lg animate-spin"></i> : <i className="ph ph-rocket-launch text-lg"></i>}
                     </button>
-                    <button
-                      onClick={pushToGitHub}
-                      disabled={githubPushing || !generatedProject?.files}
-                      className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed`}
-                      title="Push to GitHub"
-                    >
-                      {githubPushing ? <i className="ph ph-circle-notch text-lg animate-spin"></i> : <i className="ph ph-github-logo text-lg"></i>}
-                    </button>
                     <button onClick={downloadProject} className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Download as ZIP">
                       <i className="ph ph-download-simple text-lg"></i>
                     </button>
@@ -880,44 +840,21 @@ function AppBody({
 
                 <div className={`flex-1 relative min-h-0 overflow-hidden ${isLight ? 'bg-[#fffaf0]' : 'bg-surface-raised'}`}>
 
-                  <AnimatePresence mode="wait">
                   {rightTab === 'files' && (
-                    <motion.div
-                      key="files"
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 8 }}
-                      transition={{ duration: 0.2, ease: EASE }}
-                      className="absolute inset-0"
-                    >
+                    <div className="absolute inset-0">
                       <FileExplorer
                         files={generatedProject?.files}
                         streamingRaw={streamingRaw || generatedHTML}
                         isStreaming={isGenerating || isEditing}
                         theme={theme}
                       />
-                    </motion.div>
+                    </div>
                   )}
 
                   {rightTab === 'preview' && (
-                    <motion.div
-                      key="preview"
-                      initial={{ opacity: 0, x: 8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -8 }}
-                      transition={{ duration: 0.2, ease: EASE }}
-                      className="absolute inset-0 flex flex-col overflow-hidden"
-                    >
-                      <AnimatePresence mode="wait">
+                    <div className="absolute inset-0 flex flex-col overflow-hidden">
                       {htmlMode && getHtmlPreviewContent(generatedProject) ? (
-                        <motion.div
-                          key="html-preview"
-                          initial={{ opacity: 0, x: 16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -16 }}
-                          transition={{ duration: 0.25, ease: EASE }}
-                          className="flex-1 flex flex-col min-h-0"
-                        >
+                        <div className="flex-1 flex flex-col min-h-0">
                           <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2`}>
                             <span className="text-xs text-text-muted">HTML preview (instant)</span>
                             <button
@@ -935,30 +872,23 @@ function AppBody({
                             className="flex-1 w-full min-h-0 border-0 bg-white"
                             sandbox="allow-scripts allow-same-origin"
                           />
-                        </motion.div>
+                        </div>
                       ) : deployUrl ? (
-                        <motion.div
-                          key="vite-preview"
-                          initial={{ opacity: 0, x: 16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -16 }}
-                          transition={{ duration: 0.25, ease: EASE }}
-                          className="flex-1 flex flex-col min-h-0"
-                        >
+                        <div className="flex-1 flex flex-col min-h-0">
                           <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2`}>
                             <span className="text-xs text-text-muted">Live preview</span>
-                            <div className="flex items-center gap-2">
-                              <button
+                  <div className="flex items-center gap-2">
+                          <button
                                 type="button"
                                 onClick={() => setPreviewRetryKey((k) => k + 1)}
                                 className="text-xs text-[#2d7f45] hover:text-[#1f5c35] flex items-center gap-1"
                               >
                                 Retry <i className="ph ph-arrow-clockwise text-sm"></i>
-                              </button>
+                          </button>
                               <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#2d7f45] hover:text-[#1f5c35] flex items-center gap-1">
                                 Open <i className="ph ph-arrow-square-out text-sm"></i>
                               </a>
-                            </div>
+                      </div>
                           </div>
                           <iframe
                             key={previewRetryKey}
@@ -967,16 +897,9 @@ function AppBody({
                             className="flex-1 w-full min-h-0 border-0 bg-white"
                             sandbox="allow-scripts allow-same-origin"
                           />
-                        </motion.div>
+                        </div>
                       ) : generatedProject?.files && !htmlMode ? (
-                        <motion.div
-                          key="sandbox-wait"
-                          initial={{ opacity: 0, x: 16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -16 }}
-                          transition={{ duration: 0.25, ease: EASE }}
-                          className="flex-1 flex items-center justify-center p-8"
-                        >
+                        <div className="flex-1 flex items-center justify-center p-8">
                           <div className="text-center max-w-md">
                             <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
                             <p className="text-text-primary font-semibold mb-2">Project generated</p>
@@ -999,12 +922,10 @@ function AppBody({
                             <p className="mb-2">{(isGenerating || isEditing) ? 'Generating...' : 'No project yet.'}</p>
                             <p className="text-sm">Switch to Files to see code.</p>
                           </div>
-                        </motion.div>
-                    )}
-                      </AnimatePresence>
-                    </motion.div>
+                        </div>
+                      )}
+                    </div>
                   )}
-                  </AnimatePresence>
                 </div>
               </div>
             </Panel>
@@ -1025,7 +946,7 @@ function AppBody({
                 <p className="text-text-secondary text-center mb-4 text-base">
                   the world's best designer. one prompt.
                 </p>
-                {(deployUrl || sandboxStarting) && (
+                {(deployUrl || sandboxStarting) && !htmlMode && (
                   <div className="mb-6 flex items-center justify-center gap-2">
                     {sandboxStarting ? (
                       <span className="text-sm text-text-muted flex items-center gap-2">
@@ -1040,14 +961,37 @@ function AppBody({
                     ) : null}
                   </div>
                 )}
-                <AttachedFilesSection
-                  contextFiles={contextFiles}
-                  setContextFiles={setContextFiles}
-                  fileInputRef={fileInputRef}
-                  isLight={isLight}
-                  borderCl={borderCl}
-                />
                 <div className="prompt-container overflow-hidden">
+                <AnimatePresence mode="wait">
+                  {contextFiles.length > 0 && (
+                    <motion.div
+                      key="file-preview"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: EASE }}
+                      className={`overflow-hidden border-b ${borderCl}`}
+                    >
+                      <div className="flex flex-wrap items-center gap-2 px-4 py-2">
+                        {contextFiles.map((f, i) => (
+                          <motion.span
+                            key={`${f.name}-${i}`}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10'}`}
+                          >
+                            <i className="ph ph-file-text text-[10px]" />
+                            <span className="truncate max-w-[120px]">{f.name}</span>
+                            <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors">
+                              <i className="ph ph-x text-[10px]" />
+                            </button>
+                          </motion.span>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <textarea
                   ref={textareaRef}
                   value={prompt}
@@ -1059,7 +1003,17 @@ function AppBody({
                 />
                 <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                   <div className="flex items-center gap-3">
-                    <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} />
+                    <motion.button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`p-1.5 rounded-lg transition-colors ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]'}`}
+                      title="Attach files (txt, md, json)"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <i className="ph ph-paperclip text-base" />
+                    </motion.button>
+                    <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} disabled={isGenerating || isEditing} />
                     <ModelSelectDropdown
                       provider={provider}
                       setProvider={setProvider}
@@ -1125,7 +1079,7 @@ function AppBody({
                     <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
                       View repo <i className="ph ph-github-logo text-base"></i>
                     </a>
-                  </div>
+                    </div>
                 )}
                 {error && (
                   <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-2">
@@ -1140,7 +1094,7 @@ function AppBody({
                           Retry
                         </button>
                       ) : null}
-                    </div>
+                  </div>
                     {error.toLowerCase().includes('sandbox') && hasOutput && (
                       <p className="text-emerald-400/90 text-xs">
                         Your project is ready — download the ZIP and run <code className="bg-white/10 px-1 rounded">npm install && npm run dev</code> locally.
@@ -1148,7 +1102,7 @@ function AppBody({
                     )}
                   </div>
                 )}
-                  </div>
+                </div>
             )}
               </div>
             )}
@@ -1467,6 +1421,8 @@ function App() {
   const spinUpSandbox = useCallback(async (project) => {
     let files = project.files;
     if (!files || Object.keys(files).length === 0) return;
+    const isHtmlProject = (files['index.html'] || files['index.htm']) && !files['package.json'];
+    if (isHtmlProject) return;
     files = { ...files };
     applyPackageFixes(files);
     ensurePackageDependencies(files);
@@ -1539,6 +1495,7 @@ function App() {
 
   useEffect(() => {
     if (showLanding || sandboxStartedRef.current) return;
+    if (localStorage.getItem('jasmine_html_mode') === 'true') return;
     sandboxStartedRef.current = true;
     setSandboxStarting(true);
     (async () => {
@@ -2070,8 +2027,6 @@ function App() {
     deployToNetlify,
     netlifyDeploying,
     netlifyUrl,
-    pushToGitHub,
-    githubPushing,
     githubUrl,
     themeForToggle: theme,
     retrySandbox,
@@ -2120,7 +2075,7 @@ function App() {
         )}
         <div className="flex-1 flex flex-col min-h-0 min-w-0">
           <AppBody {...appBodyProps} onThemeToggle={handleThemeToggle} />
-        </div>
+      </div>
       </div>
       {showAuthModal && (
         <AuthPage
