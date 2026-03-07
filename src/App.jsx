@@ -1,17 +1,20 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { generateWithGroq, generateWithGemini, generateWithGateway, editWithGroq, editWithGemini, editWithGateway, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery, getHtmlPreviewContent, projectToRaw } from './api';
 import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
-import LandingPage from './LandingPage';
-import BlogPage from './BlogPage';
+import LandingPage from './pages/LandingPage';
+import BlogPage from './pages/BlogPage';
 import FileExplorer from './FileExplorer';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import AuthPage from './components/AuthPage';
 import E2BBadge from './components/E2BBadge';
 import StatusBubble from './components/StatusBubble';
 import ProjectSidebar from './components/ProjectSidebar';
+import CommandPalette from './components/CommandPalette';
+import EditableHtmlPreview from './components/EditableHtmlPreview';
+import ShareModal from './components/ShareModal';
 import { useAuth } from './contexts/AuthContext';
 import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
 import { trackGeneration, trackEdit, trackDeploy } from './lib/analytics';
@@ -218,7 +221,39 @@ async function runSlashCommands(commands, ctx) {
         const fixed = await fixProjectErrors(generatedProject, provider, groqKey, geminiKey, apiBase, gatewayModel);
         if (fixed) {
           setGeneratedProject({ files: fixed });
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'Errors fixed', details: [`${Object.keys(fixed).length} files updated`], icon: 'ph-check-circle' }]);
+          ctx.generatedProject = { files: fixed };
+          const filesToApply = { ...fixed };
+          applyPackageFixes(filesToApply);
+          ensurePackageDependencies(filesToApply);
+          if (sandboxId) {
+            let applied = false;
+            for (let attempt = 0; attempt < 3 && !applied; attempt++) {
+              try {
+                const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files: filesToApply });
+                if (res.ok) {
+                  applied = true;
+                  setPreviewRetryKey((k) => k + 1);
+                  setRightTab('preview');
+                  setChatMessages((prev) => [...prev, { role: 'status', message: 'Errors fixed and applied to preview', details: [`${Object.keys(fixed).length} files`], icon: 'ph-check-circle' }]);
+                } else if ((res.status === 504 || res.status === 413) && attempt < 2) {
+                  await new Promise((r) => setTimeout(r, 3000));
+                } else {
+                  const data = await res.json().catch(() => ({}));
+                  setError(data?.error || 'Apply to preview failed. Click Retry.');
+                  setChatMessages((prev) => [...prev, { role: 'status', message: 'Errors fixed', details: [`${Object.keys(fixed).length} files updated`], icon: 'ph-check-circle' }]);
+                  break;
+                }
+              } catch (e) {
+                if (attempt < 2) await new Promise((r) => setTimeout(r, 3000));
+                else {
+                  setError(e?.message || 'Apply to preview failed. Click Retry.');
+                  setChatMessages((prev) => [...prev, { role: 'status', message: 'Errors fixed', details: [`${Object.keys(fixed).length} files updated`], icon: 'ph-check-circle' }]);
+                }
+              }
+            }
+          } else {
+            setChatMessages((prev) => [...prev, { role: 'status', message: 'Errors fixed', details: [`${Object.keys(fixed).length} files updated`], icon: 'ph-check-circle' }]);
+          }
         } else {
           setChatMessages((prev) => [...prev, { role: 'status', message: 'No changes needed', details: [], icon: 'ph-check' }]);
         }
@@ -397,8 +432,12 @@ function AppBody({
   githubUrl,
   htmlMode,
   setHtmlMode,
+  htmlEditMode,
+  setHtmlEditMode,
+  onSaveHtmlVisualEdit,
   onThemeToggle,
   themeForToggle,
+  onOpenCommandPalette,
   retrySandbox,
   retryPreviewUpdate,
   sidebarOpen,
@@ -517,6 +556,15 @@ function AppBody({
             >
               <i className="ph ph-newspaper text-lg"></i>
             </button>
+            {onOpenCommandPalette && (
+              <button
+                onClick={onOpenCommandPalette}
+                className="p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+                title="Command palette (⌘K)"
+              >
+                <i className="ph ph-command text-lg"></i>
+              </button>
+            )}
             {onThemeToggle ? (
           <button
                 onClick={onThemeToggle}
@@ -860,7 +908,7 @@ function AppBody({
                     )}
                     <button
                       onClick={deployToNetlify}
-                      disabled={netlifyDeploying || !generatedProject?.files || htmlMode}
+                      disabled={netlifyDeploying || !generatedProject?.files}
                       className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed`}
                       title="Deploy to Netlify"
                     >
@@ -888,25 +936,13 @@ function AppBody({
                   {rightTab === 'preview' && (
                     <div className="absolute inset-0 flex flex-col overflow-hidden">
                       {htmlMode && getHtmlPreviewContent(generatedProject) ? (
-                        <div className="flex-1 flex flex-col min-h-0">
-                          <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2`}>
-                            <span className="text-xs text-text-muted">HTML preview (instant)</span>
-                            <button
-                              type="button"
-                              onClick={() => setPreviewRetryKey((k) => k + 1)}
-                              className="text-xs text-[#2d7f45] hover:text-[#1f5c35] flex items-center gap-1"
-                            >
-                              Refresh <i className="ph ph-arrow-clockwise text-sm"></i>
-                            </button>
-                          </div>
-                          <iframe
-                            key={previewRetryKey}
-                            srcDoc={getHtmlPreviewContent(generatedProject)}
-                            title="HTML Preview"
-                            className="flex-1 w-full min-h-0 border-0 bg-white"
-                            sandbox="allow-scripts allow-same-origin"
-                          />
-                        </div>
+                        <EditableHtmlPreview
+                          html={getHtmlPreviewContent(generatedProject)}
+                          onSave={onSaveHtmlVisualEdit}
+                          editMode={htmlEditMode}
+                          onEditModeChange={setHtmlEditMode}
+                          theme={theme}
+                        />
                       ) : deployUrl ? (
                         <div className="flex-1 flex flex-col min-h-0">
                           <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2`}>
@@ -1134,7 +1170,7 @@ function AppBody({
 }
 
 function App() {
-  const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut, isConfigured: firebaseConfigured } = useAuth();
+  const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut, getIdToken, isConfigured: firebaseConfigured } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [generatedHTML, setGeneratedHTML] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1147,18 +1183,19 @@ function App() {
   const [netlifyUrl, setNetlifyUrl] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const parseLocationToRoute = () => {
-    if (typeof window === 'undefined') return { page: 'home', slug: null };
+    if (typeof window === 'undefined') return { page: 'home', slug: null, sharedProjectId: null };
     const parts = (window.location.pathname || '').split('/').filter(Boolean);
-    if (parts[0] === 'blog') return { page: 'blog', slug: parts[1] || null };
-    if (parts[0] === 'build' || parts[0] === 'designer') return { page: 'designer', slug: null };
-    return { page: 'home', slug: null };
+    if (parts[0] === 'blog') return { page: 'blog', slug: parts[1] || null, sharedProjectId: null };
+    if (parts[0] === 'build' || parts[0] === 'designer') return { page: 'designer', slug: null, sharedProjectId: null };
+    if (parts[0] === 'p' && parts[1]) return { page: 'shared', slug: null, sharedProjectId: parts[1] };
+    return { page: 'home', slug: null, sharedProjectId: null };
   };
   const getInitialRoute = () => {
-    if (typeof window === 'undefined') return { page: 'home', slug: null };
+    if (typeof window === 'undefined') return { page: 'home', slug: null, sharedProjectId: null };
     const fromPath = parseLocationToRoute();
-    if (fromPath.page === 'blog' || fromPath.page === 'designer' || fromPath.slug) return fromPath;
+    if (fromPath.page === 'blog' || fromPath.page === 'designer' || fromPath.slug || fromPath.sharedProjectId) return fromPath;
     const stored = localStorage.getItem('jasmine_active_page');
-    return { page: stored === 'blog' || stored === 'designer' ? stored : 'home', slug: null };
+    return { page: stored === 'blog' || stored === 'designer' ? stored : 'home', slug: null, sharedProjectId: null };
   };
 
   const [provider, setProvider] = useState(() => {
@@ -1174,6 +1211,7 @@ function App() {
   const [streamingRaw, setStreamingRaw] = useState('');
   const [activePage, setActivePage] = useState(() => getInitialRoute().page);
   const [blogSlug, setBlogSlug] = useState(() => getInitialRoute().slug);
+  const [sharedProjectId, setSharedProjectId] = useState(() => getInitialRoute().sharedProjectId);
   const [showLanding, setShowLanding] = useState(() => activePage !== 'designer');
   const [theme, setTheme] = useState(() => localStorage.getItem('jasmine_theme') || 'light');
   const [generatedProject, setGeneratedProject] = useState(null);
@@ -1194,6 +1232,9 @@ function App() {
   const [currentProjectId, setCurrentProjectId] = useState(null);
   const [e2bBadgeDismissed, setE2bBadgeDismissed] = useState(false);
   const [htmlMode, setHtmlMode] = useState(() => localStorage.getItem('jasmine_html_mode') === 'true');
+  const [htmlEditMode, setHtmlEditMode] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [shareModalProject, setShareModalProject] = useState(null);
   const saveTimeoutRef = useRef(null);
 
   const textareaRef = useRef(null);
@@ -1207,6 +1248,17 @@ function App() {
     document.documentElement.classList.toggle('light', theme === 'light');
     localStorage.setItem('jasmine_theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('jasmine_active_page', activePage);
@@ -1311,15 +1363,29 @@ function App() {
 
   useEffect(() => {
     const handlePop = () => {
-      const { page, slug } = parseLocationToRoute();
-      setActivePage(page);
-      setShowLanding(page !== 'designer');
-      setBlogSlug(slug || null);
-      localStorage.setItem('jasmine_active_page', page);
+      const route = parseLocationToRoute();
+      setActivePage(route.page);
+      setShowLanding(route.page !== 'designer');
+      setBlogSlug(route.slug || null);
+      setSharedProjectId(route.sharedProjectId || null);
+      localStorage.setItem('jasmine_active_page', route.page);
     };
     window.addEventListener('popstate', handlePop);
     return () => window.removeEventListener('popstate', handlePop);
   }, []);
+
+  // Load shared project when user opens /p/:id — require auth first
+  useEffect(() => {
+    if (!sharedProjectId || !firebaseConfigured) return;
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    loadProject({ id: sharedProjectId });
+    setPage('designer');
+    setSharedProjectId(null);
+    window.history.replaceState(null, '', '/build');
+  }, [sharedProjectId, firebaseConfigured, user]);
 
   // Fetch projects when user logs in
   const refreshProjects = useCallback(() => {
@@ -2041,6 +2107,60 @@ function App() {
     }, 300);
   }, []);
 
+  const commandPaletteActions = useMemo(() => {
+    const base = [
+      { id: 'home', label: 'Go to home', icon: 'ph-house', keywords: ['home'], onSelect: handleShowHome },
+      { id: 'build', label: 'Start designing', icon: 'ph-magic-wand', keywords: ['build', 'design', 'generate'], onSelect: handleStartDesigning },
+      { id: 'blog', label: 'Open blog', icon: 'ph-newspaper', keywords: ['blog'], onSelect: handleShowBlog },
+      { id: 'theme', label: `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`, icon: theme === 'dark' ? 'ph-sun' : 'ph-moon', keywords: ['theme', 'dark', 'light'], onSelect: handleThemeToggle },
+    ];
+    if (firebaseConfigured && !user) {
+      base.push({ id: 'signin', label: 'Sign in', icon: 'ph-sign-in', keywords: ['sign', 'login'], onSelect: () => setShowAuthModal(true) });
+    }
+    if (firebaseConfigured && user) {
+      base.push({ id: 'projects', label: 'Open projects', icon: 'ph-folder', keywords: ['projects', 'sidebar'], onSelect: () => setSidebarOpen(true) });
+    }
+    if (activePage === 'designer' && prompt?.trim()) {
+      base.push({ id: 'generate', label: 'Generate', icon: 'ph-sparkle', shortcut: '⌘↵', keywords: ['generate'], onSelect: generate });
+    }
+    const hasProject = generatedProject?.files && Object.keys(generatedProject.files).length > 0;
+    if (hasProject) {
+      base.push({ id: 'download', label: 'Download project', icon: 'ph-download-simple', keywords: ['download', 'zip'], onSelect: downloadProject });
+      base.push({ id: 'deploy', label: 'Deploy to Netlify', icon: 'ph-rocket-launch', keywords: ['deploy', 'netlify'], onSelect: deployToNetlify, disabled: netlifyDeploying });
+      if (htmlMode && getHtmlPreviewContent(generatedProject)) {
+        base.push({
+          id: 'edit-visually',
+          label: htmlEditMode ? 'Done editing' : 'Edit visually',
+          icon: 'ph-pencil-simple',
+          keywords: ['edit', 'visual'],
+          onSelect: () => setHtmlEditMode((v) => !v),
+        });
+      }
+    }
+    if (activePage === 'designer') {
+      base.push({ id: 'new', label: 'New project', icon: 'ph-plus', keywords: ['new'], onSelect: handleNewProject });
+    }
+    return base.filter((a) => !a.disabled);
+  }, [
+    theme,
+    activePage,
+    prompt,
+    generatedProject,
+    htmlMode,
+    htmlEditMode,
+    firebaseConfigured,
+    user,
+    netlifyDeploying,
+    handleShowHome,
+    handleShowBlog,
+    handleStartDesigning,
+    handleThemeToggle,
+    handleNewProject,
+    generate,
+    downloadProject,
+    deployToNetlify,
+  ]);
+
   const appBodyProps = {
     theme,
     activePage,
@@ -2083,6 +2203,7 @@ function App() {
     netlifyUrl,
     githubUrl,
     themeForToggle: theme,
+    onOpenCommandPalette: () => setCommandPaletteOpen(true),
     retrySandbox,
     retryPreviewUpdate,
     sidebarOpen,
@@ -2098,6 +2219,15 @@ function App() {
     blogSlug,
     htmlMode,
     setHtmlMode,
+    htmlEditMode,
+    setHtmlEditMode,
+    onSaveHtmlVisualEdit: (newHtml) => {
+      setGeneratedProject((prev) => {
+        if (!prev?.files) return prev;
+        const files = { ...prev.files, 'index.html': newHtml };
+        return { files };
+      });
+    },
   };
 
   if (authLoading) {
@@ -2124,6 +2254,7 @@ function App() {
             onLoadProject={loadProject}
             onDeleteProject={handleDeleteProject}
             onNewProject={handleNewProject}
+            onShareProject={(p) => setShareModalProject(p)}
             onSpinUpSandbox={spinUpSandbox}
             onRefresh={refreshProjects}
             loadingProjects={loadingProjects}
@@ -2134,6 +2265,21 @@ function App() {
           <AppBody {...appBodyProps} onThemeToggle={handleThemeToggle} />
       </div>
       </div>
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        actions={commandPaletteActions}
+        theme={theme}
+      />
+      {shareModalProject && (
+        <ShareModal
+          project={shareModalProject}
+          onClose={() => setShareModalProject(null)}
+          onSuccess={() => refreshProjects()}
+          theme={theme}
+          getIdToken={getIdToken}
+        />
+      )}
       {showAuthModal && (
         <AuthPage
           onClose={handleAuthModalClose}

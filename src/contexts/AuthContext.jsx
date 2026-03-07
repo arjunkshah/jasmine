@@ -43,6 +43,11 @@ export function AuthProvider({ children }) {
     await firebaseSignOut(auth);
   };
 
+  const getIdToken = async () => {
+    const u = auth.currentUser;
+    return u ? u.getIdToken() : null;
+  };
+
   const value = {
     user,
     loading,
@@ -50,6 +55,7 @@ export function AuthProvider({ children }) {
     signUp,
     signInWithGoogle,
     signOut,
+    getIdToken,
     isConfigured: isFirebaseConfigured(),
   };
 

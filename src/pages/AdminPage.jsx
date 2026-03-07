@@ -4,7 +4,7 @@
  * Full-screen layout with sidebar — no main app header
  */
 import { useState, useEffect } from 'react';
-import AdminDashboard from './components/AdminDashboard';
+import AdminDashboard from '../components/AdminDashboard';
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'zerotone';
 const ADMIN_AUTH_STORAGE = 'jasmine_admin_auth';

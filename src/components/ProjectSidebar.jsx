@@ -10,6 +10,7 @@ export default function ProjectSidebar({
   onLoadProject,
   onDeleteProject,
   onNewProject,
+  onShareProject,
   onSpinUpSandbox,
   onRefresh,
   loadingProjects,
@@ -118,6 +119,19 @@ export default function ProjectSidebar({
                     </p>
                   </button>
                   <div className="flex items-center gap-1 mx-2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {onShareProject && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onShareProject(p);
+                        }}
+                        className="px-2 py-1 text-xs text-text-muted hover:text-text-primary flex items-center gap-1 rounded"
+                        title="Share project"
+                      >
+                        <i className="ph ph-share-network"></i>
+                        Share
+                      </button>
+                    )}
                     {p.files && Object.keys(p.files).length > 0 && (
                       <button
                         onClick={(e) => {

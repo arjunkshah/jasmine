@@ -60,6 +60,15 @@ See [FIREBASE_SETUP.md](FIREBASE_SETUP.md). Enables sign-in (Email/Password + Go
 firebase deploy --only firestore   # or npm run firebase:deploy
 ```
 
+## Project structure
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a full map. Quick reference:
+
+- **src/** — React frontend (App, pages, components, API client)
+- **api/** — Vercel serverless routes (AI, sandbox, fix-errors, etc.)
+- **lib/** — Server utilities (E2B, chat, parse-body)
+- **server/** — Standalone Express (optional, for local E2B API)
+
 ## Features
 
 See [FEATURES.md](FEATURES.md) for the full list. Highlights:

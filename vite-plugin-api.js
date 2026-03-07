@@ -127,6 +127,9 @@ export function apiPlugin() {
   api.post('/deploy', async (req, res) => {
     return (await import('./api/deploy.js')).default(req, res);
   });
+  api.post('/share-invite', async (req, res) => {
+    return (await import('./api/share-invite.js')).default(req, res);
+  });
 
   return {
     name: 'jasmine-api',

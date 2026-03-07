@@ -1,9 +1,9 @@
 import { useMemo, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { heroContainer, heroItem } from './lib/animations';
-import AmbientLighting from './components/AmbientLighting';
-import BlurPopUpByWord from './components/BlurPopUpByWord';
-import BlurPopUpByWordInView from './components/BlurPopUpByWordInView';
+import { heroContainer, heroItem } from '../lib/animations';
+import AmbientLighting from '../components/AmbientLighting';
+import BlurPopUpByWord from '../components/BlurPopUpByWord';
+import BlurPopUpByWordInView from '../components/BlurPopUpByWordInView';
 
 const FEATURE_SETS = [
   {

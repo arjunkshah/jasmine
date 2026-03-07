@@ -5,7 +5,7 @@ This document describes the rules enforced to produce runnable, error-free Vite 
 ## Model Configuration
 
 - **Groq:** `moonshotai/kimi-k2-instruct-0905` (Kimi K2 0905 — improved coding, frontend, tool use)
-- **Gemini:** `gemini-2.5-flash`
+- **Gemini:** `gemini-3-flash-preview`
 - **Temperature:** 0.5 (lower = fewer hallucinations, more deterministic code)
 
 ## Critical Error Categories

@@ -1,10 +1,10 @@
 import { useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import BlurPopUpByWord from './components/BlurPopUpByWord';
-import BlurPopUpByWordInView from './components/BlurPopUpByWordInView';
-import BlurPopUpInView from './components/BlurPopUpInView';
-import HeroGlowLines from './components/HeroGlowLines';
-import { heroContainer, heroItem } from './lib/animations';
+import BlurPopUpByWord from '../components/BlurPopUpByWord';
+import BlurPopUpByWordInView from '../components/BlurPopUpByWordInView';
+import BlurPopUpInView from '../components/BlurPopUpInView';
+import HeroGlowLines from '../components/HeroGlowLines';
+import { heroContainer, heroItem } from '../lib/animations';
 
 const formatDate = (date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 

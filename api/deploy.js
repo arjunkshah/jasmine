@@ -105,6 +105,21 @@ export default async function handler(req, res) {
   }
 }
 
+function isHtmlOnlyProject(files) {
+  if (!files || typeof files !== 'object') return false;
+  const hasHtml = !!(files['index.html'] || files['index.htm']);
+  const hasPkg = !!files['package.json'];
+  if (!hasHtml) return false;
+  if (!hasPkg) return true;
+  try {
+    const pkg = JSON.parse(files['package.json'] || '{}');
+    const scripts = pkg.scripts || {};
+    return !scripts.build; // No build script = HTML-only
+  } catch {
+    return true;
+  }
+}
+
 async function handleNetlify(req, res, body, log, logErr) {
   const { sandboxId, files } = body;
   if (!sandboxId && (!files || typeof files !== 'object')) {
@@ -119,70 +134,89 @@ async function handleNetlify(req, res, body, log, logErr) {
     });
   }
 
-  const e2bErr = checkE2B();
-  if (e2bErr) {
-    logErr('E2B not configured:', e2bErr.error);
-    return res.status(500).json({ error: e2bErr.error });
-  }
-  if (!process.env.E2B_TEMPLATE_ID) {
-    return res.status(500).json({
-      error: 'E2B_TEMPLATE_ID required. Run: npm run e2b:build, then set in Vercel env vars.',
-    });
+  const htmlOnly = files && isHtmlOnlyProject(files);
+  let zipBuffer;
+
+  if (htmlOnly) {
+    log('HTML-only project — zipping files directly (no build)');
+    const zip = new JSZip();
+    for (const [path, content] of Object.entries(files)) {
+      if (path.includes('node_modules')) continue;
+      zip.file(path, typeof content === 'string' ? content : String(content));
+    }
+    zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+  } else {
+    const e2bErr = checkE2B();
+    if (e2bErr) {
+      logErr('E2B not configured:', e2bErr.error);
+      return res.status(500).json({ error: e2bErr.error });
+    }
+    if (!process.env.E2B_TEMPLATE_ID) {
+      return res.status(500).json({
+        error: 'E2B_TEMPLATE_ID required. Run: npm run e2b:build, then set in Vercel env vars.',
+      });
+    }
+
+    try {
+      const e2b = await import('e2b/dist/index.mjs');
+      const { Sandbox } = e2b;
+
+      let sandbox;
+      if (sandboxId) {
+        log('Connecting to sandbox', sandboxId);
+        sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
+      } else {
+        log('Creating sandbox, writing files...');
+        sandbox = await Sandbox.create(process.env.E2B_TEMPLATE_ID, {
+          apiKey: process.env.E2B_API_KEY,
+          timeoutMs: sandboxConfig.e2b.timeoutMs,
+        });
+        for (const [path, content] of Object.entries(files)) {
+          await sandbox.files.write(path, typeof content === 'string' ? content : String(content));
+        }
+      }
+
+      log('Running npm run build...');
+      const buildResult = await sandbox.commands.run('npm run build', { timeoutMs: 60000 });
+      if (buildResult.exitCode !== 0) {
+        logErr('Build failed:', buildResult.stderr?.slice(0, 800));
+        return res.status(500).json({
+          error: 'Build failed. ' + (buildResult.stderr?.slice(0, 200) || 'Check project for errors.'),
+        });
+      }
+
+      log('Listing dist files...');
+      const listResult = await sandbox.commands.run('find /home/user/dist -type f');
+      const paths = (listResult.stdout || '')
+        .trim()
+        .split('\n')
+        .filter((p) => p && p.startsWith('/home/user/dist/'));
+
+      if (paths.length === 0) {
+        logErr('No files in dist');
+        return res.status(500).json({ error: 'Build produced no output. Check project structure.' });
+      }
+
+      log('Reading', paths.length, 'files from dist...');
+      const zip = new JSZip();
+      for (const p of paths) {
+        try {
+          const content = await sandbox.files.read(p);
+          const rel = p.replace(/^\/home\/user\/dist\/?/, '') || 'index.html';
+          zip.file(rel, content);
+        } catch (e) {
+          logErr('Failed to read', p, e?.message);
+        }
+      }
+
+      zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    } catch (e) {
+      logErr('Failed:', e?.message, e);
+      return res.status(500).json({ error: e.message || 'Deploy failed' });
+    }
   }
 
   try {
-    const e2b = await import('e2b/dist/index.mjs');
-    const { Sandbox } = e2b;
-
-    let sandbox;
-    if (sandboxId) {
-      log('Connecting to sandbox', sandboxId);
-      sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
-    } else {
-      log('Creating sandbox, writing files...');
-      sandbox = await Sandbox.create(process.env.E2B_TEMPLATE_ID, {
-        apiKey: process.env.E2B_API_KEY,
-        timeoutMs: sandboxConfig.e2b.timeoutMs,
-      });
-      for (const [path, content] of Object.entries(files)) {
-        await sandbox.files.write(path, typeof content === 'string' ? content : String(content));
-      }
-    }
-
-    log('Running npm run build...');
-    const buildResult = await sandbox.commands.run('npm run build', { timeoutMs: 60000 });
-    if (buildResult.exitCode !== 0) {
-      logErr('Build failed:', buildResult.stderr?.slice(0, 800));
-      return res.status(500).json({
-        error: 'Build failed. ' + (buildResult.stderr?.slice(0, 200) || 'Check project for errors.'),
-      });
-    }
-
-    log('Listing dist files...');
-    const listResult = await sandbox.commands.run('find /home/user/dist -type f');
-    const paths = (listResult.stdout || '')
-      .trim()
-      .split('\n')
-      .filter((p) => p && p.startsWith('/home/user/dist/'));
-
-    if (paths.length === 0) {
-      logErr('No files in dist');
-      return res.status(500).json({ error: 'Build produced no output. Check project structure.' });
-    }
-
-    log('Reading', paths.length, 'files from dist...');
-    const zip = new JSZip();
-    for (const p of paths) {
-      try {
-        const content = await sandbox.files.read(p);
-        const rel = p.replace(/^\/home\/user\/dist\/?/, '') || 'index.html';
-        zip.file(rel, content);
-      } catch (e) {
-        logErr('Failed to read', p, e?.message);
-      }
-    }
-
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
 
     log('Creating Netlify site...');
     const siteRes = await fetch(`${NETLIFY_API}/sites`, {
