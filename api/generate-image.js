@@ -1,12 +1,19 @@
 /**
  * Image generation — multiple providers in order:
- * 1. Vercel AI Gateway (AI_GATEWAY_API_KEY)
- * 2. OpenAI DALL-E 3 (OPENAI_API_KEY)
- * 3. Replicate Flux (REPLICATE_API_TOKEN)
- * 4. Gemini REST/SDK (GEMINI_API_KEY)
+ * 1. OpenRouter (OPENROUTER_API_KEY) — google/gemini-2.5-flash-image-generation
+ * 2. Vercel AI Gateway (AI_GATEWAY_API_KEY)
+ * 3. OpenAI DALL-E 3 (OPENAI_API_KEY)
+ * 4. Replicate Flux (REPLICATE_API_TOKEN)
+ * 5. Gemini REST/SDK (GEMINI_API_KEY)
  * On total failure: returns placeholder URL (200) instead of 500.
  */
 export const config = { maxDuration: 60 };
+
+const OPENROUTER_IMAGE_MODELS = [
+  'google/gemini-2.5-flash-image-generation',
+  'google/gemini-2.5-flash-image',
+  'google/gemini-3-pro-image-preview',
+];
 
 const GATEWAY_IMAGE_MODELS = [
   'google/gemini-2.5-flash-image-preview',
@@ -27,6 +34,45 @@ function extractImage(response) {
     if (raw) {
       const base64 = typeof raw === 'string' ? raw : Buffer.from(raw).toString('base64');
       return { base64, mimeType: part.inlineData?.mimeType || 'image/png' };
+    }
+  }
+  return null;
+}
+
+/** Try OpenRouter image models (modalities: image). */
+async function tryOpenRouter(apiKey, text) {
+  for (const model of OPENROUTER_IMAGE_MODELS) {
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://jasmine.dev',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: text }],
+          modalities: ['text', 'image'],
+          stream: false,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const images = data.choices?.[0]?.message?.images;
+      if (images?.length) {
+        const img = images[0];
+        if (img?.type === 'image_url' && img?.image_url?.url) {
+          const url = img.image_url.url;
+          const m = url.match(/^data:([^;]+);base64,(.+)$/);
+          if (m) return { base64: m[2], mimeType: m[1] || 'image/png' };
+        }
+      }
+    } catch (e) {
+      console.warn('[generate-image] OpenRouter', model, 'failed:', e?.message);
     }
   }
   return null;
@@ -208,6 +254,7 @@ export default async function handler(req, res) {
   if (!prompt || typeof prompt !== 'string') {
     return sendJson(res, 400, { error: 'Missing prompt' });
   }
+  const openrouterKey = (process.env.OPENROUTER_API_KEY || '').trim();
   const gatewayKey = (process.env.AI_GATEWAY_API_KEY || '').trim();
   const openaiKey = (process.env.OPENAI_API_KEY || '').trim();
   const replicateKey = (process.env.REPLICATE_API_TOKEN || '').trim();
@@ -217,7 +264,8 @@ export default async function handler(req, res) {
   const text = prompt.trim();
   let img = null;
 
-  if (gatewayKey) img = await tryGateway(gatewayKey, text);
+  if (openrouterKey) img = await tryOpenRouter(openrouterKey, text);
+  if (!img && gatewayKey) img = await tryGateway(gatewayKey, text);
   if (!img && openaiKey) img = await tryOpenAI(openaiKey, text);
   if (!img && replicateKey) img = await tryReplicate(replicateKey, text);
   if (!img && geminiKey) {
@@ -233,9 +281,9 @@ export default async function handler(req, res) {
   }
 
   // No provider configured
-  if (!gatewayKey && !openaiKey && !replicateKey && !geminiKey) {
+  if (!openrouterKey && !gatewayKey && !openaiKey && !replicateKey && !geminiKey) {
     return sendJson(res, 503, {
-      error: 'Add AI_GATEWAY_API_KEY, OPENAI_API_KEY, REPLICATE_API_TOKEN, or GEMINI_API_KEY in env.',
+      error: 'Add OPENROUTER_API_KEY, AI_GATEWAY_API_KEY, OPENAI_API_KEY, REPLICATE_API_TOKEN, or GEMINI_API_KEY in env.',
     });
   }
 
@@ -245,6 +293,6 @@ export default async function handler(req, res) {
     success: false,
     image: placeholderUrl,
     placeholder: true,
-    error: 'Image generation failed. Using placeholder. Check API keys (OpenAI, Replicate, Gemini, AI Gateway).',
+    error: 'Image generation failed. Using placeholder. Check API keys (OpenRouter, OpenAI, Replicate, Gemini, AI Gateway).',
   });
 }

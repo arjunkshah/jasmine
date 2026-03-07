@@ -20,6 +20,7 @@ function buildContextBlock(files, searchContext = null) {
 /** Ask the AI if it needs to search the web for this prompt. Returns search query or null. */
 export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '', gatewayModel = 'kimi-k2.5') {
   if (!prompt?.trim()) return null;
+  const msg = `User wants to build: "${prompt.slice(0, 200)}". Do you need to search the web for current info (trends, references, examples)? Reply with exactly SEARCH:query (one short query, e.g. "2024 web design trends") or NO_SEARCH.`;
   if (provider === 'ai-gateway') {
     try {
       const res = await fetch(`${apiBase}/api/decide-search`, {
@@ -35,8 +36,30 @@ export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '', 
       return null;
     }
   }
+  if (provider === 'openai' && apiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: msg }],
+          stream: false,
+          temperature: 0.2,
+          max_tokens: 80,
+        }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const text = (data.choices?.[0]?.message?.content || '').trim().toUpperCase();
+      const m = text.match(/SEARCH:\s*(.+)/);
+      return m ? m[1].trim().slice(0, 100) : null;
+    } catch (e) {
+      console.warn('[Jasmine] decideSearchQuery (openai) failed:', e?.message);
+      return null;
+    }
+  }
   if (!apiKey) return null;
-  const msg = `User wants to build: "${prompt.slice(0, 200)}". Do you need to search the web for current info (trends, references, examples)? Reply with exactly SEARCH:query (one short query, e.g. "2024 web design trends") or NO_SEARCH.`;
   try {
     if (provider === 'groq') {
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -90,7 +113,11 @@ export async function webSearch(query, apiBase = '') {
   throw new Error(data?.error || 'Web search failed');
 }
 
-export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
+/** Groq model IDs: Kimi = moonshotai/kimi-k2-instruct-0905, Gemini (stand-in) = llama-3.3-70b-versatile */
+export const GROQ_MODEL_KIMI = 'moonshotai/kimi-k2-instruct-0905';
+export const GROQ_MODEL_GEMINI = 'llama-3.3-70b-versatile';
+
+export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT, model = GROQ_MODEL_KIMI) {
   const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
@@ -101,7 +128,7 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'moonshotai/kimi-k2-instruct-0905',
+      model: model || GROQ_MODEL_KIMI,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
@@ -120,14 +147,14 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
   return streamResponse(response, onChunk);
 }
 
-export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
+export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT, model = GROQ_MODEL_KIMI) {
   const contextBlock = buildContextBlock(contextFiles);
   const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'moonshotai/kimi-k2-instruct-0905',
+      model: model || GROQ_MODEL_KIMI,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },
@@ -214,6 +241,68 @@ export async function generateWithGateway(apiBase, modelId, prompt, onChunk, con
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error || `AI Gateway error: ${response.status}`);
+  }
+
+  return streamResponse(response, onChunk);
+}
+
+/** Generate via OpenAI API (gpt-4o, etc.). Uses VITE_OPENAI_API_KEY. */
+export async function generateWithOpenAI(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
+  const contextBlock = buildContextBlock(contextFiles, searchContext);
+  const userContent = enhanceUserPrompt(prompt) + contextBlock;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent },
+      ],
+      stream: true,
+      temperature: 0.5,
+      max_tokens: 16384,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `OpenAI API error: ${response.status}`);
+  }
+
+  return streamResponse(response, onChunk);
+}
+
+/** Edit via OpenAI API. */
+export async function editWithOpenAI(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
+  const contextBlock = buildContextBlock(contextFiles);
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt },
+      ],
+      stream: true,
+      temperature: 0.5,
+      max_tokens: 16384,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `OpenAI API error: ${response.status}`);
   }
 
   return streamResponse(response, onChunk);
@@ -604,8 +693,8 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
     }
   }
 
-  // When primary is gemini, use ai-gateway for fix (no groq). When primary is ai-gateway, handled above.
-  if (primaryProvider === 'gemini') {
+  // When primary is openai or gemini, use ai-gateway for fix (kimi).
+  if (primaryProvider === 'openai' || primaryProvider === 'gemini') {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000);
