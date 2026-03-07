@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { generateWithGroq, generateWithGemini, generateWithGateway, editWithGroq, editWithGemini, editWithGateway, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery, getHtmlPreviewContent, projectToRaw } from './api';
 import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import BlogPage from './BlogPage';
-import AdminDashboard from './components/AdminDashboard';
 import FileExplorer from './FileExplorer';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import AuthPage from './components/AuthPage';
@@ -16,6 +16,140 @@ import { useAuth } from './contexts/AuthContext';
 import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
 import { trackGeneration, trackEdit, trackDeploy } from './lib/analytics';
 import { fetchApiCompressed } from './lib/compress-api';
+
+const EASE = [0.22, 1, 0.36, 1];
+
+function AttachedFilesSection({ contextFiles, setContextFiles, fileInputRef, isLight, borderCl, compact = false }) {
+  const fileChipCl = isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10';
+  const attachBtnCl = isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]';
+
+  if (compact) {
+    return (
+      <AnimatePresence mode="wait">
+        {contextFiles.length > 0 ? (
+          <motion.div
+            key="files"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: EASE }}
+            className="overflow-hidden mb-2"
+          >
+            <div className="flex flex-wrap gap-2">
+              {contextFiles.map((f, i) => (
+                <motion.span
+                  key={`${f.name}-${i}`}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${fileChipCl}`}
+                >
+                  <i className="ph ph-file-text text-[10px]" />
+                  <span className="truncate max-w-[120px]">{f.name}</span>
+                  <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors">
+                    <i className="ph ph-x text-[10px]" />
+                  </button>
+                </motion.span>
+              ))}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-xl border ${borderCl} p-4 mb-4`}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Context files</span>
+        <motion.button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${attachBtnCl}`}
+          title="Attach files (txt, md, json)"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <i className="ph ph-paperclip" />
+          Attach
+        </motion.button>
+      </div>
+      <AnimatePresence mode="popLayout">
+        {contextFiles.length === 0 ? (
+          <motion.p
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-xs text-text-muted"
+          >
+            No files attached. Click Attach to add context for the AI.
+          </motion.p>
+        ) : (
+          <motion.div
+            key="files"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-wrap gap-2"
+          >
+            {contextFiles.map((f, i) => (
+              <motion.span
+                key={`${f.name}-${i}`}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs ${fileChipCl}`}
+              >
+                <i className="ph ph-file-text" />
+                <span className="truncate max-w-[140px]">{f.name}</span>
+                <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors ml-0.5">
+                  <i className="ph ph-x text-sm" />
+                </button>
+              </motion.span>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function HtmlModeToggle({ htmlMode, setHtmlMode, isLight }) {
+  const activeCl = 'text-white';
+  const inactiveCl = 'text-text-muted hover:text-text-secondary';
+
+  return (
+    <div className="relative flex items-center rounded-lg border border-[var(--color-border-default)] p-0.5">
+      <motion.div
+        className={`absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-4px)] rounded-md ${isLight ? 'bg-[var(--color-text-primary)]' : 'bg-white'}`}
+        animate={{ x: htmlMode ? '100%' : 0 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      />
+      <button
+        type="button"
+        onClick={() => setHtmlMode(false)}
+        className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${!htmlMode ? activeCl : inactiveCl}`}
+        title="Vite + React — full project"
+      >
+        Vite + React
+      </button>
+      <button
+        type="button"
+        onClick={() => setHtmlMode(true)}
+        className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${htmlMode ? activeCl : inactiveCl}`}
+        title="HTML — single file, instant"
+      >
+        HTML
+      </button>
+    </div>
+  );
+}
 
 async function parseJsonResponse(res) {
   const text = await res.text();
@@ -263,6 +397,7 @@ function AppBody({
   generatedHTML,
   textareaRef,
   chatEndRef,
+  scrollChatToEnd,
   generate,
   handleKeyDown,
   sendChatMessage,
@@ -290,7 +425,6 @@ function AppBody({
   firebaseConfigured,
   onStartDesigning,
   onSelectPrompt,
-  onShowAdmin,
 }) {
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
@@ -301,7 +435,7 @@ function AppBody({
       ? `px-3 py-2 rounded-lg text-sm border ${borderCl} ${isLight ? 'bg-white text-text-primary' : 'bg-white/[0.04] text-text-primary'}`
       : 'px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary transition-colors'
   );
-  const marketingView = activePage !== 'designer' && activePage !== 'admin';
+  const marketingView = activePage !== 'designer';
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -359,11 +493,6 @@ function AppBody({
               <button onClick={onShowBlog} className={navCl('blog')}>
                 blog
               </button>
-              {onShowAdmin && (
-                <button onClick={onShowAdmin} className={navCl('admin')}>
-                  admin
-                </button>
-              )}
             </div>
           </div>
 
@@ -401,12 +530,6 @@ function AppBody({
                     <i className="ph ph-caret-down text-xs"></i>
                   </button>
                   <div className={`absolute right-0 top-full mt-1 py-1 rounded-lg border ${borderCl} ${isLight ? 'bg-white' : 'bg-surface-raised'} shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all min-w-[140px]`}>
-                    {onShowAdmin && (
-                      <button onClick={onShowAdmin} className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.04] flex items-center gap-2">
-                        <i className="ph ph-gear-six"></i>
-                        Admin
-                      </button>
-                    )}
                     <button onClick={onSignOut} className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.04] flex items-center gap-2">
                       <i className="ph ph-sign-out"></i>
                       Sign out
@@ -424,9 +547,7 @@ function AppBody({
       </header>
 
       <div className="flex-1 flex min-h-0 min-w-0">
-        {activePage === 'admin' ? (
-          <AdminDashboard theme={theme} onBack={() => setPage('home')} />
-        ) : marketingView ? (
+        {marketingView ? (
           activePage === 'blog' ? (
             <BlogPage
               onStartDesigning={onStartDesigning}
@@ -487,28 +608,25 @@ function AppBody({
                       <div ref={chatEndRef} />
                     </div>
                     <div className={`flex-none p-4 border-t ${borderCl}`}>
-                      {contextFiles.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {contextFiles.map((f, i) => (
-                            <span key={i} className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary'}`}>
-                              <i className="ph ph-file-text"></i>
-                              {f.name}
-                              <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary">
-                                <i className="ph ph-x text-sm"></i>
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                    )}
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`p-2.5 rounded-xl border ${borderCl} ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.04]'}`}
-                        title="Attach files as context"
-                      >
-                        <i className="ph ph-paperclip"></i>
-                      </button>
+                      <AttachedFilesSection
+                        contextFiles={contextFiles}
+                        setContextFiles={setContextFiles}
+                        fileInputRef={fileInputRef}
+                        isLight={isLight}
+                        borderCl={borderCl}
+                        compact
+                      />
+                    <div className="flex gap-2 mt-2">
+                    <motion.button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`p-2.5 rounded-xl border ${borderCl} ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.04]'}`}
+                      title="Attach files as context"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <i className="ph ph-paperclip"></i>
+                    </motion.button>
                       <input
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
@@ -518,9 +636,15 @@ function AppBody({
                         disabled={isEditing}
                         onFocus={scrollChatToEnd}
                       />
-                      <button onClick={sendChatMessage} disabled={!chatInput.trim() || isEditing} className="btn-premium px-6 py-2.5 text-sm disabled:opacity-40">
+                      <motion.button
+                        onClick={sendChatMessage}
+                        disabled={!chatInput.trim() || isEditing}
+                        className="btn-premium px-6 py-2.5 text-sm disabled:opacity-40"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
                         <i className="ph ph-paper-plane-tilt"></i>
-                      </button>
+                      </motion.button>
                     </div>
                   </div>
                   </>
@@ -553,6 +677,13 @@ function AppBody({
                         ) : null}
                   </div>
                 )}
+                    <AttachedFilesSection
+                      contextFiles={contextFiles}
+                      setContextFiles={setContextFiles}
+                      fileInputRef={fileInputRef}
+                      isLight={isLight}
+                      borderCl={borderCl}
+                    />
                     <div className="prompt-container overflow-hidden rounded-xl">
                     <textarea
                       ref={textareaRef}
@@ -563,30 +694,8 @@ function AppBody({
                       rows={4}
                       className="w-full px-5 py-4 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none leading-[1.5] tracking-[-0.01em]"
                     />
-                    {contextFiles.length > 0 && (
-                      <div className={`px-4 py-2 border-t ${borderCl} flex flex-wrap gap-2`}>
-                        {contextFiles.map((f, i) => (
-                          <span key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary'}`}>
-                            <i className="ph ph-file-text"></i>
-                            {f.name}
-                            <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary">
-                              <i className="ph ph-x text-sm"></i>
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
                     <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                       <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]'}`}
-                          title="Attach files as context for the AI (txt, md, json, etc.)"
-                        >
-                          <i className="ph ph-paperclip"></i>
-                          Attach
-                        </button>
                         <select
                           value={provider === 'gemini' ? 'gemini' : gatewayModel}
                           onChange={(e) => {
@@ -609,11 +718,13 @@ function AppBody({
                           {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                         </span>
                       </div>
-                      <button
+                      <motion.button
                         type="button"
                         onClick={firebaseConfigured && !user ? onSignInClick : generate}
                         disabled={isGenerating}
                         className="btn-premium flex items-center gap-2 px-8 py-3 text-[#0a0a0b] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none"
+                        whileHover={!isGenerating ? { scale: 1.02 } : {}}
+                        whileTap={!isGenerating ? { scale: 0.98 } : {}}
                       >
                         {isGenerating ? (
                           <>
@@ -631,7 +742,7 @@ function AppBody({
                             <span>Generate</span>
                           </>
                         )}
-                      </button>
+                      </motion.button>
                     </div>
                     </div>
                   </div>
@@ -691,28 +802,37 @@ function AppBody({
             <Panel defaultSize="50" minSize="25" maxSize="65" className="flex flex-col min-w-0 overflow-hidden">
               <div className="flex-1 flex flex-col min-w-0">
                 <div className={`flex-none flex items-center justify-between px-5 h-14 border-b ${borderCl} bg-surface-raised/80 backdrop-blur-xl`}>
-                  <div className="flex gap-1">
-                    <button
+                  <div className="relative flex gap-1">
+                    <motion.button
                       onClick={() => setRightTab('files')}
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${rightTab === 'files' ? 'bg-surface-overlay text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
+                      className={`relative z-10 flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${rightTab === 'files' ? 'text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
                       <i className="ph ph-folder"></i>
                       <BlurPopUpByWord text="Files" wordDelay={0.02} />
-                    </button>
-                    <button
+                    </motion.button>
+                    <motion.button
                       onClick={() => setRightTab('preview')}
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${rightTab === 'preview' ? 'bg-surface-overlay text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
+                      className={`relative z-10 flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${rightTab === 'preview' ? 'text-text-primary' : `text-text-muted hover:text-text-secondary ${ghostCl}`}`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                     >
                       <i className="ph ph-eye"></i>
                       <BlurPopUpByWord text="Preview" wordDelay={0.02} />
-                    </button>
+                    </motion.button>
+                    <motion.div
+                      className={`absolute bottom-1.5 top-1.5 rounded-lg -z-0 ${isLight ? 'bg-neutral-200/80' : 'bg-surface-overlay'}`}
+                      initial={false}
+                      animate={{
+                        left: rightTab === 'files' ? 4 : '50%',
+                        width: 'calc(50% - 6px)',
+                      }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
                   </div>
                   <div className="flex items-center gap-2">
-                    {htmlMode ? (
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-text-muted)] px-2 py-1 rounded bg-[var(--color-surface-overlay)]">HTML</span>
-                    ) : (
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-text-muted)] px-2 py-1 rounded bg-[var(--color-surface-overlay)]">Vite + React</span>
-                    )}
+                    <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} />
                     {deployUrl && !htmlMode && (
                       <a href={deployUrl} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Open preview">
                         <i className="ph ph-eye text-lg"></i>
@@ -740,23 +860,46 @@ function AppBody({
                   </div>
                   </div>
 
-                <div className={`flex-1 relative min-h-0 ${isLight ? 'bg-[#fffaf0]' : 'bg-surface-raised'}`}>
+                <div className={`flex-1 relative min-h-0 overflow-hidden ${isLight ? 'bg-[#fffaf0]' : 'bg-surface-raised'}`}>
 
+                  <AnimatePresence mode="wait">
                   {rightTab === 'files' && (
-                    <div className="absolute inset-0">
+                    <motion.div
+                      key="files"
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 8 }}
+                      transition={{ duration: 0.2, ease: EASE }}
+                      className="absolute inset-0"
+                    >
                       <FileExplorer
                         files={generatedProject?.files}
                         streamingRaw={streamingRaw || generatedHTML}
                         isStreaming={isGenerating || isEditing}
                         theme={theme}
                       />
-                    </div>
+                    </motion.div>
                   )}
 
                   {rightTab === 'preview' && (
-                    <div className="absolute inset-0 flex flex-col overflow-hidden">
+                    <motion.div
+                      key="preview"
+                      initial={{ opacity: 0, x: 8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -8 }}
+                      transition={{ duration: 0.2, ease: EASE }}
+                      className="absolute inset-0 flex flex-col overflow-hidden"
+                    >
+                      <AnimatePresence mode="wait">
                       {htmlMode && getHtmlPreviewContent(generatedProject) ? (
-                        <>
+                        <motion.div
+                          key="html-preview"
+                          initial={{ opacity: 0, x: 16 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -16 }}
+                          transition={{ duration: 0.25, ease: EASE }}
+                          className="flex-1 flex flex-col min-h-0"
+                        >
                           <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2`}>
                             <span className="text-xs text-text-muted">HTML preview (instant)</span>
                             <button
@@ -774,9 +917,16 @@ function AppBody({
                             className="flex-1 w-full min-h-0 border-0 bg-white"
                             sandbox="allow-scripts allow-same-origin"
                           />
-                        </>
+                        </motion.div>
                       ) : deployUrl ? (
-                        <>
+                        <motion.div
+                          key="vite-preview"
+                          initial={{ opacity: 0, x: 16 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -16 }}
+                          transition={{ duration: 0.25, ease: EASE }}
+                          className="flex-1 flex flex-col min-h-0"
+                        >
                           <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2`}>
                             <span className="text-xs text-text-muted">Live preview</span>
                             <div className="flex items-center gap-2">
@@ -799,9 +949,16 @@ function AppBody({
                             className="flex-1 w-full min-h-0 border-0 bg-white"
                             sandbox="allow-scripts allow-same-origin"
                           />
-                        </>
+                        </motion.div>
                       ) : generatedProject?.files && !htmlMode ? (
-                        <div className="flex-1 flex items-center justify-center p-8">
+                        <motion.div
+                          key="sandbox-wait"
+                          initial={{ opacity: 0, x: 16 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -16 }}
+                          transition={{ duration: 0.25, ease: EASE }}
+                          className="flex-1 flex items-center justify-center p-8"
+                        >
                           <div className="text-center max-w-md">
                             <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
                             <p className="text-text-primary font-semibold mb-2">Project generated</p>
@@ -810,17 +967,26 @@ function AppBody({
                             </p>
                             <p className="text-xs text-text-muted">{Object.keys(generatedProject.files).length} files</p>
                           </div>
-                        </div>
+                        </motion.div>
                       ) : (
-                        <div className="flex-1 flex items-center justify-center text-text-muted">
+                        <motion.div
+                          key="empty"
+                          initial={{ opacity: 0, x: 16 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -16 }}
+                          transition={{ duration: 0.25, ease: EASE }}
+                          className="flex-1 flex items-center justify-center text-text-muted"
+                        >
                           <div className="text-center">
                             <p className="mb-2">{(isGenerating || isEditing) ? 'Generating...' : 'No project yet.'}</p>
                             <p className="text-sm">Switch to Files to see code.</p>
                           </div>
-                      </div>
+                        </motion.div>
                     )}
-                    </div>
+                      </AnimatePresence>
+                    </motion.div>
                   )}
+                  </AnimatePresence>
                 </div>
               </div>
             </Panel>
@@ -856,6 +1022,13 @@ function AppBody({
                     ) : null}
                   </div>
                 )}
+                <AttachedFilesSection
+                  contextFiles={contextFiles}
+                  setContextFiles={setContextFiles}
+                  fileInputRef={fileInputRef}
+                  isLight={isLight}
+                  borderCl={borderCl}
+                />
                 <div className="prompt-container overflow-hidden rounded-xl">
                 <textarea
                   ref={textareaRef}
@@ -866,48 +1039,9 @@ function AppBody({
                   rows={4}
                   className="w-full px-5 py-4 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none leading-[1.5] tracking-[-0.01em]"
                 />
-                {contextFiles.length > 0 && (
-                  <div className={`px-4 py-2 border-t ${borderCl} flex flex-wrap gap-2`}>
-                    {contextFiles.map((f, i) => (
-                      <span key={`f-${i}`} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary'}`}>
-                        <i className="ph ph-file-text"></i>
-                        {f.name}
-                        <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary">
-                          <i className="ph ph-x text-sm"></i>
-                        </button>
-                      </span>
-                        ))}
-                      </div>
-                    )}
                 <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                   <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]'}`}
-                      title="Attach files as context for the AI (txt, md, json, etc.)"
-                    >
-                      <i className="ph ph-paperclip"></i>
-                      Attach
-                        </button>
-                    <div className="flex items-center gap-1 rounded-lg border border-[var(--color-border-default)] p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setHtmlMode(false)}
-                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${!htmlMode ? 'bg-[var(--color-text-primary)] text-white' : 'text-text-muted hover:text-text-secondary'}`}
-                        title="Vite + React — full project with sandbox preview"
-                      >
-                        Vite + React
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setHtmlMode(true)}
-                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${htmlMode ? 'bg-[var(--color-text-primary)] text-white' : 'text-text-muted hover:text-text-secondary'}`}
-                        title="HTML — single file, instant preview, no build"
-                      >
-                        HTML
-                      </button>
-                    </div>
+                    <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} />
                     <select
                       value={provider === 'gemini' ? 'gemini' : gatewayModel}
                       onChange={(e) => {
@@ -930,11 +1064,13 @@ function AppBody({
                       {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                     </span>
                   </div>
-                  <button
+                  <motion.button
                     type="button"
                     onClick={firebaseConfigured && !user ? onSignInClick : generate}
                     disabled={isGenerating}
                     className="btn-premium flex items-center gap-2 px-8 py-3 text-[#0a0a0b] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none"
+                    whileHover={!isGenerating ? { scale: 1.02 } : {}}
+                    whileTap={!isGenerating ? { scale: 0.98 } : {}}
                   >
                     {isGenerating ? (
                       <>
@@ -952,7 +1088,7 @@ function AppBody({
                         <span>Generate</span>
                       </>
                     )}
-                  </button>
+                  </motion.button>
                   </div>
                 </div>
                         </div>
@@ -1039,7 +1175,7 @@ function App() {
   const [streamingRaw, setStreamingRaw] = useState('');
   const [activePage, setActivePage] = useState(() => {
     const stored = localStorage.getItem('jasmine_active_page');
-    return stored === 'blog' || stored === 'designer' || stored === 'admin' ? stored : 'home';
+    return stored === 'blog' || stored === 'designer' ? stored : 'home';
   });
   const [showLanding, setShowLanding] = useState(() => activePage !== 'designer');
   const [theme, setTheme] = useState(() => localStorage.getItem('jasmine_theme') || 'light');
@@ -1068,6 +1204,7 @@ function App() {
   const fileInputRef = useRef(null);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
+  const scrollChatToEnd = useCallback(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
@@ -1160,13 +1297,12 @@ function App() {
 
   const setPage = useCallback((page) => {
     setActivePage(page);
-    setShowLanding(page !== 'designer' && page !== 'admin');
+    setShowLanding(page !== 'designer');
     localStorage.setItem('jasmine_active_page', page);
   }, []);
 
   useEffect(() => {
     const onHash = () => {
-      if (window.location.hash === '#admin') setPage('admin');
     };
     onHash();
     window.addEventListener('hashchange', onHash);
@@ -1915,6 +2051,7 @@ function App() {
     generatedHTML,
     textareaRef,
     chatEndRef,
+    scrollChatToEnd,
     generate,
     handleKeyDown,
     sendChatMessage,
@@ -1939,7 +2076,6 @@ function App() {
     firebaseConfigured,
     onStartDesigning: handleStartDesigning,
     onSelectPrompt: handleSelectPrompt,
-    onShowAdmin: () => setPage('admin'),
     htmlMode,
     setHtmlMode,
   };

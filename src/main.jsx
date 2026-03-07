@@ -3,11 +3,22 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { AuthProvider } from './contexts/AuthContext'
 import App from './App.jsx'
+import AdminPage, { isAdminRoute } from './AdminPage.jsx'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  </StrictMode>,
-)
+const root = createRoot(document.getElementById('root'));
+
+if (isAdminRoute()) {
+  root.render(
+    <StrictMode>
+      <AdminPage />
+    </StrictMode>,
+  );
+} else {
+  root.render(
+    <StrictMode>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </StrictMode>,
+  );
+}
