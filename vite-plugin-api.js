@@ -41,15 +41,7 @@ export function apiPlugin() {
     sendJson(res, { ok: true, e2bConfigured: !err, e2bError: err?.error || null });
   });
   api.get('/ping', (req, res) => sendJson(res, { ok: true, message: 'API works' }));
-  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/ai', '/api/generate-image', '/api/web-search', '/api/github/push', '/api/health', '/api/deploy'] }));
-  api.get('/test/diagnose', async (req, res) => {
-    const h = (await import('./api/test/diagnose.js')).default;
-    return h(req, res);
-  });
-  api.post('/test/sandbox-flow', async (req, res) => {
-    const h = (await import('./api/test/sandbox-flow.js')).default;
-    return h(req, res);
-  });
+  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/ai', '/api/generate-image', '/api/web-search', '/api/github/push', '/api/health', '/api/deploy', '/api/tasks', '/api/admin/projects'] }));
   api.all('/tasks', async (req, res) => {
     const h = (await import('./api/tasks.js')).default;
     return h(req, res);
