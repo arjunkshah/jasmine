@@ -259,7 +259,7 @@ function BlogPage({ theme, onStartDesigning, onBackHome, onOpenPost, onBackToLis
     const related = POSTS.filter((p) => p.slug !== selectedPost.slug);
     return (
       <div className="flex-1 overflow-y-auto">
-        <section className={`${sectionCl} pt-16 pb-10 border-b ${borderCl}`}>
+    <section className={`${sectionCl} pt-16 pb-10 border-b ${borderCl}`}>
           <div className={`${maxW} space-y-5`}>
             <button onClick={onBackToList} className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text-primary">
               <i className="ph ph-arrow-left"></i>
@@ -298,7 +298,7 @@ function BlogPage({ theme, onStartDesigning, onBackHome, onOpenPost, onBackToLis
                 <i className="ph ph-magic-wand"></i>
                 build with jasmine
               </button>
-              <button onClick={onBackHome} className={`${cardCl} px-5 py-2.5 rounded-lg text-sm font-medium text-text-primary flex items-center gap-2`}>
+              <button onClick={onBackHome} className="px-5 py-2.5 rounded-lg text-sm font-medium text-text-primary border border-transparent hover:border-[var(--color-border-default)]">
                 <i className="ph ph-arrow-left"></i>
                 back to overview
               </button>
@@ -307,9 +307,9 @@ function BlogPage({ theme, onStartDesigning, onBackHome, onOpenPost, onBackToLis
         </section>
 
         <section className={`${sectionCl} py-12`}>
-          <div className={`${maxW} space-y-6`}>
+          <div className={`${maxW} space-y-10`}>
             {selectedPost.content?.map((section, i) => (
-              <div key={`${selectedPost.slug}-${i}`} className={`${cardCl} p-6 md:p-8 rounded-2xl space-y-3`}>
+              <div key={`${selectedPost.slug}-${i}`} className="space-y-3">
                 {section.heading ? <h3 className="text-lg md:text-xl font-semibold text-text-primary">{section.heading}</h3> : null}
                 {section.body ? <p className="text-sm md:text-base leading-relaxed text-text-secondary">{section.body}</p> : null}
                 {section.bullets ? (

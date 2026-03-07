@@ -76,22 +76,23 @@ function AttachedFilesSection({ contextFiles, setContextFiles, isLight }) {
 }
 
 function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
-  const activeCl = isLight ? 'text-white' : 'text-neutral-900';
-  const inactiveCl = 'text-text-muted hover:text-text-secondary';
-  const pillBg = isLight ? 'bg-[var(--color-text-primary)]' : 'bg-neutral-200';
+  const trackCl = isLight ? 'bg-neutral-200' : 'bg-white/10';
+  const thumbCl = isLight ? 'bg-white shadow-sm' : 'bg-neutral-700';
+  const activeTextCl = isLight ? 'text-neutral-900' : 'text-white';
+  const inactiveTextCl = 'text-text-muted';
 
   return (
-    <div className={`relative flex items-center rounded-lg border border-[var(--color-border-default)] overflow-hidden h-7 min-w-[11rem] shrink-0 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+    <div className={`relative flex rounded-full p-0.5 ${trackCl} h-7 min-w-[10rem] shrink-0 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
       <motion.div
-        className={`absolute inset-y-0 left-0 w-1/2 rounded-[6px] ${pillBg}`}
-        animate={{ x: htmlMode ? '100%' : 0 }}
+        className={`absolute left-0.5 top-0.5 bottom-0.5 w-[calc(50%-4px)] rounded-full ${thumbCl}`}
+        animate={{ x: htmlMode ? 'calc(100% + 4px)' : 0 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       />
       <button
         type="button"
         onClick={() => setHtmlMode(false)}
         disabled={disabled}
-        className={`relative z-10 flex-1 min-w-0 px-4 py-1 text-xs font-medium rounded-md transition-colors h-full flex items-center justify-center whitespace-nowrap ${!htmlMode ? activeCl : inactiveCl}`}
+        className={`relative z-10 flex-1 min-w-0 px-3 py-1 text-xs font-medium h-full flex items-center justify-center rounded-full transition-colors ${!htmlMode ? activeTextCl : inactiveTextCl}`}
         title="Vite + React — full project"
       >
         Vite + React
@@ -100,7 +101,7 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
         type="button"
         onClick={() => setHtmlMode(true)}
         disabled={disabled}
-        className={`relative z-10 flex-1 min-w-0 px-4 py-1 text-xs font-medium rounded-md transition-colors h-full flex items-center justify-center whitespace-nowrap ${htmlMode ? activeCl : inactiveCl}`}
+        className={`relative z-10 flex-1 min-w-0 px-3 py-1 text-xs font-medium h-full flex items-center justify-center rounded-full transition-colors ${htmlMode ? activeTextCl : inactiveTextCl}`}
         title="HTML — single file, instant"
       >
         HTML
