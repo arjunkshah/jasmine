@@ -908,16 +908,9 @@ function AppBody({
                             </p>
                             <p className="text-xs text-text-muted">{Object.keys(generatedProject.files).length} files</p>
                           </div>
-                        </motion.div>
+                        </div>
                       ) : (
-                        <motion.div
-                          key="empty"
-                          initial={{ opacity: 0, x: 16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -16 }}
-                          transition={{ duration: 0.25, ease: EASE }}
-                          className="flex-1 flex items-center justify-center text-text-muted"
-                        >
+                        <div className="flex-1 flex items-center justify-center text-text-muted">
                           <div className="text-center">
                             <p className="mb-2">{(isGenerating || isEditing) ? 'Generating...' : 'No project yet.'}</p>
                             <p className="text-sm">Switch to Files to see code.</p>
