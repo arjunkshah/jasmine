@@ -17,7 +17,7 @@
   font-display: swap;
 }
 
-/* OpenNote design system */
+/* OpenNote design system — dark default, light override */
 @theme {
   --color-jasmine-50: #fefce8;
   --color-jasmine-100: #fef9c3;
@@ -25,16 +25,16 @@
   --color-jasmine-300: #fde047;
   --color-jasmine-400: #facc15;
   --color-jasmine-500: #eab308;
-  --color-surface: #F9F8F6;
-  --color-surface-raised: #ffffff;
-  --color-surface-overlay: #f5f4f2;
-  --color-border-subtle: #e8e6e3;
-  --color-border-default: #d4d2ce;
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #333333;
-  --color-text-muted: #666666;
-  --color-accent: #1A1A1A;
-  --color-accent-hover: #333333;
+  --color-surface: #0f0f0f;
+  --color-surface-raised: #1a1a1a;
+  --color-surface-overlay: #262626;
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-default: rgba(255, 255, 255, 0.1);
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #737373;
+  --color-accent: #fafafa;
+  --color-accent-hover: #e5e5e5;
   --color-footer: #FCCD4F;
   --color-pastel-blue: #B0E0E6;
   --color-pastel-yellow: #FFF9C4;
@@ -66,6 +66,7 @@ html.light {
   --color-text-secondary: #333333;
   --color-text-muted: #666666;
   --color-accent: #1A1A1A;
+  --color-accent-hover: #333333;
 }
 
 * {
@@ -148,7 +149,7 @@ input, textarea, [contenteditable] {
 
 /* Prompt container — OpenNote: clean */
 .prompt-container {
-  background: #ffffff;
+  background: var(--color-surface-raised);
   border: 1px solid var(--color-border-default);
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -220,7 +221,7 @@ html.light .prompt-container:focus-within {
 
 .btn-ghost:hover {
   background: var(--color-surface-overlay);
-  border-color: #a3a3a3;
+  border-color: var(--color-border-default);
   transform: translateY(-1px);
 }
 
