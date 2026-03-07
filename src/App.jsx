@@ -19,9 +19,33 @@ import { fetchApiCompressed } from './lib/compress-api';
 
 const EASE = [0.22, 1, 0.36, 1];
 
-function AttachedFilesSection({ contextFiles, setContextFiles, isLight }) {
-  const fileChipCl = isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10';
+function FilePreviewChip({ f, i, onRemove, isLight, compact }) {
+  const chipCl = isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10';
+  const isImage = f.type === 'image' && f.dataUrl;
+  const thumbSize = compact ? 'w-8 h-8' : 'w-12 h-12';
 
+  return (
+    <motion.span
+      key={`${f.name}-${i}`}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      className={`inline-flex items-center gap-2 rounded-lg overflow-hidden ${compact ? 'px-2 py-1' : 'px-2 py-1.5'} ${chipCl}`}
+    >
+      {isImage ? (
+        <img src={f.dataUrl} alt="" className={`${thumbSize} object-cover rounded flex-shrink-0`} />
+      ) : (
+        <i className={`ph ${f.type === 'binary' ? 'ph-file' : 'ph-file-text'} ${compact ? 'text-[10px]' : 'text-sm'} flex-shrink-0`} />
+      )}
+      <span className={`truncate ${compact ? 'max-w-[120px] text-xs' : 'max-w-[140px] text-sm'}`}>{f.name}</span>
+      <button type="button" onClick={() => onRemove(i)} className="hover:text-text-primary transition-colors flex-shrink-0">
+        <i className={`ph ph-x ${compact ? 'text-[10px]' : 'text-sm'}`} />
+      </button>
+    </motion.span>
+  );
+}
+
+function AttachedFilesSection({ contextFiles, setContextFiles, isLight }) {
   return (
     <AnimatePresence mode="wait">
       {contextFiles.length > 0 ? (
@@ -35,19 +59,14 @@ function AttachedFilesSection({ contextFiles, setContextFiles, isLight }) {
         >
           <div className="flex flex-wrap gap-2">
             {contextFiles.map((f, i) => (
-              <motion.span
+              <FilePreviewChip
                 key={`${f.name}-${i}`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${fileChipCl}`}
-              >
-                <i className="ph ph-file-text text-[10px]" />
-                <span className="truncate max-w-[120px]">{f.name}</span>
-                <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors">
-                  <i className="ph ph-x text-[10px]" />
-                </button>
-              </motion.span>
+                f={f}
+                i={i}
+                onRemove={(idx) => setContextFiles((prev) => prev.filter((_, j) => j !== idx))}
+                isLight={isLight}
+                compact
+              />
             ))}
           </div>
         </motion.div>
@@ -62,9 +81,9 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
   const pillBg = isLight ? 'bg-[var(--color-text-primary)]' : 'bg-neutral-200';
 
   return (
-    <div className={`relative flex items-center rounded-lg border border-[var(--color-border-default)] p-0.5 h-7 min-w-[11rem] shrink-0 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+    <div className={`relative flex items-center rounded-lg border border-[var(--color-border-default)] overflow-hidden h-7 min-w-[11rem] shrink-0 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
       <motion.div
-        className={`absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-4px)] rounded-md ${pillBg}`}
+        className={`absolute inset-y-0 left-0 w-1/2 rounded-[6px] ${pillBg}`}
         animate={{ x: htmlMode ? '100%' : 0 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       />
@@ -401,18 +420,30 @@ function AppBody({
   );
   const marketingView = activePage !== 'designer';
 
+  const IMAGE_EXT = /\.(png|jpg|jpeg|webp|gif)$/i;
+  const BINARY_EXT = /\.(docx|pdf)$/i;
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
     const read = (f) => new Promise((resolve) => {
-      if (f.size > 100 * 1024) return resolve(null);
-      const r = new FileReader();
-      r.onload = () => resolve({ name: f.name, content: r.result });
-      r.readAsText(f);
+      if (f.size > 2 * 1024 * 1024) return resolve(null); // 2MB max
+      const isImage = IMAGE_EXT.test(f.name);
+      const isBinary = BINARY_EXT.test(f.name);
+      if (isImage) {
+        const r = new FileReader();
+        r.onload = () => resolve({ name: f.name, content: `[Image: ${f.name}]`, type: 'image', dataUrl: r.result });
+        r.readAsDataURL(f);
+      } else if (isBinary) {
+        resolve({ name: f.name, content: '', type: 'binary' });
+      } else {
+        const r = new FileReader();
+        r.onload = () => resolve({ name: f.name, content: typeof r.result === 'string' ? r.result : '', type: 'text' });
+        r.readAsText(f);
+      }
     });
     const results = (await Promise.all(files.map(read))).filter(Boolean);
-    setContextFiles((prev) => [...prev, ...results].slice(0, 5));
+    setContextFiles((prev) => [...prev, ...results].slice(0, 8));
   };
 
   return (
@@ -420,7 +451,7 @@ function AppBody({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".txt,.md,.json,.csv,.ts,.tsx,.js,.jsx,.css,.html,.yaml,.yml"
+        accept=".png,.jpg,.jpeg,.webp,.gif,.txt,.md,.json,.csv,.ts,.tsx,.js,.jsx,.css,.html,.yaml,.yml,.docx,.pdf"
         multiple
         className="hidden"
         onChange={handleFileSelect}
@@ -530,7 +561,10 @@ function AppBody({
             <BlogPage
               onStartDesigning={onStartDesigning}
               onBackHome={onShowHome}
-            theme={theme}
+              onOpenPost={handleOpenBlogPost}
+              onBackToList={handleBackToBlogList}
+              activeSlug={blogSlug}
+              theme={theme}
           />
         ) : (
             <LandingPage
@@ -666,19 +700,14 @@ function AppBody({
                         >
                           <div className="flex flex-wrap items-center gap-2 px-4 py-2">
                             {contextFiles.map((f, i) => (
-                              <motion.span
+                              <FilePreviewChip
                                 key={`${f.name}-${i}`}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10'}`}
-                              >
-                                <i className="ph ph-file-text text-[10px]" />
-                                <span className="truncate max-w-[120px]">{f.name}</span>
-                                <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors">
-                                  <i className="ph ph-x text-[10px]" />
-                                </button>
-                              </motion.span>
+                                f={f}
+                                i={i}
+                                onRemove={(idx) => setContextFiles((prev) => prev.filter((_, j) => j !== idx))}
+                                isLight={isLight}
+                                compact={false}
+                              />
                             ))}
                           </div>
                         </motion.div>
@@ -699,7 +728,7 @@ function AppBody({
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           className={`p-1.5 rounded-lg transition-colors ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]'}`}
-                          title="Attach files (txt, md, json)"
+                          title="Attach files (jpg, png, webp, gif, pdf, docx, md, etc.)"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
@@ -968,19 +997,14 @@ function AppBody({
                     >
                       <div className="flex flex-wrap items-center gap-2 px-4 py-2">
                         {contextFiles.map((f, i) => (
-                          <motion.span
+                          <FilePreviewChip
                             key={`${f.name}-${i}`}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10'}`}
-                          >
-                            <i className="ph ph-file-text text-[10px]" />
-                            <span className="truncate max-w-[120px]">{f.name}</span>
-                            <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary transition-colors">
-                              <i className="ph ph-x text-[10px]" />
-                            </button>
-                          </motion.span>
+                            f={f}
+                            i={i}
+                            onRemove={(idx) => setContextFiles((prev) => prev.filter((_, j) => j !== idx))}
+                            isLight={isLight}
+                            compact={false}
+                          />
                         ))}
                       </div>
                     </motion.div>
@@ -1001,7 +1025,7 @@ function AppBody({
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       className={`p-1.5 rounded-lg transition-colors ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]'}`}
-                      title="Attach files (txt, md, json)"
+                      title="Attach files (jpg, png, webp, gif, pdf, docx, md, etc.)"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -1118,6 +1142,21 @@ function App() {
   const [githubUrl, setGithubUrl] = useState(null);
   const [netlifyUrl, setNetlifyUrl] = useState(null);
   const [chatInput, setChatInput] = useState('');
+  const parseLocationToRoute = () => {
+    if (typeof window === 'undefined') return { page: 'home', slug: null };
+    const parts = (window.location.pathname || '').split('/').filter(Boolean);
+    if (parts[0] === 'blog') return { page: 'blog', slug: parts[1] || null };
+    if (parts[0] === 'build' || parts[0] === 'designer') return { page: 'designer', slug: null };
+    return { page: 'home', slug: null };
+  };
+  const getInitialRoute = () => {
+    if (typeof window === 'undefined') return { page: 'home', slug: null };
+    const fromPath = parseLocationToRoute();
+    if (fromPath.page === 'blog' || fromPath.page === 'designer' || fromPath.slug) return fromPath;
+    const stored = localStorage.getItem('jasmine_active_page');
+    return { page: stored === 'blog' || stored === 'designer' ? stored : 'home', slug: null };
+  };
+
   const [provider, setProvider] = useState(() => {
     const p = localStorage.getItem('jasmine_provider');
     return p === 'groq' ? 'ai-gateway' : (p || 'ai-gateway');
@@ -1129,10 +1168,8 @@ function App() {
   });
   const [error, setError] = useState('');
   const [streamingRaw, setStreamingRaw] = useState('');
-  const [activePage, setActivePage] = useState(() => {
-    const stored = localStorage.getItem('jasmine_active_page');
-    return stored === 'blog' || stored === 'designer' ? stored : 'home';
-  });
+  const [activePage, setActivePage] = useState(() => getInitialRoute().page);
+  const [blogSlug, setBlogSlug] = useState(() => getInitialRoute().slug);
   const [showLanding, setShowLanding] = useState(() => activePage !== 'designer');
   const [theme, setTheme] = useState(() => localStorage.getItem('jasmine_theme') || 'light');
   const [generatedProject, setGeneratedProject] = useState(null);
@@ -1218,7 +1255,7 @@ function App() {
     const wasEdit = prevGenEditRef.current.isEditing;
     prevGenEditRef.current = { isGenerating, isEditing };
     const justFinished = (wasGen && !isGenerating) || (wasEdit && !isEditing);
-    if (justFinished && sandboxId && generatedProject?.files && Object.keys(generatedProject.files).length > 0) {
+    if (justFinished && !htmlMode && sandboxId && generatedProject?.files && Object.keys(generatedProject.files).length > 0) {
       const files = { ...generatedProject.files };
       applyPackageFixes(files);
       ensurePackageDependencies(files);
@@ -1234,7 +1271,7 @@ function App() {
         }
       })();
     }
-  }, [isGenerating, isEditing, sandboxId, generatedProject]);
+  }, [isGenerating, isEditing, htmlMode, sandboxId, generatedProject]);
 
   const handleThemeToggle = () => {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
@@ -1251,19 +1288,34 @@ function App() {
     localStorage.setItem('jasmine_show_landing', String(showLanding));
   }, [showLanding]);
 
-  const setPage = useCallback((page) => {
+  const setPage = useCallback((page, options = {}) => {
+    const slug = page === 'blog' ? (options.slug || null) : null;
     setActivePage(page);
     setShowLanding(page !== 'designer');
+    setBlogSlug(slug);
     localStorage.setItem('jasmine_active_page', page);
+    if (typeof window !== 'undefined') {
+      const { search } = window.location;
+      let path = '/';
+      if (page === 'blog') path = `/blog${slug ? `/${slug}` : ''}`;
+      else if (page === 'designer') path = '/build';
+      const url = `${path}${search}`;
+      if (options.replace) window.history.replaceState(null, '', url);
+      else window.history.pushState(null, '', url);
+    }
   }, []);
 
   useEffect(() => {
-    const onHash = () => {
+    const handlePop = () => {
+      const { page, slug } = parseLocationToRoute();
+      setActivePage(page);
+      setShowLanding(page !== 'designer');
+      setBlogSlug(slug || null);
+      localStorage.setItem('jasmine_active_page', page);
     };
-    onHash();
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
-  }, [setPage]);
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []);
 
   // Fetch projects when user logs in
   const refreshProjects = useCallback(() => {
@@ -1663,6 +1715,7 @@ function App() {
               const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: currentSandboxId, files: filesToApply });
               if (updRes.ok) {
                 updated = true;
+                setPreviewRetryKey((k) => k + 1);
               } else if ((updRes.status === 504 || updRes.status === 413) && attempt < 2) {
                 console.warn('[Jasmine] sandbox/update', updRes.status, 'retrying...');
                 await new Promise((r) => setTimeout(r, 3000));
@@ -1869,7 +1922,8 @@ function App() {
                 setChatMessages((prev) => [...prev, { role: 'status', message: 'Installing dependencies', details: deps, icon: 'ph-package', detailLabel: 'packages' }]);
               }
               setChatMessages((prev) => [...prev, { role: 'status', message: 'Applying to preview', details: [`${Object.keys(mergedFiles).length} files`], icon: 'ph-upload-simple', detailLabel: 'files' }]);
-              await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files: mergedFiles });
+              const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files: mergedFiles });
+              if (updRes.ok) setPreviewRetryKey((k) => k + 1);
             } catch (e) {
               console.warn('[Jasmine] sandbox update (edit) failed:', e?.message);
             }
@@ -1938,7 +1992,9 @@ function App() {
   const inputCl = isLight ? 'bg-[#fffaf0] border-[rgba(220,211,195,0.9)] focus:border-[#379f57]' : 'input-premium';
 
   const handleShowHome = useCallback(() => setPage('home'), [setPage]);
-  const handleShowBlog = useCallback(() => setPage('blog'), [setPage]);
+  const handleShowBlog = useCallback(() => setPage('blog', { slug: null }), [setPage]);
+  const handleOpenBlogPost = useCallback((slug) => setPage('blog', { slug }), [setPage]);
+  const handleBackToBlogList = useCallback(() => setPage('blog', { slug: null }), [setPage]);
 
   const goToDesigner = useCallback(() => {
     setPage('designer');

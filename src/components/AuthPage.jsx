@@ -85,9 +85,9 @@ export default function AuthPage({ onClose, onSignIn, onSignUp, onGoogle, onSucc
       }}
     >
       {/* Left: background + testimonials */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-zinc-950">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center bg-zinc-950"
           style={{
             backgroundImage: `url('/auth-bg.png')`,
           }}

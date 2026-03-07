@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import BlurPopUpByWordInView from './components/BlurPopUpByWordInView';
@@ -29,6 +29,7 @@ const POSTS = [
         ],
       },
       { heading: 'quality bar', body: 'only publish if the hero headline, proof row, and CTA align. if any of those drift, regenerate the hero only, not the whole page.' },
+      { heading: 'pattern you can reuse', body: 'stack: headline (pain → fix), single CTA, micro proof row (logos), and a 3-card bento showing feature, outcome, and social proof. the post links the exact prompt wording so you can copy/paste it into jasmine.' },
     ],
   },
   {
@@ -51,6 +52,8 @@ const POSTS = [
         ],
       },
       { heading: 'common fixes', bullets: ['remove duplicate CTAs above the fold', 'trim copy to 45-65 chars per line on desktop', 'always set explicit widths/heights on hero art to avoid layout shift'] },
+      { heading: 'content angle that ranks', body: 'write like a strategist, not an engineer: state the audience, the pain, the proof, and the next action in 2 sentences. sprinkle intent keywords into the hero and first feature card. the article includes a 140-word starter you can edit inside jasmine.' },
+      { heading: 'shipping checklist', bullets: ['og:image + twitter:image set to 1200x630', 'meta description under 155 chars with 1 keyword', 'faq section uses <details> so it is crawlable and accessible'] },
     ],
   },
   {
@@ -73,6 +76,8 @@ const POSTS = [
         ],
       },
       { heading: 'handoff proof', body: 'we include a before/after diff from a recent production deploy to show how minimal the engineer edits were after jasmine generation.' },
+      { heading: 'tokens that matter', bullets: ['use a 4px-based spacing scale; avoid random px values', 'define font sizes + leading once, then reuse via utility classes', 'keep shadows and radii consistent; we recommend 4/8/16 radii only'] },
+      { heading: 'eng alignment', body: 'drop the exported component list into your PRD. attach the tailwind config and the set of icons used so engineers do not chase assets. the post shows the exact checklist we hand to devs.' },
     ],
   },
   {
@@ -88,6 +93,8 @@ const POSTS = [
       { heading: 'voice calibration', body: 'we start with a tone ladder (spare → warm → playful) and lock examples in the prompt. the article shows the exact ladder we use for fintech vs. creator brands.' },
       { heading: 'copy swaps', bullets: ['replace filler words ("innovative", "redefine") with proof-based verbs', 'keep button copy in first person ("start my build") for higher clickthrough', 'mirror palette language in the copy (e.g., “charcoal + amber” instead of “dark + gold”)'] },
       { heading: 'jasmine workflow', body: 'drop your brand blurb into the context drawer, run the “voice-locked” preset, and only accept outputs where the CTA and proof lines match the ladder tone.' },
+      { heading: 'microcopy examples', body: 'cta: "start my build" instead of "get started"; proof: "trusted by 180 teams" instead of "trusted worldwide"; navigation: keep nouns consistent ("pricing" not "plans"). the article includes the exact swaps for sass, fintech, and creator brands.' },
+      { heading: 'guardrails', bullets: ['ban generic adjectives in the prompt', 'limit button verbs to 3 options', 'force a supporting subhead that mirrors the headline verb to keep tone tight'] },
     ],
   },
   {
@@ -103,6 +110,8 @@ const POSTS = [
       { heading: 'motion scorecard', body: 'ships with 3 rules: 120–180ms micro motions, stagger in batches of 3, and mobile-first easing. the post includes the framer-motion snippets we use here.' },
       { heading: 'keep it purposeful', bullets: ['use blur-reveal for headlines only; cards get a subtle y-offset', 'disable parallax on mobile — rely on opacity + scale instead', 'cap simultaneous animations to 6 elements to avoid jank in previews'] },
       { heading: 'try it', body: 'toggle “premium motion” in jasmine, then export to see the exact variants that match our production stack.' },
+      { heading: 'performance tips', bullets: ['prefer transform + opacity instead of box-shadow animations', 'set will-change on hero elements only during entrance', 'use reduced motion media queries — the post shows the snippet we ship'] },
+      { heading: 'case study', body: 'a fintech hero went from 1.4s to 0.9s TTI after we removed parallax on mobile and simplified stagger. gifs + code are in the article so you can mirror the setup.' },
     ],
   },
   {
@@ -118,6 +127,8 @@ const POSTS = [
       { heading: 'timeline', body: '20 seconds to outline, 40 to preview, 2 minutes to ship. this walkthrough uses a real founder request from feb 2026 so you can mirror the prompts.' },
       { heading: 'steps', bullets: ['drop research notes into the context panel first', 'run the “full funnel” prompt for section order + seo snippets', 'apply edits via chat for pricing/faq tweaks, then download the zip'] },
       { heading: 'proof of speed', body: 'we include the screen recording and the final lighthouse score to show the workflow is production-worthy, not just fast.' },
+      { heading: 'handoff flow', bullets: ['attach research pdf/notes as context', 'generate, then edit with slash commands for pricing and faq', 'download the zip and hand it to eng with the included checklist'] },
+      { heading: 'pitfalls avoided', body: 'the post covers three traps: overlong intros, missing social proof above the fold, and under-specified pricing tables. we show the prompts that fix each in under 30 seconds.' },
     ],
   },
 ];
@@ -130,8 +141,7 @@ const SEO_POINTS = [
 
 const TOPICS = ['ai design', 'seo', 'conversion', 'design systems', 'brand voice', 'motion', 'shipping fast'];
 
-function BlogPage({ theme, onStartDesigning, onBackHome }) {
-  const [selectedPost, setSelectedPost] = useState(null);
+function BlogPage({ theme, onStartDesigning, onBackHome, onOpenPost, onBackToList, activeSlug }) {
   const isLight = theme === 'light';
   const cardCl = isLight ? 'bg-white border border-zinc-200/70 card-3d' : 'bg-white/[0.02] border border-white/[0.06] card-3d';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
@@ -141,10 +151,15 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
   const maxW = 'max-w-5xl mx-auto';
 
   const keywords = useMemo(() => Array.from(new Set(POSTS.flatMap((p) => p.keywords))), []);
+  const selectedPost = useMemo(() => POSTS.find((p) => p.slug === activeSlug) || null, [activeSlug]);
 
   useEffect(() => {
     const prevTitle = document.title;
-    const description = "jasmine blog - ai design, seo, and production-ready frontends. learn how the world's best designer ships sites that rank and convert.";
+    const baseDescription = "jasmine blog - ai design, seo, and production-ready frontends. learn how the world's best designer ships sites that rank and convert.";
+    const isArticle = Boolean(selectedPost);
+    const description = isArticle ? selectedPost.summary : baseDescription;
+    const title = isArticle ? `${selectedPost.title} - Jasmine Blog` : 'Jasmine Blog - ai design systems, seo, and launch-ready code';
+    const keywordList = isArticle ? selectedPost.keywords : keywords;
 
     const applyMeta = (attr, name, content) => {
       const selector = attr === 'property' ? `meta[property="${name}"]` : `meta[name="${name}"]`;
@@ -162,24 +177,34 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
       };
     };
 
-    document.title = 'Jasmine Blog - ai design systems, seo, and launch-ready code';
+    document.title = title;
     const cleanups = [
       applyMeta('name', 'description', description),
-      applyMeta('name', 'keywords', keywords.join(', ')),
-      applyMeta('property', 'og:title', 'Jasmine Blog - ai design systems, seo, and launch-ready code'),
+      applyMeta('name', 'keywords', keywordList.join(', ')),
+      applyMeta('property', 'og:title', title),
       applyMeta('property', 'og:description', description),
-      applyMeta('property', 'og:type', 'article'),
+      applyMeta('property', 'og:type', isArticle ? 'article' : 'website'),
     ];
 
     const ld = document.createElement('script');
     ld.type = 'application/ld+json';
-    ld.textContent = JSON.stringify({
+    const url = typeof window !== 'undefined' ? window.location.href : 'https://tryjasmine.vercel.app/blog';
+    ld.textContent = JSON.stringify(isArticle ? {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: selectedPost.title,
+      description,
+      datePublished: selectedPost.date,
+      author: { '@type': 'Person', name: selectedPost.author },
+      keywords: keywordList,
+      url,
+    } : {
       '@context': 'https://schema.org',
       '@type': 'Blog',
       name: 'Jasmine Blog',
       description,
       inLanguage: 'en',
-      url: typeof window !== 'undefined' ? window.location.href : 'https://tryjasmine.vercel.app/blog',
+      url,
       publisher: { '@type': 'Organization', name: 'Jasmine' },
       blogPost: POSTS.map((post) => ({
         '@type': 'BlogPosting',
@@ -196,18 +221,161 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
       cleanups.forEach((fn) => fn());
       ld.remove();
     };
-  }, [keywords]);
+  }, [keywords, selectedPost]);
 
   const featured = POSTS[0];
   const rest = POSTS.slice(1);
-  const openPost = (post) => setSelectedPost(post);
+  const openPost = (post) => onOpenPost?.(post.slug);
   const onCardKeyDown = (e, post) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       openPost(post);
     }
   };
-  const closePost = () => setSelectedPost(null);
+  const renderCta = () => (
+    <section className={`${sectionCl} py-24 border-t ${borderCl}`}>
+      <BlurPopUpInView className={`${maxW} text-center`}>
+        <h2 className="text-2xl md:text-3xl font-semibold text-text-primary mb-4 font-display text-3d">
+          <BlurPopUpByWordInView text="ready to turn the posts into pixels?" />
+        </h2>
+        <p className="text-base text-text-secondary max-w-2xl mx-auto mb-10">
+          <BlurPopUpByWordInView text="launch jasmine, pick a prompt, and generate a full site with the same craft we write about - seo meta, motion, premium typography, and clean code." wordDelay={0.025} />
+        </p>
+        <div className="flex flex-wrap gap-3 justify-center">
+          <button onClick={onStartDesigning} className="btn-premium px-8 py-3 text-sm flex items-center gap-2">
+            <i className="ph ph-rocket-launch text-base"></i>
+            start designing
+          </button>
+          <button onClick={onBackHome} className={`${cardCl} px-6 py-3 rounded-lg text-sm font-medium text-text-primary flex items-center gap-2`}>
+            <i className="ph ph-arrow-left"></i>
+            back to overview
+          </button>
+        </div>
+      </BlurPopUpInView>
+    </section>
+  );
+
+  if (selectedPost) {
+    const related = POSTS.filter((p) => p.slug !== selectedPost.slug);
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <section className={`${sectionCl} pt-16 pb-10 border-b ${borderCl}`}>
+          <div className={`${maxW} space-y-5`}>
+            <button onClick={onBackToList} className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text-primary">
+              <i className="ph ph-arrow-left"></i>
+              back to blog
+            </button>
+            <p className={`${labelCl} font-display text-3d`}>jasmine blog</p>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.05] text-text-primary font-display text-3d">
+              {selectedPost.title}
+            </h1>
+            <p className="text-base md:text-lg leading-[1.6] text-text-secondary max-w-4xl">
+              {selectedPost.summary}
+            </p>
+            <div className="flex items-center gap-3 text-xs text-text-muted flex-wrap">
+              <span className="inline-flex items-center gap-1">
+                <i className="ph ph-calendar-blank"></i>
+                {formatDate(selectedPost.date)}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <i className="ph ph-timer"></i>
+                {selectedPost.readTime}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <i className="ph ph-user"></i>
+                {selectedPost.author}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {selectedPost.tags.map((tag) => (
+                <span key={`${selectedPost.slug}-${tag}`} className={`text-xs px-2.5 py-1 rounded-full border ${borderCl} ${isLight ? 'bg-white' : 'bg-white/[0.02]'} text-text-muted`}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button onClick={onStartDesigning} className="btn-premium px-6 py-2.5 text-sm flex items-center gap-2">
+                <i className="ph ph-magic-wand"></i>
+                build with jasmine
+              </button>
+              <button onClick={onBackHome} className={`${cardCl} px-5 py-2.5 rounded-lg text-sm font-medium text-text-primary flex items-center gap-2`}>
+                <i className="ph ph-arrow-left"></i>
+                back to overview
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className={`${sectionCl} py-12`}>
+          <div className={`${maxW} space-y-6`}>
+            {selectedPost.content?.map((section, i) => (
+              <div key={`${selectedPost.slug}-${i}`} className={`${cardCl} p-6 md:p-8 rounded-2xl space-y-3`}>
+                {section.heading ? <h3 className="text-lg md:text-xl font-semibold text-text-primary">{section.heading}</h3> : null}
+                {section.body ? <p className="text-sm md:text-base leading-relaxed text-text-secondary">{section.body}</p> : null}
+                {section.bullets ? (
+                  <ul className="list-disc list-inside space-y-2 text-sm md:text-base text-text-secondary">
+                    {section.bullets.map((b, j) => (
+                      <li key={`${selectedPost.slug}-${i}-${j}`}>{b}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className={`${sectionCl} pb-16 border-t ${borderCl}`}>
+          <div className={`${maxW} space-y-6`}>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h3 className={headingCl}>more from jasmine</h3>
+              <button onClick={onBackToList} className="text-sm text-text-muted hover:text-text-primary flex items-center gap-2">
+                <i className="ph ph-newspaper"></i>
+                back to all posts
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {related.map((post, idx) => (
+                <article
+                  key={post.slug}
+                  className={`${cardCl} rounded-lg p-6 flex flex-col justify-between cursor-pointer transition-transform hover:-translate-y-0.5`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openPost(post)}
+                  onKeyDown={(e) => onCardKeyDown(e, post)}
+                >
+                  <div className="flex items-center gap-3 text-xs text-text-muted mb-3">
+                    <span className="inline-flex items-center gap-1">
+                      <i className="ph ph-calendar-blank"></i>
+                      {formatDate(post.date)}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <i className="ph ph-timer"></i>
+                      {post.readTime}
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-text-primary leading-[1.2] mb-2">{post.title}</h4>
+                  <p className="text-sm text-text-secondary leading-relaxed flex-1">{post.summary}</p>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {post.tags.map((tag) => (
+                      <span key={`${tag}-${idx}`} className={`text-[11px] px-2.5 py-1 rounded-full border ${borderCl} ${isLight ? 'bg-white' : 'bg-white/[0.02]'} text-text-muted`}>
+                        {tag}
+                      </span>
+                    ))}
+                    <span className="inline-flex items-center gap-1 text-[12px] font-medium text-text-primary">
+                      <i className="ph ph-arrow-up-right"></i>
+                      Read post
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {renderCta()}
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -329,7 +497,7 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
               <motion.article
                 key={post.title}
                 variants={heroItem}
-                className={`${cardCl} rounded-lg p-6 flex flex-col justify-between`}
+                className={`${cardCl} rounded-lg p-6 flex flex-col justify-between cursor-pointer transition-transform hover:-translate-y-0.5`}
                 role="button"
                 tabIndex={0}
                 onClick={() => openPost(post)}
@@ -357,10 +525,14 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
                       {tag}
                     </span>
                   ))}
-                  <span className="inline-flex items-center gap-1 text-[12px] font-medium text-text-primary">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); openPost(post); }}
+                    className="inline-flex items-center gap-1 text-[12px] font-medium text-text-primary hover:underline"
+                  >
                     <i className="ph ph-arrow-up-right"></i>
                     Read post
-                  </span>
+                  </button>
                 </div>
               </motion.article>
             ))}
@@ -417,92 +589,7 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
         </motion.div>
       </section>
 
-      <section className={`${sectionCl} py-24 border-t ${borderCl}`}>
-        <BlurPopUpInView className={`${maxW} text-center`}>
-          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary mb-4 font-display text-3d">
-            <BlurPopUpByWordInView text="ready to turn the posts into pixels?" />
-          </h2>
-          <p className="text-base text-text-secondary max-w-2xl mx-auto mb-10">
-            <BlurPopUpByWordInView text="launch jasmine, pick a prompt, and generate a full site with the same craft we write about - seo meta, motion, premium typography, and clean code." wordDelay={0.025} />
-          </p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <button onClick={onStartDesigning} className="btn-premium px-8 py-3 text-sm flex items-center gap-2">
-              <i className="ph ph-rocket-launch text-base"></i>
-              start designing
-            </button>
-            <button onClick={onBackHome} className={`${cardCl} px-6 py-3 rounded-lg text-sm font-medium text-text-primary flex items-center gap-2`}>
-              <i className="ph ph-arrow-left"></i>
-              back to overview
-            </button>
-          </div>
-        </BlurPopUpInView>
-      </section>
-
-      {selectedPost ? (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 py-10">
-          <div className={`${isLight ? 'bg-white' : 'bg-surface-raised'} w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl border ${borderCl} shadow-2xl`}>
-            <div className={`flex items-start justify-between gap-3 px-6 py-5 border-b ${borderCl}`}>
-              <div>
-                <p className="text-xs uppercase tracking-[0.12em] text-text-muted mb-2">{selectedPost.author}</p>
-                <h3 className="text-2xl font-semibold text-text-primary leading-[1.2] mb-2">{selectedPost.title}</h3>
-                <div className="flex items-center gap-3 text-xs text-text-muted">
-                  <span className="inline-flex items-center gap-1">
-                    <i className="ph ph-calendar-blank"></i>
-                    {formatDate(selectedPost.date)}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <i className="ph ph-timer"></i>
-                    {selectedPost.readTime}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <i className="ph ph-tag"></i>
-                    {selectedPost.tags.join(', ')}
-                  </span>
-                </div>
-              </div>
-              <button onClick={closePost} className="p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors">
-                <i className="ph ph-x text-lg"></i>
-                <span className="sr-only">Close</span>
-              </button>
-            </div>
-            <div className="px-6 py-6 space-y-5 text-sm leading-relaxed text-text-secondary">
-              <p className="text-base text-text-primary font-medium">{selectedPost.summary}</p>
-              {selectedPost.content?.map((section, i) => (
-                <div key={`${selectedPost.slug}-${i}`} className="space-y-2">
-                  {section.heading ? <h4 className="text-text-primary font-semibold text-sm uppercase tracking-[0.08em]">{section.heading}</h4> : null}
-                  {section.body ? <p>{section.body}</p> : null}
-                  {section.bullets ? (
-                    <ul className="list-disc list-inside space-y-2">
-                      {section.bullets.map((b, j) => (
-                        <li key={`${selectedPost.slug}-${i}-${j}`}>{b}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-            <div className={`px-6 pb-6 flex items-center justify-between gap-3 flex-wrap border-t ${borderCl} pt-4`}>
-              <div className="flex flex-wrap gap-2">
-                {selectedPost.tags.map((tag) => (
-                  <span key={`${selectedPost.slug}-${tag}`} className={`text-xs px-2.5 py-1 rounded-full border ${borderCl} ${isLight ? 'bg-white' : 'bg-white/[0.02]'} text-text-muted`}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={onStartDesigning} className="btn-premium px-5 py-2 text-sm flex items-center gap-2">
-                  <i className="ph ph-rocket-launch"></i>
-                  build with jasmine
-                </button>
-                <button onClick={closePost} className={`${cardCl} px-4 py-2 rounded-lg text-sm font-medium text-text-primary flex items-center gap-2`}>
-                  <i className="ph ph-arrow-left"></i>
-                  back to posts
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {renderCta()}
     </div>
   );
 }

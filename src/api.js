@@ -406,18 +406,38 @@ export function ensurePackageDependencies(files) {
 /** Repair truncated import paths that cause "Unterminated string literal" (e.g. import X from './components/). */
 function fixUnterminatedStringsInContent(content) {
   if (!content || typeof content !== 'string') return content;
-  return content.replace(
+  let out = content;
+  // Pattern 1: import X from './path (default import, truncated — no closing quote)
+  out = out.replace(
     /^(\s*import\s+(\w+)\s+from\s+)(['"])([^'"]*)$/gm,
     (_, prefix, importName, quote, path) => {
-      if (/\.(jsx?|tsx?|mjs|cjs)$/.test(path)) return _; // already complete
-      if (path.endsWith('/')) {
-        return `${prefix}${quote}${path}${importName}.jsx${quote}`;
-      }
-      // Truncated path like ./components/us — replace last segment with component name
+      if (/\.(jsx?|tsx?|mjs|cjs)$/.test(path)) return `${prefix}${quote}${path}${quote}`; // complete path, add missing quote
+      if (path.endsWith('/')) return `${prefix}${quote}${path}${importName}.jsx${quote}`;
       const dir = path.replace(/\/[^/]*$/, '/') || './';
       return `${prefix}${quote}${dir}${importName}.jsx${quote}`;
     }
   );
+  // Pattern 2: import { X } or import { X, Y } from './path (named imports, truncated)
+  out = out.replace(
+    /^(\s*import\s+\{[^}]*\}\s+from\s+)(['"])([^'"]*)$/gm,
+    (_, prefix, quote, path) => {
+      if (/\.(jsx?|tsx?|mjs|cjs)$/.test(path)) return `${prefix}${quote}${path}${quote}`; // add missing quote
+      const m = prefix.match(/import\s+\{\s*(\w+)/);
+      const firstName = m ? m[1] : 'index';
+      if (path.endsWith('/')) return `${prefix}${quote}${path}${firstName}.jsx${quote}`;
+      const dir = path.replace(/\/[^/]*$/, '/') || './';
+      return `${prefix}${quote}${dir}${firstName}.jsx${quote}`;
+    }
+  );
+  // Pattern 3: package imports with trailing slash (e.g. react-router-dom/) — remove slash, add quote
+  out = out.replace(
+    /^(\s*import\s+.*?\s+from\s+)(['"])([^'"]*)\/$/gm,
+    (_, prefix, quote, path) => {
+      if (!path.startsWith('.') && path.length > 0) return `${prefix}${quote}${path}${quote}`;
+      return _;
+    }
+  );
+  return out;
 }
 
 /** Remove slash-command lines that the AI mistakenly put inside file content. */

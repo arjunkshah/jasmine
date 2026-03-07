@@ -62,6 +62,8 @@ firebase deploy --only firestore   # or npm run firebase:deploy
 
 ## Features
 
+See [FEATURES.md](FEATURES.md) for the full list. Highlights:
+
 - **Generate** — Describe your app, get a full Vite + React project
 - **Token streaming** — See code as it’s generated
 - **Sandbox preview** — Live E2B preview (starts on Generate)
