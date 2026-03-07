@@ -4,6 +4,7 @@ import { generateWithGroq, generateWithGemini, generateWithGateway, editWithGroq
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import BlogPage from './BlogPage';
+import AdminDashboard from './components/AdminDashboard';
 import FileExplorer from './FileExplorer';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import AuthPage from './components/AuthPage';
@@ -234,7 +235,6 @@ async function runSlashCommands(commands, ctx) {
 
 function AppBody({
   theme,
-  showLanding,
   activePage,
   onShowHome,
   onShowBlog,
@@ -284,17 +284,18 @@ function AppBody({
   firebaseConfigured,
   onStartDesigning,
   onSelectPrompt,
+  onShowAdmin,
 }) {
   const isLight = theme === 'light';
-  const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
-  const ghostCl = isLight ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200' : 'btn-ghost';
-  const inputCl = isLight ? 'bg-zinc-50 border-zinc-200 focus:border-jasmine-400' : 'input-premium';
+  const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
+  const ghostCl = isLight ? 'bg-[#f6f4ec] hover:bg-[#e9dfcf] border-[rgba(220,211,195,0.9)] text-text-primary' : 'btn-ghost';
+  const inputCl = isLight ? 'bg-[#fffaf0] border-[rgba(220,211,195,0.9)] focus:border-[#379f57]' : 'input-premium';
   const navCl = (page) => (
     activePage === page
       ? `px-3 py-2 rounded-lg text-sm border ${borderCl} ${isLight ? 'bg-white text-text-primary' : 'bg-white/[0.04] text-text-primary'}`
       : 'px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary transition-colors'
   );
-  const marketingView = activePage !== 'designer';
+  const marketingView = activePage !== 'designer' && activePage !== 'admin';
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -352,6 +353,11 @@ function AppBody({
               <button onClick={onShowBlog} className={navCl('blog')}>
                 blog
               </button>
+              {onShowAdmin && (
+                <button onClick={onShowAdmin} className={navCl('admin')}>
+                  admin
+                </button>
+              )}
             </div>
           </div>
 
@@ -389,11 +395,17 @@ function AppBody({
                     <i className="ph ph-caret-down text-xs"></i>
                   </button>
                   <div className={`absolute right-0 top-full mt-1 py-1 rounded-lg border ${borderCl} ${isLight ? 'bg-white' : 'bg-surface-raised'} shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all min-w-[140px]`}>
+                    {onShowAdmin && (
+                      <button onClick={onShowAdmin} className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.04] flex items-center gap-2">
+                        <i className="ph ph-gear-six"></i>
+                        Admin
+                      </button>
+                    )}
                     <button onClick={onSignOut} className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.04] flex items-center gap-2">
                       <i className="ph ph-sign-out"></i>
                       Sign out
-          </button>
-        </div>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <button onClick={onSignInClick} className="btn-premium px-3 py-1.5 text-sm">
@@ -406,7 +418,9 @@ function AppBody({
       </header>
 
       <div className="flex-1 flex min-h-0 min-w-0">
-        {marketingView ? (
+        {activePage === 'admin' ? (
+          <AdminDashboard theme={theme} onBack={() => setPage('home')} />
+        ) : marketingView ? (
           activePage === 'blog' ? (
             <BlogPage
               onStartDesigning={onStartDesigning}
@@ -448,7 +462,9 @@ function AppBody({
                           />
                         ) : (
                           <div key={i} className={`text-sm ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
-                            <div className={`inline-block max-w-[90%] px-3 py-2 rounded-xl ${m.role === 'user' ? (isLight ? 'bg-zinc-200 text-zinc-900' : 'bg-white/10 text-text-primary') : (isLight ? 'bg-zinc-100 border border-zinc-200 text-zinc-600' : 'bg-white/[0.04] border border-white/[0.06] text-text-secondary')}`}>
+                            <div className={`inline-block max-w-[90%] px-3 py-2 rounded-xl ${m.role === 'user'
+                              ? (isLight ? 'bg-[#379f57]/12 text-[#1f5c35] border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-primary border border-white/[0.08]')
+                              : (isLight ? 'bg-[#fffaf0] border border-[rgba(220,211,195,0.9)] text-text-secondary' : 'bg-white/[0.04] border border-white/[0.06] text-text-secondary')}`}>
                               {m.content}
                             </div>
                           </div>
@@ -456,7 +472,7 @@ function AppBody({
                       ))}
                       {isEditing && (
                         <div className="text-left">
-                          <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl ${isLight ? 'bg-zinc-100' : 'bg-white/[0.04]'} text-text-muted text-sm`}>
+                          <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl ${isLight ? 'bg-[#f6f4ec]' : 'bg-white/[0.04]'} text-text-muted text-sm`}>
                             <i className="ph ph-circle-notch animate-spin-slow"></i>
                             <span>Applying edit...</span>
                           </div>
@@ -468,7 +484,7 @@ function AppBody({
                       {contextFiles.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-2">
                           {contextFiles.map((f, i) => (
-                            <span key={i} className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${isLight ? 'bg-zinc-100 text-zinc-700' : 'bg-white/10 text-text-secondary'}`}>
+                            <span key={i} className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary'}`}>
                               <i className="ph ph-file-text"></i>
                               {f.name}
                               <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary">
@@ -482,23 +498,25 @@ function AppBody({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                          className={`p-2.5 rounded-xl border ${borderCl} ${isLight ? 'text-zinc-600 hover:bg-zinc-50' : 'text-text-muted hover:bg-white/[0.04]'}`}
-                          title="Attach files as context"
-                        >
-                          <i className="ph ph-paperclip"></i>
-                        </button>
-                        <input
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendChatMessage())}
-                          placeholder="Make the header darker..."
-                          className={`flex-1 px-4 py-2.5 rounded-xl text-sm border ${borderCl} text-text-primary placeholder:text-text-muted focus:outline-none ${isLight ? 'bg-zinc-50' : 'bg-white/[0.04]'}`}
-                        />
-                        <button onClick={sendChatMessage} disabled={!chatInput.trim() || isEditing} className="btn-premium px-6 py-2.5 text-sm disabled:opacity-40">
-                          <i className="ph ph-paper-plane-tilt"></i>
-                        </button>
-                      </div>
+                        className={`p-2.5 rounded-xl border ${borderCl} ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.04]'}`}
+                        title="Attach files as context"
+                      >
+                        <i className="ph ph-paperclip"></i>
+                      </button>
+                      <input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendChatMessage())}
+                        placeholder="Make the header darker..."
+                        className={`flex-1 px-4 py-2.5 rounded-xl text-sm border ${borderCl} text-text-primary placeholder:text-text-muted focus:outline-none ${isLight ? 'bg-[#fffaf0]' : 'bg-white/[0.04]'}`}
+                        disabled={isEditing}
+                        onFocus={scrollChatToEnd}
+                      />
+                      <button onClick={sendChatMessage} disabled={!chatInput.trim() || isEditing} className="btn-premium px-6 py-2.5 text-sm disabled:opacity-40">
+                        <i className="ph ph-paper-plane-tilt"></i>
+                      </button>
                     </div>
+                  </div>
                   </>
                 ) : (
                   <div className="w-full max-w-2xl mx-auto">
@@ -542,7 +560,7 @@ function AppBody({
                     {contextFiles.length > 0 && (
                       <div className={`px-4 py-2 border-t ${borderCl} flex flex-wrap gap-2`}>
                         {contextFiles.map((f, i) => (
-                          <span key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-zinc-100 text-zinc-700' : 'bg-white/10 text-text-secondary'}`}>
+                          <span key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary'}`}>
                             <i className="ph ph-file-text"></i>
                             {f.name}
                             <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary">
@@ -554,15 +572,15 @@ function AppBody({
                     )}
                     <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                       <div className="flex items-center gap-3">
-                          <button
+                        <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-zinc-600 hover:bg-zinc-100' : 'text-text-muted hover:bg-white/[0.06]'}`}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]'}`}
                           title="Attach files as context for the AI (txt, md, json, etc.)"
                         >
                           <i className="ph ph-paperclip"></i>
                           Attach
-                          </button>
+                        </button>
                         <select
                           value={provider === 'gemini' ? 'gemini' : gatewayModel}
                           onChange={(e) => {
@@ -574,7 +592,7 @@ function AppBody({
                               setGatewayModel(v);
                             }
                           }}
-                          className={`min-w-[7rem] text-xs font-medium rounded-lg px-3 py-1.5 pr-8 border ${borderCl} ${isLight ? 'bg-zinc-50 text-zinc-800 hover:bg-zinc-100' : 'bg-white/[0.06] text-text-primary hover:bg-white/[0.08]'} cursor-pointer appearance-none bg-no-repeat bg-[length:12px] bg-[right_0.5rem_center]`}
+                          className={`min-w-[7rem] text-xs font-medium rounded-lg px-3 py-1.5 pr-8 border ${borderCl} ${isLight ? 'bg-[#fffaf0] text-text-primary hover:bg-[#f6f4ec]' : 'bg-white/[0.06] text-text-primary hover:bg-white/[0.08]'} cursor-pointer appearance-none bg-no-repeat bg-[length:12px] bg-[right_0.5rem_center]`}
                           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
                         >
                           <option value="kimi-k2.5">Kimi K2.5</option>
@@ -695,7 +713,7 @@ function AppBody({
                   </div>
                   </div>
 
-                <div className={`flex-1 relative min-h-0 ${isLight ? 'bg-zinc-50' : 'bg-surface-raised'}`}>
+                <div className={`flex-1 relative min-h-0 ${isLight ? 'bg-[#fffaf0]' : 'bg-surface-raised'}`}>
 
                   {rightTab === 'files' && (
                     <div className="absolute inset-0">
@@ -712,17 +730,17 @@ function AppBody({
                     <div className="absolute inset-0 flex flex-col overflow-hidden">
                       {deployUrl ? (
                         <>
-                          <div className="flex-none flex items-center justify-between px-3 py-2 border-b border-zinc-800 gap-2">
+                          <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2`}>
                             <span className="text-xs text-text-muted">Live preview</span>
-                  <div className="flex items-center gap-2">
-                          <button
+                            <div className="flex items-center gap-2">
+                              <button
                                 type="button"
                                 onClick={() => setPreviewRetryKey((k) => k + 1)}
-                                className="text-xs text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1"
+                                className="text-xs text-[#2d7f45] hover:text-[#1f5c35] flex items-center gap-1"
                               >
                                 Retry <i className="ph ph-arrow-clockwise text-sm"></i>
-                          </button>
-                              <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1">
+                              </button>
+                              <a href={deployUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#2d7f45] hover:text-[#1f5c35] flex items-center gap-1">
                                 Open <i className="ph ph-arrow-square-out text-sm"></i>
                               </a>
                             </div>
@@ -804,7 +822,7 @@ function AppBody({
                 {contextFiles.length > 0 && (
                   <div className={`px-4 py-2 border-t ${borderCl} flex flex-wrap gap-2`}>
                     {contextFiles.map((f, i) => (
-                      <span key={`f-${i}`} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-zinc-100 text-zinc-700' : 'bg-white/10 text-text-secondary'}`}>
+                      <span key={`f-${i}`} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary'}`}>
                         <i className="ph ph-file-text"></i>
                         {f.name}
                         <button type="button" onClick={() => setContextFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-text-primary">
@@ -819,7 +837,7 @@ function AppBody({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-zinc-600 hover:bg-zinc-100' : 'text-text-muted hover:bg-white/[0.06]'}`}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg ${isLight ? 'text-text-secondary hover:bg-[#f6f4ec]' : 'text-text-muted hover:bg-white/[0.06]'}`}
                       title="Attach files as context for the AI (txt, md, json, etc.)"
                     >
                       <i className="ph ph-paperclip"></i>
@@ -836,7 +854,7 @@ function AppBody({
                           setGatewayModel(v);
                         }
                       }}
-                      className={`min-w-[7rem] text-xs font-medium rounded-lg px-3 py-1.5 pr-8 border ${borderCl} ${isLight ? 'bg-zinc-50 text-zinc-800 hover:bg-zinc-100' : 'bg-white/[0.06] text-text-primary hover:bg-white/[0.08]'} cursor-pointer appearance-none bg-no-repeat bg-[length:12px] bg-[right_0.5rem_center]`}
+                      className={`min-w-[7rem] text-xs font-medium rounded-lg px-3 py-1.5 pr-8 border ${borderCl} ${isLight ? 'bg-[#fffaf0] text-text-primary hover:bg-[#f6f4ec]' : 'bg-white/[0.06] text-text-primary hover:bg-white/[0.08]'} cursor-pointer appearance-none bg-no-repeat bg-[length:12px] bg-[right_0.5rem_center]`}
                       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
                     >
                       <option value="kimi-k2.5">Kimi K2.5</option>
@@ -946,13 +964,9 @@ function App() {
   const [streamingRaw, setStreamingRaw] = useState('');
   const [activePage, setActivePage] = useState(() => {
     const stored = localStorage.getItem('jasmine_active_page');
-    return stored === 'blog' || stored === 'designer' ? stored : 'home';
+    return stored === 'blog' || stored === 'designer' || stored === 'admin' ? stored : 'home';
   });
-  const [showLanding, setShowLanding] = useState(() => {
-    const v = localStorage.getItem('jasmine_show_landing');
-    if (activePage === 'designer') return false;
-    return v === null ? true : v === 'true';
-  });
+  const [showLanding, setShowLanding] = useState(() => activePage !== 'designer');
   const [theme, setTheme] = useState(() => localStorage.getItem('jasmine_theme') || 'light');
   const [generatedProject, setGeneratedProject] = useState(null);
   const [deployUrl, setDeployUrl] = useState(null);
@@ -1064,6 +1078,21 @@ function App() {
     localStorage.setItem('jasmine_show_landing', String(showLanding));
   }, [showLanding]);
 
+  const setPage = useCallback((page) => {
+    setActivePage(page);
+    setShowLanding(page !== 'designer' && page !== 'admin');
+    localStorage.setItem('jasmine_active_page', page);
+  }, []);
+
+  useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash === '#admin') setPage('admin');
+    };
+    onHash();
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, [setPage]);
+
   // Fetch projects when user logs in
   const refreshProjects = useCallback(() => {
     if (!firebaseConfigured || !user) return;
@@ -1141,7 +1170,7 @@ function App() {
     setProvider(full.provider || 'groq');
     setGatewayModel(full.gatewayModel || 'kimi-k2.5');
     setCurrentProjectId(full.id);
-    setShowLanding(false);
+    setPage('designer');
     setRightTab('files');
     setSidebarOpen(false);
     setError('');
@@ -1172,7 +1201,7 @@ function App() {
     } else if (full._truncated) {
       setError('Project was too large to save. Files were truncated. Try generating again with fewer/smaller files.');
     }
-  }, [theme]);
+  }, [setPage, theme]);
 
   const handleDeleteProject = useCallback(async (project) => {
     if (!project?.id || !firebaseConfigured || !user) return;
@@ -1187,12 +1216,12 @@ function App() {
         setGeneratedHTML('');
         setStreamingRaw('');
         setChatMessages([]);
-        setShowLanding(true);
+        setPage('home');
       }
     } catch (e) {
       console.warn('[Jasmine] deleteProject failed:', e?.message);
     }
-  }, [firebaseConfigured, user, currentProjectId]);
+  }, [currentProjectId, firebaseConfigured, setPage, user]);
 
   const handleNewProject = useCallback(() => {
     setCurrentProjectId(null);
@@ -1201,9 +1230,9 @@ function App() {
     setGeneratedHTML('');
     setStreamingRaw('');
     setChatMessages([]);
-    setShowLanding(true);
+    setPage('home');
     setSidebarOpen(false);
-  }, []);
+  }, [setPage]);
 
   const spinUpSandbox = useCallback(async (project) => {
     let files = project.files;
@@ -1345,7 +1374,7 @@ function App() {
     setGeneratedProject(null);
     setCurrentProjectId(null);
     setChatMessages([{ role: 'user', content: prompt }]);
-    setShowLanding(false);
+    setPage('designer');
     setRightTab('files');
 
     try {
@@ -1690,14 +1719,17 @@ function App() {
   const hasOutput = generatedHTML || streamingRaw || isGenerating;
   const isLight = theme === 'light';
   const base = 'bg-surface text-text-primary';
-  const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
-  const ghostCl = isLight ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200' : 'btn-ghost';
-  const inputCl = isLight ? 'bg-zinc-50 border-zinc-200 focus:border-jasmine-400' : 'input-premium';
+  const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
+  const ghostCl = isLight ? 'bg-[#f6f4ec] hover:bg-[#e9dfcf] border-[rgba(220,211,195,0.9)] text-text-primary' : 'btn-ghost';
+  const inputCl = isLight ? 'bg-[#fffaf0] border-[rgba(220,211,195,0.9)] focus:border-[#379f57]' : 'input-premium';
+
+  const handleShowHome = useCallback(() => setPage('home'), [setPage]);
+  const handleShowBlog = useCallback(() => setPage('blog'), [setPage]);
 
   const goToDesigner = useCallback(() => {
-    setShowLanding(false);
+    setPage('designer');
     setTimeout(() => textareaRef.current?.focus(), 100);
-  }, []);
+  }, [setPage]);
 
   const handleStartDesigning = useCallback(() => {
     if (firebaseConfigured && !user) {
@@ -1737,8 +1769,9 @@ function App() {
 
   const appBodyProps = {
     theme,
-    showLanding,
-    setShowLanding,
+    activePage,
+    onShowHome: handleShowHome,
+    onShowBlog: handleShowBlog,
     hasOutput,
     isGenerating,
     isEditing,
@@ -1761,20 +1794,20 @@ function App() {
     generatedProject,
     streamingRaw,
     generatedHTML,
-  textareaRef,
-  chatEndRef,
-  generate,
-  handleKeyDown,
-  sendChatMessage,
-  contextFiles,
-  setContextFiles,
-  fileInputRef,
-  downloadProject,
+    textareaRef,
+    chatEndRef,
+    generate,
+    handleKeyDown,
+    sendChatMessage,
+    contextFiles,
+    setContextFiles,
+    fileInputRef,
+    downloadProject,
     deployToNetlify,
     netlifyDeploying,
     netlifyUrl,
-  themeForToggle: theme,
-  retrySandbox,
+    themeForToggle: theme,
+    retrySandbox,
     retryPreviewUpdate,
     sidebarOpen,
     onToggleSidebar: () => setSidebarOpen((o) => !o),
@@ -1784,6 +1817,7 @@ function App() {
     firebaseConfigured,
     onStartDesigning: handleStartDesigning,
     onSelectPrompt: handleSelectPrompt,
+    onShowAdmin: () => setPage('admin'),
   };
 
   if (authLoading) {
@@ -1818,7 +1852,7 @@ function App() {
         )}
         <div className="flex-1 flex flex-col min-h-0 min-w-0">
           <AppBody {...appBodyProps} onThemeToggle={handleThemeToggle} />
-      </div>
+        </div>
       </div>
       {showAuthModal && (
         <AuthPage

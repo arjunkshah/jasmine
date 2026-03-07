@@ -1,555 +1,317 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import BlurPopUpByWord from './components/BlurPopUpByWord';
-import BlurPopUpByWordInView from './components/BlurPopUpByWordInView';
-import BlurPopUp from './components/BlurPopUp';
-import BlurPopUpInView from './components/BlurPopUpInView';
-import HeroGlowLines from './components/HeroGlowLines';
-import { heroContainer, heroItem } from './lib/animations';
+import { useMemo } from 'react';
 
-const BENTO_ITEMS = [
-  { span: 'md:col-span-2 md:row-span-2', icon: 'ph-magic-wand', title: 'world\'s best designer', desc: 'law firms, restaurants, saas, portfolios. one prompt. jasmine crafts it.' },
-  { span: '', icon: 'ph-rocket-launch', title: 'kimi k2.5', desc: 'default via ai gateway' },
-  { span: '', icon: 'ph-palette', title: 'gemini', desc: 'creative depth' },
-  { span: '', icon: 'ph-sparkle', title: 'gpt 5.4', desc: 'via ai gateway' },
-  { span: 'md:col-span-2', icon: 'ph-sparkle', title: 'anti-ai-slop craft', desc: 'premium typography, phosphor icons, blur-reveal.' },
-  { span: '', icon: 'ph-stack', title: 'full project', desc: 'src/, typescript, tailwind. deploy.' },
+const LOGOS = ['YC', 'Harvard', 'Stanford', 'Berkeley', 'MIT', 'UCLA'];
+
+const FEATURE_SETS = [
+  {
+    title: 'Design, generate, iterate',
+    desc: 'Describe your product once. Jasmine drafts layouts, sections, interactions, and polish in the same UI.',
+    icon: 'ph-sparkle',
+  },
+  {
+    title: 'Chat-native edits',
+    desc: 'Ask for tweaks like “make the hero tighter” or “add pricing”. Jasmine updates the project instantly.',
+    icon: 'ph-chat-circle-dots',
+  },
+  {
+    title: 'Production output',
+    desc: 'React, Tailwind, TypeScript, sensible structure, and assets ready to ship or download.',
+    icon: 'ph-rocket-launch',
+  },
 ];
 
-const BENTO_OUTPUT = [
-  { span: 'md:col-span-2', icon: 'ph-file-tsx', title: 'typescript', desc: 'strict types, clean interfaces.' },
-  { span: '', icon: 'ph-paint-bucket', title: 'tailwind', desc: 'utility-first. consistent spacing.' },
-  { span: '', icon: 'ph-rocket-launch', title: 'deploy-ready', desc: 'Netlify. one click.' },
-  { span: 'md:col-span-2 md:row-span-2', icon: 'ph-code', title: 'world-class code', desc: 'proper structure, components, layouts. the best designer delivers.' },
-  { span: '', icon: 'ph-download-simple', title: 'one-click zip', desc: 'download full project.' },
-];
-
-const TESTIMONIALS = [
-  { quote: "generated a law firm site in 20 seconds. looked like we paid a design agency.", author: "founder", role: "legal startup" },
-  { quote: "the typography and spacing are insane. no way this is ai.", author: "designer", role: "yc-backed" },
-  { quote: "finally, an ai that doesn't output slop. jasmine gets it.", author: "engineer", role: "indie hacker" },
-];
-
-const MARQUEE_ITEMS = [
-  { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vitejs/vitejs-original.svg', label: 'vite' },
-  { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg', label: 'react' },
-  { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg', label: 'typescript' },
-  { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/tailwindcss/tailwindcss-original.svg', label: 'tailwind' },
-  { logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vercel/vercel-original.svg', label: 'vercel' },
-];
-
-const STEPS = [
-  { num: '01', label: 'describe', desc: 'tell jasmine what you want — law firm, restaurant, saas, portfolio. one sentence.', icon: 'ph-chat-circle-dots' },
-  { num: '02', label: 'generate', desc: 'ai crafts the full project: every page, every section. no slop.', icon: 'ph-wand' },
-  { num: '03', label: 'refine', desc: 'edit in real time. download or deploy to Netlify.', icon: 'ph-pencil-simple' },
-];
-
-const HORIZONTAL_FEATURES = [
-  { icon: 'ph-typography', title: 'premium typography', desc: 'curated pairings' },
-  { icon: 'ph-palette', title: 'cohesive palettes', desc: 'no clash' },
-  { icon: 'ph-layout', title: 'smart layouts', desc: 'world-class structure' },
-  { icon: 'ph-file-code', title: 'clean code', desc: 'typescript, src/' },
-  { icon: 'ph-download-simple', title: 'one-click export', desc: 'download or deploy to Netlify' },
-  { icon: 'ph-device-responsive', title: 'responsive', desc: 'mobile-first' },
-];
-
-const FAQ_ITEMS = [
-  { q: 'what can i build?', a: 'full sites for law firms, restaurants, saas, portfolios, agencies — anything you can describe. jasmine is the world\'s best designer. vite, react, tailwind.' },
-  { q: 'how does it work?', a: 'describe what you want in one prompt. jasmine — the world\'s best designer — uses Kimi K2.5 (default), Gemini, or GPT 5.4 via Vercel AI Gateway. edit in real time, download or deploy to Netlify.' },
-  { q: 'is it really free?', a: 'yes. generate and export as many projects as you want. no signup, no credit card required.' },
-  { q: 'can i use the output commercially?', a: 'absolutely. the code you generate is yours.' },
+const WORKSPACES = [
+  { title: 'Research', desc: 'Capture references, competitive notes, and inspiration in one place.', icon: 'ph-notebook' },
+  { title: 'Wireframe', desc: 'Rough layouts turn into polished sections with Jasmine’s taste.', icon: 'ph-layout' },
+  { title: 'Ship', desc: 'Preview, download, or deploy the generated project without leaving the page.', icon: 'ph-cloud-arrow-down' },
 ];
 
 const EXAMPLE_CARDS = [
-  { label: 'law firm', desc: 'professional landing — practice areas, team bios. trustworthy.', prompt: 'Complete law firm website — home (5+ sections: hero, practice areas, team, testimonials, CTA, footer), about, practice areas grid, team bios, contact. Professional, trustworthy, premium typography. Apply UI tips: layered shadows, tight tracking, 60-30-10 color, generous whitespace. World-class polish.' },
-  { label: 'saas', desc: 'developer tool landing — dark mode, feature grid, pricing.', prompt: 'Complete SaaS site for a dev tool — home (5+ sections: hero, features, social proof, pricing, CTA, footer), features, pricing, docs, dashboard. Dark mode, Vercel-inspired. Apply UI tips: depth, micro-interactions, bento grids. Every page complete.' },
-  { label: 'restaurant', desc: 'menu section, reservation cta. warm, appetizing.', prompt: 'Complete restaurant website — home (5+ sections: hero, menu preview, about, testimonials, reservations CTA, footer), full menu, reservations, about, contact. Warm, appetizing. Apply UI tips: visual rhythm, typography pairing, conversion elements.' },
-  { label: 'gaming studio', desc: 'bold gradients, game showcase. high-energy.', prompt: 'Complete gaming studio site — home (5+ sections: hero, games showcase, team, stats, CTA, footer), games, team, careers, contact. Bold, high-energy. Apply UI tips: asymmetric grids, gradients with purpose, staggered reveals.' },
-  { label: 'meditation app', desc: 'soft, calming. testimonial carousel.', prompt: 'Complete meditation app site — home (5+ sections: hero, features, testimonial carousel, pricing, download CTA, footer). Soft, calming. Apply UI tips: muted palette, blur-to-reveal, single clear CTA per section.' },
-  { label: 'creative agency', desc: 'dark editorial, case studies.', prompt: 'Complete creative agency portfolio — home (5+ sections: hero, case studies, services, testimonials, CTA, footer), case studies, about, services, contact. Dark editorial. Apply UI tips: asymmetric layout, depth, premium typography.' },
+  { label: 'Law firm', desc: 'Premium, trustworthy hero + practice areas.', prompt: 'Complete law firm website — home (hero, practice areas grid, testimonials, CTA, footer), about, team, contact. Premium serif, navy + gold, editorial spacing.' },
+  { label: 'SaaS', desc: 'Dark, Vercel-inspired feature grid.', prompt: 'Complete SaaS site — home (hero, highlights, social proof, pricing, CTA, footer), features, pricing, docs, dashboard. Dark UI, modern micro-interactions.' },
+  { label: 'Restaurant', desc: 'Warm menu + reservation CTA.', prompt: 'Complete restaurant site — home (hero, menu preview, about, testimonials, reservation CTA, footer), full menu, reservations, contact. Warm palette, appetizing photography placeholders.' },
+  { label: 'Agency', desc: 'Editorial, case studies forward.', prompt: 'Creative agency site — home (hero, case studies, services, testimonials, CTA, footer), work, services, about, contact. Editorial typography, asymmetric layout.' },
+  { label: 'Gaming', desc: 'High-energy, gradient spotlight.', prompt: 'Gaming studio site — home (hero, featured games, stats, team, CTA, footer), games, team, careers. Bold gradients, energetic motion.' },
+  { label: 'Wellness', desc: 'Soft, calming landing.', prompt: 'Meditation app site — home (hero, features, testimonial carousel, pricing, download CTA, footer). Soft palette, calm rhythm.' },
 ];
 
-const STATS = [
-  { value: '20s', label: 'average generation time' },
-  { value: '100%', label: 'world-class' },
-  { value: '0', label: 'setup required' },
-  { value: '∞', label: 'projects free' },
+const STEPS = [
+  { title: 'Describe', desc: 'One sentence about the product, vibe, and pages you need.' },
+  { title: 'Generate', desc: 'Jasmine drafts the entire project: structure, sections, spacing, interactions.' },
+  { title: 'Refine', desc: 'Chat to adjust copy, layout, and styling. Preview or download instantly.' },
 ];
 
-const USE_CASES = [
-  { icon: 'ph-buildings', label: 'law & finance', desc: 'trustworthy, professional' },
-  { icon: 'ph-fork-knife', label: 'restaurants', desc: 'warm, appetizing' },
-  { icon: 'ph-rocket-launch', label: 'saas', desc: 'dark mode, feature grids' },
-  { icon: 'ph-game-controller', label: 'gaming', desc: 'bold, immersive' },
-  { icon: 'ph-heart', label: 'wellness', desc: 'soft, calming' },
-  { icon: 'ph-palette', label: 'agencies', desc: 'dark editorial' },
-];
+function Badge({ children }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-[rgba(220,211,195,0.9)] bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary shadow-[0_8px_20px_rgba(0,0,0,0.04)]">
+      <i className="ph ph-star text-[13px] text-[#379f57]" />
+      {children}
+    </span>
+  );
+}
 
-const COMPARISON = [
-  { traditional: 'weeks of design', jasmine: '20 seconds' },
-  { traditional: '$10k+ agency', jasmine: 'free' },
-  { traditional: 'back-and-forth', jasmine: 'instant edits' },
-  { traditional: 'generic templates', jasmine: 'custom craft' },
-];
-
-const sectionCl = 'px-6 md:px-12 lg:px-24';
-const labelCl = 'text-xs tracking-[0.12em] text-text-muted mb-6';
-const headingCl = 'text-2xl md:text-3xl font-semibold text-text-primary mb-4 leading-[1.2] font-display text-3d';
-const maxW = 'max-w-4xl mx-auto';
+function Card({ children, className = '' }) {
+  return (
+    <div className={`rounded-2xl border border-[rgba(220,211,195,0.9)] bg-white/80 shadow-[0_20px_60px_rgba(0,0,0,0.06)] ${className}`}>
+      {children}
+    </div>
+  );
+}
 
 function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const [faqOpen, setFaqOpen] = useState(null);
-
-  useEffect(() => {
-    const t = setInterval(() => setCarouselIndex(i => (i + 1) % TESTIMONIALS.length), 4500);
-    return () => clearInterval(t);
-  }, []);
-
   const isLight = theme === 'light';
-  const cardCl = isLight ? 'bg-white border border-zinc-200/60 card-3d' : 'bg-white/[0.02] border border-white/[0.06] card-3d';
-  const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
+  const borderCl = useMemo(() => (isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/10'), [isLight]);
+  const mutedBg = isLight ? 'bg-[#f6f4ec]' : 'bg-surface-raised';
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto bg-surface text-text-primary">
       {/* hero */}
-      <section className={`relative min-h-[90vh] flex flex-col justify-center ${sectionCl} overflow-hidden`}>
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url('/hero-bg.png')` }}
-        />
-        <div className={`absolute inset-0 ${isLight ? 'bg-gradient-to-b from-transparent via-surface/40 to-surface' : 'bg-gradient-to-b from-black/40 via-surface/75 to-surface'}`} />
-        <HeroGlowLines />
-        <div className={`relative ${maxW} w-full`}>
-          <div className="grid lg:grid-cols-2 gap-20 lg:gap-32 items-center">
-            <div className={!isLight ? '[text-shadow:0_1px_2px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.4)]' : ''}>
-              <BlurPopUp delay={0}>
-                <p className={`${labelCl} font-display text-3d`}>
-                  <BlurPopUpByWord text="the world's best designer" wordDelay={0.03} />
-                </p>
-              </BlurPopUp>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.1] text-text-primary mb-6 font-display text-3d">
-                <BlurPopUpByWord text="design anything." wordDelay={0.05} />
-              </h1>
-              <BlurPopUp delay={0.6}>
-                <p className={`text-base md:text-lg leading-[1.6] max-w-lg mb-12 ${isLight ? 'text-text-secondary' : 'text-text-secondary [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]'}`}>
-                  <BlurPopUpByWord text="describe what you want. jasmine crafts it — every page, every section. the best designer, one prompt." wordDelay={0.02} />
-                </p>
-              </BlurPopUp>
-              <div className="flex flex-wrap gap-3">
-                <BlurPopUp delay={0.9}>
-                  <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-8 py-3">
-                    <i className="ph ph-magic-wand text-base"></i>
-                    start designing
-                  </button>
-                </BlurPopUp>
-                <BlurPopUp delay={1}>
-                  <button
-                    onClick={() => onSelectPrompt(EXAMPLE_CARDS[0].prompt)}
-                    className="btn-ghost flex items-center gap-2 px-8 py-3 text-sm font-medium text-text-primary"
-                  >
-                    try law firm
-                  </button>
-                </BlurPopUp>
+      <section className="relative overflow-hidden px-6 md:px-10 lg:px-16 pt-14 pb-16 md:pb-24">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -left-20 -top-32 h-72 w-72 rounded-full bg-[#379f57]/10 blur-3xl" />
+          <div className="absolute right-0 top-10 h-64 w-64 rounded-full bg-[#9c9885]/20 blur-3xl" />
+        </div>
+        <div className="relative max-w-6xl mx-auto text-center space-y-8">
+          <Badge>Jasmine — the notebook that designs with you</Badge>
+          <h1 className="text-4xl md:text-5xl lg:text-[52px] font-semibold leading-[1.05] tracking-[-0.02em]">
+            Build frontends that feel hand-crafted.
+          </h1>
+          <p className="text-lg md:text-xl leading-relaxed text-text-secondary max-w-3xl mx-auto">
+            Write a prompt. Jasmine composes every page — hero, feature grids, pricing, footers — with the polish of a senior designer. Refine it live, then export production-ready React + Tailwind.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 w-full sm:w-auto justify-center">
+              <i className="ph ph-magic-wand text-lg"></i>
+              Start designing
+            </button>
+            <button onClick={() => onSelectPrompt(EXAMPLE_CARDS[0].prompt)} className="btn-ghost flex items-center gap-2 w-full sm:w-auto justify-center px-8 py-3 text-sm font-semibold">
+              Try law firm prompt
+              <i className="ph ph-arrow-up-right" />
+            </button>
+          </div>
+
+          <Card className="mt-10 overflow-hidden">
+            <div className="grid lg:grid-cols-[1.05fr_1fr]">
+              <div className="p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-[rgba(220,211,195,0.9)] bg-white/70 text-left space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#379f57]/10 text-[#2d7f45] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]">
+                  <i className="ph ph-sparkle" />
+                  Canvas
+                </div>
+                <h3 className="text-xl md:text-2xl font-semibold leading-tight">Homepage layout for “Summit Legal”</h3>
+                <ul className="space-y-3 text-sm text-text-secondary">
+                  <li className="flex items-start gap-2">
+                    <i className="ph ph-check-circle text-[#379f57] mt-0.5" />
+                    Hero with badge, CTA, and trust bar.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <i className="ph ph-check-circle text-[#379f57] mt-0.5" />
+                    Practice areas grid with cards and icons.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <i className="ph ph-check-circle text-[#379f57] mt-0.5" />
+                    Testimonials, CTA band, editorial footer.
+                  </li>
+                </ul>
+                <div className="rounded-xl border border-[rgba(220,211,195,0.9)] bg-white/60 px-4 py-3 text-sm text-text-primary shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+                  “Jasmine, keep the hero tighter and make the CTA button emerald.”
+                </div>
+              </div>
+              <div className={`${mutedBg} p-6 md:p-8`}>
+                <div className="flex items-center justify-between text-sm text-text-muted mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#379f57]" />
+                    Live preview
+                  </div>
+                  <div className="flex items-center gap-2 text-text-secondary">
+                    <i className="ph ph-copy" />
+                    <i className="ph ph-arrow-square-out" />
+                  </div>
+                </div>
+                <div className="rounded-xl border border-[rgba(220,211,195,0.9)] bg-white/90 p-4 shadow-[0_16px_40px_rgba(0,0,0,0.05)] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="h-2 w-24 rounded-full bg-[#e0d8c8]" />
+                    <div className="flex gap-1">
+                      <span className="h-7 w-7 rounded-full bg-[#379f57]/15 flex items-center justify-center text-[#2d7f45]">
+                        <i className="ph ph-play" />
+                      </span>
+                      <span className="h-7 w-7 rounded-full bg-[#e0d8c8] flex items-center justify-center text-[#7c7c73]">
+                        <i className="ph ph-caret-down" />
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="h-12 rounded-xl bg-[#f6f4ec] border border-[rgba(220,211,195,0.8)]" />
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      {[1, 2, 3].map((n) => (
+                        <div key={n} className="h-28 rounded-xl bg-[#f6f4ec] border border-[rgba(220,211,195,0.8)]" />
+                      ))}
+                    </div>
+                    <div className="h-14 rounded-xl bg-[#f6f4ec] border border-[rgba(220,211,195,0.8)]" />
+                    <div className="h-10 rounded-xl bg-[#f6f4ec] border border-[rgba(220,211,195,0.8)]" />
+                  </div>
+                </div>
               </div>
             </div>
-            <BlurPopUp delay={1.1} className="relative hidden lg:block">
-              <div className={`${cardCl} rounded-lg p-6 overflow-hidden ${!isLight ? 'shadow-[0_4px_24px_rgba(0,0,0,0.5)]' : ''}`}>
-                <pre className="text-[12px] font-mono text-text-secondary leading-relaxed overflow-x-auto">
-{`src/
-├── app/
-│   ├── layout.tsx
-│   ├── page.tsx
-│   └── ...
-├── components/
-└── ...
-`}
-                </pre>
-                <p className="text-xs text-text-muted mt-4">vite · react · tailwind</p>
-              </div>
-            </BlurPopUp>
+          </Card>
+        </div>
+      </section>
+
+      {/* logos */}
+      <section className="px-6 md:px-10 lg:px-16 pb-16">
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-4 md:gap-6 rounded-2xl border border-[rgba(220,211,195,0.9)] bg-white/80 px-4 py-4 shadow-[0_14px_30px_rgba(0,0,0,0.05)]">
+          {LOGOS.map((logo) => (
+            <div key={logo} className="text-xs md:text-sm font-semibold tracking-[0.18em] uppercase text-text-muted px-3 py-2 rounded-lg bg-[#f6f4ec] border border-[rgba(220,211,195,0.7)]">
+              {logo}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* features */}
+      <section className={`px-6 md:px-10 lg:px-16 py-16 md:py-20 border-t ${borderCl}`}>
+        <div className="max-w-5xl mx-auto space-y-10">
+          <div className="space-y-3 text-center">
+            <Badge>Everything in one canvas</Badge>
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">Jasmine handles the full flow.</h2>
+            <p className="text-text-secondary text-base md:text-lg leading-relaxed max-w-3xl mx-auto">
+              Ideate, design, and ship from the same surface. No hopping between design files and code.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {FEATURE_SETS.map((item) => (
+              <Card key={item.title} className="p-6 flex flex-col gap-3 h-full">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#379f57]/12 text-[#2d7f45]">
+                  <i className={`ph ${item.icon} text-lg`} />
+                </div>
+                <h3 className="text-lg font-semibold">{item.title}</h3>
+                <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* stats */}
-      <section className={`relative py-24 border-t ${borderCl} overflow-hidden`}>
-        <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('/lander-stats-bg.png')` }} aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/85 to-surface" aria-hidden />
-        <motion.div
-          className={`relative ${maxW} ${sectionCl}`}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.1 }}
-          variants={heroContainer}
-        >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-16 md:gap-24">
-            {STATS.map((stat, i) => (
-              <motion.div key={i} variants={heroItem} className="text-center">
-                <p className="text-2xl md:text-3xl font-medium text-text-primary tracking-tight">
-                  <BlurPopUpByWordInView text={stat.value} wordDelay={0.02} />
-                </p>
-                <p className="text-xs text-text-muted mt-2">
-                  <BlurPopUpByWordInView text={stat.label} wordDelay={0.03} />
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* marquee */}
-      <section className={`py-24 border-t ${borderCl} overflow-hidden`}>
-        <BlurPopUpInView>
-          <p className={`${labelCl} text-center mb-12`}>
-            <BlurPopUpByWordInView text="tech" />
-          </p>
-          <div className="marquee-track">
-            {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 mx-10 shrink-0">
-                <div className={`w-12 h-12 rounded-lg ${cardCl} flex items-center justify-center p-2`}>
-                  <img src={item.logo} alt={item.label} className="w-6 h-6 object-contain opacity-60" />
+      {/* work modes */}
+      <section className={`px-6 md:px-10 lg:px-16 py-16 md:py-20 border-t ${borderCl}`}>
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_1fr] gap-10 items-start">
+          <div className="space-y-4">
+            <Badge>Aligned with how you think</Badge>
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">Capture, compose, and deploy.</h2>
+            <p className="text-text-secondary leading-relaxed">
+              Jasmine mirrors the clean, confident layout of Opennote: soft neutrals, precise borders, and clear hierarchy. Your product copy stays yours — the craft comes from Jasmine.
+            </p>
+            <div className="space-y-3">
+              {WORKSPACES.map((item) => (
+                <div key={item.title} className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-full bg-[#f6f4ec] border border-[rgba(220,211,195,0.9)] flex items-center justify-center text-[#2d7f45]">
+                    <i className={`ph ${item.icon}`} />
+                  </div>
+                  <div>
+                    <p className="font-semibold">{item.title}</p>
+                    <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
+                  </div>
                 </div>
-                <span className="text-text-muted text-sm">{item.label}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </BlurPopUpInView>
+          <Card className="p-6 md:p-8 space-y-5">
+            <div className="flex items-center justify-between text-sm text-text-muted">
+              <span>Generation timeline</span>
+              <span className="inline-flex items-center gap-1 text-[#2d7f45]">
+                <i className="ph ph-lightning" />
+                20s avg
+              </span>
+            </div>
+            <div className="space-y-3">
+              {['Describe product', 'Jasmine drafts layout', 'Review preview', 'Ship'].map((label, idx) => (
+                <div key={label} className="flex items-center gap-3">
+                  <span className="h-10 w-10 rounded-full border border-[rgba(220,211,195,0.9)] bg-white/80 flex items-center justify-center text-sm font-semibold">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 h-[3px] rounded-full bg-[#f1eadb]">
+                    <div className="h-full rounded-full bg-[#379f57]" style={{ width: `${70 - idx * 12}%` }} />
+                  </div>
+                  <span className="text-sm font-medium text-text-secondary w-40">{label}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       </section>
 
-      {/* bento 1 */}
-      <section className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
-        <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/85 to-surface" aria-hidden />
-        <motion.div
-          className={`relative ${maxW}`}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.05 }}
-          variants={heroContainer}
-        >
-          <p className={labelCl}><BlurPopUpByWordInView text="how it works" /></p>
-          <h2 className={headingCl}><BlurPopUpByWordInView text="one prompt. full project." /></h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 [grid-auto-rows:minmax(140px,auto)]">
-            {BENTO_ITEMS.map((item, i) => (
-              <motion.div
-                key={i}
-                variants={heroItem}
-                className={`${item.span} ${cardCl} rounded-lg p-6 flex flex-col justify-between`}
-              >
-                <i className={`ph ${item.icon} text-lg text-text-muted mb-3 block`}></i>
-                <h3 className="text-sm font-medium text-text-primary mb-1">
-                  <BlurPopUpByWordInView text={item.title} wordDelay={0.03} />
-                </h3>
-                <p className="text-xs text-text-secondary leading-relaxed">
-                  <BlurPopUpByWordInView text={item.desc} wordDelay={0.02} />
-                </p>
-              </motion.div>
+      {/* examples */}
+      <section className={`px-6 md:px-10 lg:px-16 py-16 md:py-20 border-t ${borderCl}`}>
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="space-y-2 text-center">
+            <Badge>Start from a prompt</Badge>
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">Pick a layout, keep your own words.</h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {EXAMPLE_CARDS.map((card) => (
+              <Card key={card.label} className="p-5 flex flex-col gap-3 h-full">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-[#f6f4ec] border border-[rgba(220,211,195,0.9)] flex items-center justify-center text-[#2d7f45] font-semibold">
+                    {card.label[0]}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{card.label}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-text-muted">Preset prompt</p>
+                  </div>
+                </div>
+                <p className="text-sm text-text-secondary leading-relaxed">{card.desc}</p>
+                <button
+                  onClick={() => onSelectPrompt(card.prompt)}
+                  className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-[#2d7f45] hover:text-[#1f5c35]"
+                >
+                  Use this prompt <i className="ph ph-arrow-right" />
+                </button>
+              </Card>
             ))}
           </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* steps */}
-      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <motion.div
-          className={maxW}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.1 }}
-          variants={heroContainer}
-        >
-          <p className={labelCl}><BlurPopUpByWordInView text="process" /></p>
-          <h2 className={headingCl}><BlurPopUpByWordInView text="three steps. zero friction." /></h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-            {STEPS.map((step, i) => (
-              <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg p-8`}>
-                <span className="text-2xl font-medium text-text-muted">{step.num}</span>
-                <div className="mt-4 flex items-center gap-2">
-                  <i className={`ph ${step.icon} text-lg text-text-muted`}></i>
-                  <h3 className="text-sm font-medium text-text-primary">
-                    <BlurPopUpByWordInView text={step.label} wordDelay={0.03} />
-                  </h3>
+      <section className={`px-6 md:px-10 lg:px-16 py-16 md:py-20 border-t ${borderCl}`}>
+        <div className="max-w-5xl mx-auto space-y-10">
+          <div className="space-y-3 text-center">
+            <Badge>How it flows</Badge>
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">From prompt to preview.</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {STEPS.map((step, idx) => (
+              <Card key={step.title} className="p-6 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                  <span className="h-7 w-7 rounded-full bg-[#379f57]/12 text-[#2d7f45] flex items-center justify-center">{`0${idx + 1}`}</span>
+                  Step
                 </div>
-                <p className="text-text-secondary text-sm mt-2 leading-relaxed">
-                  <BlurPopUpByWordInView text={step.desc} wordDelay={0.02} />
-                </p>
-              </motion.div>
+                <p className="text-lg font-semibold">{step.title}</p>
+                <p className="text-sm text-text-secondary leading-relaxed">{step.desc}</p>
+              </Card>
             ))}
           </div>
-        </motion.div>
+        </div>
       </section>
 
-      {/* comparison */}
-      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <motion.div
-          className={maxW}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.1 }}
-          variants={heroContainer}
-        >
-          <p className={labelCl}><BlurPopUpByWordInView text="the difference" /></p>
-          <h2 className={headingCl}><BlurPopUpByWordInView text="traditional vs jasmine" /></h2>
-          <motion.div variants={heroItem} className={`${cardCl} rounded-lg overflow-hidden mt-16`}>
-            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-inherit">
-              <div className="p-8">
-                <p className="text-xs text-text-muted mb-4">
-                  <BlurPopUpByWordInView text="traditional" />
-                </p>
-                <ul className="space-y-3">
-                  {COMPARISON.map((c, i) => (
-                    <li key={i} className="text-text-secondary text-sm">
-                      <BlurPopUpByWordInView text={c.traditional} wordDelay={0.02} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="p-8 flex items-center justify-center">
-                <i className="ph ph-arrow-right text-lg text-text-muted" />
-              </div>
-              <div className="p-8">
-                <p className="text-xs text-[var(--color-accent)] mb-4">
-                  <BlurPopUpByWordInView text="jasmine" />
-                </p>
-                <ul className="space-y-3">
-                  {COMPARISON.map((c, i) => (
-                    <li key={i} className="text-text-primary text-sm font-medium">
-                      <BlurPopUpByWordInView text={c.jasmine} wordDelay={0.02} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* use cases */}
-      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <motion.div
-          className={maxW}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.1 }}
-          variants={heroContainer}
-        >
-          <motion.p variants={heroItem} className={labelCl}>industries</motion.p>
-          <motion.h2 variants={heroItem} className={headingCl}>built for every vertical.</motion.h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-16">
-            {USE_CASES.map((uc, i) => (
-              <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg p-6`}>
-                <i className={`ph ${uc.icon} text-lg text-text-muted mb-2 block`}></i>
-                <h3 className="text-sm font-medium text-text-primary mb-1">
-                  <BlurPopUpByWordInView text={uc.label} wordDelay={0.03} />
-                </h3>
-                <p className="text-xs text-text-secondary">
-                  <BlurPopUpByWordInView text={uc.desc} wordDelay={0.03} />
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* bento 2 */}
-      <section className={`relative ${sectionCl} py-32 border-t ${borderCl} overflow-hidden`}>
-        <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('/lander-bento-bg.png')` }} aria-hidden />
-        <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/85 to-surface" aria-hidden />
-        <motion.div
-          className={`relative ${maxW}`}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.05 }}
-          variants={heroContainer}
-        >
-          <p className={labelCl}><BlurPopUpByWordInView text="output quality" /></p>
-          <h2 className={headingCl}><BlurPopUpByWordInView text="world-class. every time." /></h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 [grid-auto-rows:minmax(120px,auto)]">
-            {BENTO_OUTPUT.map((item, i) => (
-              <motion.div key={i} variants={heroItem} className={`${item.span} ${cardCl} rounded-lg p-6 flex flex-col justify-between`}>
-                <i className={`ph ${item.icon} text-lg text-text-muted mb-2 block`}></i>
-                <h3 className="text-sm font-medium text-text-primary mb-1">
-                  <BlurPopUpByWordInView text={item.title} wordDelay={0.03} />
-                </h3>
-                <p className="text-xs text-text-secondary leading-relaxed">
-                  <BlurPopUpByWordInView text={item.desc} wordDelay={0.02} />
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* testimonial */}
-      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <BlurPopUpInView className={maxW}>
-          <p className={labelCl}><BlurPopUpByWordInView text="what people say" /></p>
-          <h2 className={headingCl}><BlurPopUpByWordInView text="built for designers who care." /></h2>
-          <div className="relative min-h-[240px] mt-16">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className={`transition-all duration-500 ${i === carouselIndex ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 absolute inset-x-0 top-0 pointer-events-none'}`}>
-                <blockquote className={`${cardCl} rounded-lg p-10 md:p-14`}>
-                  <p className="text-xl md:text-2xl font-medium text-text-primary leading-[1.4] mb-6">
-                    "<BlurPopUpByWordInView text={t.quote} wordDelay={0.03} />"
-                  </p>
-                  <p className="text-sm text-text-muted">
-                    <BlurPopUpByWordInView text={`${t.author} · ${t.role}`} wordDelay={0.04} />
-                  </p>
-                </blockquote>
-              </div>
-            ))}
-            <div className="flex gap-2 mt-8 justify-center">
-              {TESTIMONIALS.map((_, i) => (
-                <button key={i} onClick={() => setCarouselIndex(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === carouselIndex ? 'bg-text-primary w-6' : 'bg-white/20 w-1.5 hover:bg-white/30'}`} />
-              ))}
-            </div>
-          </div>
-        </BlurPopUpInView>
-      </section>
-
-      {/* horizontal features */}
-      <section className={`py-32 border-t ${borderCl}`}>
-        <motion.div
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.1 }}
-          variants={heroContainer}
-        >
-          <div className={`${sectionCl} mb-16`}>
-            <p className={labelCl}><BlurPopUpByWordInView text="built-in craft" /></p>
-            <h2 className={headingCl}><BlurPopUpByWordInView text="every detail, handled." /></h2>
-          </div>
-          <div className="relative overflow-x-auto overflow-y-hidden pb-4 scrollbar-hide">
-            <div className="flex gap-4 w-max pl-6 md:pl-24 pr-6 md:pr-24">
-              {HORIZONTAL_FEATURES.map((f, i) => (
-                <motion.div key={i} variants={heroItem} className={`shrink-0 w-[260px] ${cardCl} rounded-lg p-6`}>
-                  <i className={`ph ${f.icon} text-lg text-text-muted mb-2 block`}></i>
-                  <h3 className="text-sm font-medium text-text-primary mb-1">
-                    <BlurPopUpByWordInView text={f.title} wordDelay={0.03} />
-                  </h3>
-                  <p className="text-xs text-text-secondary">
-                    <BlurPopUpByWordInView text={f.desc} wordDelay={0.03} />
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* example cards */}
-      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <motion.div
-          className={maxW}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.1 }}
-          variants={heroContainer}
-        >
-          <p className={labelCl}><BlurPopUpByWordInView text="try these" /></p>
-          <h2 className={headingCl}><BlurPopUpByWordInView text="one click to start." /></h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-16">
-            {EXAMPLE_CARDS.map((card, i) => (
-              <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg p-6 flex flex-col hover:border-accent/30`}>
-                <span className="text-xs text-text-muted">
-                  <BlurPopUpByWordInView text={card.label} wordDelay={0.03} />
-                </span>
-                <p className="text-text-secondary text-sm mt-2 leading-relaxed flex-1">
-                  <BlurPopUpByWordInView text={card.desc} wordDelay={0.02} />
-                </p>
-                <button onClick={() => onSelectPrompt(card.prompt)} className="btn-premium mt-4 w-full py-2.5 rounded-md flex items-center justify-center gap-2 text-sm">
-                  <i className="ph ph-magic-wand text-base"></i>
-                  try it
-                </button>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* pricing */}
-      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <BlurPopUpInView className={`${maxW} text-center`}>
-          <p className={labelCl}><BlurPopUpByWordInView text="pricing" /></p>
-          <h2 className={headingCl}><BlurPopUpByWordInView text="free forever." /></h2>
-          <p className="text-base text-text-secondary mb-12 max-w-md mx-auto">
-            <BlurPopUpByWordInView text="no signup. no credit card. generate as many projects as you want. the code is yours." wordDelay={0.03} />
+      {/* CTA */}
+      <section className={`px-6 md:px-10 lg:px-16 py-16 md:py-20 border-t ${borderCl}`}>
+        <Card className="max-w-5xl mx-auto p-8 md:p-12 text-center space-y-6">
+          <Badge>Ready to build</Badge>
+          <h3 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">Keep your words. Borrow Jasmine’s craft.</h3>
+          <p className="text-text-secondary leading-relaxed max-w-3xl mx-auto">
+            Generate a full project in seconds. Edit with natural language. Download or deploy straight from the canvas.
           </p>
-          <div className={`${cardCl} rounded-lg p-12 inline-block`}>
-            <p className="text-3xl font-medium text-text-primary">
-              <BlurPopUpByWordInView text="$0" />
-            </p>
-            <p className="text-xs text-text-muted mt-1">
-              <BlurPopUpByWordInView text="per month" />
-            </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 w-full sm:w-auto justify-center">
+              <i className="ph ph-magic-wand text-lg"></i>
+              Start designing
+            </button>
+            <button onClick={() => onSelectPrompt(EXAMPLE_CARDS[1].prompt)} className="btn-ghost flex items-center gap-2 w-full sm:w-auto justify-center px-8 py-3 text-sm font-semibold">
+              Try SaaS prompt
+            </button>
           </div>
-        </BlurPopUpInView>
+        </Card>
       </section>
-
-      {/* faq */}
-      <section className={`${sectionCl} py-32 border-t ${borderCl}`}>
-        <motion.div
-          className={maxW}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.1 }}
-          variants={heroContainer}
-        >
-          <p className={labelCl}><BlurPopUpByWordInView text="faq" /></p>
-          <h2 className={headingCl}><BlurPopUpByWordInView text="questions? answers." /></h2>
-          <div className="space-y-2 mt-16">
-            {FAQ_ITEMS.map((item, i) => (
-              <motion.div key={i} variants={heroItem} className={`${cardCl} rounded-lg overflow-hidden`}>
-                <button onClick={() => setFaqOpen(faqOpen === i ? null : i)} className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
-                  <span className="text-sm font-medium text-text-primary">
-                    <BlurPopUpByWordInView text={item.q} wordDelay={0.02} />
-                  </span>
-                  <i className={`ph ph-caret-down text-text-muted transition-transform duration-200 ${faqOpen === i ? 'rotate-180' : ''}`}></i>
-                </button>
-                <div className={`overflow-hidden transition-all duration-300 ${faqOpen === i ? 'max-h-48' : 'max-h-0'}`}>
-                  <p className="px-6 pb-4 text-text-secondary text-sm leading-relaxed">
-                    <BlurPopUpByWordInView text={item.a} wordDelay={0.015} />
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* cta */}
-      <section className={`${sectionCl} py-40 border-t ${borderCl}`}>
-        <BlurPopUpInView className={`${maxW} text-center`} amount={0.2}>
-          <h2 className={headingCl}><BlurPopUpByWordInView text="ready to design?" /></h2>
-          <p className="text-base text-text-secondary mb-12">
-            <BlurPopUpByWordInView text="the world's best designer. one prompt." />
-          </p>
-          <button onClick={onStartDesigning} className="btn-premium inline-flex items-center gap-2 text-sm px-10 py-3">
-            <i className="ph ph-rocket-launch text-base"></i>
-            start designing
-          </button>
-        </BlurPopUpInView>
-      </section>
-
-      {/* footer */}
-      <footer className={`${sectionCl} py-20 border-t ${borderCl}`}>
-        <BlurPopUpInView className={`${maxW} flex flex-col md:flex-row items-center justify-between gap-6`}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
-              <img src="/logo-mark.png" alt="" className="w-full h-full object-contain" />
-            </div>
-            <span className="text-sm font-medium text-text-primary">
-              <BlurPopUpByWordInView text="jasmine" />
-            </span>
-          </div>
-          <div className="flex items-center gap-6 text-xs text-text-muted">
-            <span><BlurPopUpByWordInView text="ai website designer" wordDelay={0.04} /></span>
-            <span>·</span>
-            <span><BlurPopUpByWordInView text="vite · react · tailwind" wordDelay={0.04} /></span>
-          </div>
-        </BlurPopUpInView>
-      </footer>
     </div>
   );
 }
