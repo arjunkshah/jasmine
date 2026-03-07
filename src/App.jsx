@@ -82,7 +82,7 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
   const inactiveTextCl = 'text-text-muted';
 
   return (
-    <div className={`relative flex rounded-full p-0.5 ${trackCl} h-7 min-w-[10rem] shrink-0 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+    <div className={`relative flex rounded-full p-0.5 ${trackCl} h-8 min-w-[11rem] shrink-0 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
       <motion.div
         className={`absolute left-0.5 top-0.5 bottom-0.5 w-[calc(50%-4px)] rounded-full ${thumbCl}`}
         animate={{ x: htmlMode ? 'calc(100% + 4px)' : 0 }}
@@ -92,7 +92,7 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
         type="button"
         onClick={() => setHtmlMode(false)}
         disabled={disabled}
-        className={`relative z-10 flex-1 min-w-0 px-3 py-1 text-xs font-medium h-full flex items-center justify-center rounded-full transition-colors ${!htmlMode ? activeTextCl : inactiveTextCl}`}
+        className={`relative z-10 flex-1 min-w-0 px-3 py-1.5 text-xs font-medium h-full flex items-center justify-center rounded-full transition-colors whitespace-nowrap leading-none ${!htmlMode ? activeTextCl : inactiveTextCl}`}
         title="Vite + React — full project"
       >
         Vite + React
@@ -101,7 +101,7 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
         type="button"
         onClick={() => setHtmlMode(true)}
         disabled={disabled}
-        className={`relative z-10 flex-1 min-w-0 px-3 py-1 text-xs font-medium h-full flex items-center justify-center rounded-full transition-colors ${htmlMode ? activeTextCl : inactiveTextCl}`}
+        className={`relative z-10 flex-1 min-w-0 px-3 py-1.5 text-xs font-medium h-full flex items-center justify-center rounded-full transition-colors whitespace-nowrap leading-none ${htmlMode ? activeTextCl : inactiveTextCl}`}
         title="HTML — single file, instant"
       >
         HTML
