@@ -643,8 +643,8 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       {/* Stats — lander-stats-bg */}
       <StatsSection isLight={isLight} borderCl={borderCl} />
 
-      {/* CTA — OpenNote-style warm yellow footer */}
-      <section className="px-6 md:px-12 lg:px-20 py-24 md:py-32 bg-[#FCCD4F] text-[var(--color-text-primary)]">
+      {/* CTA — warm yellow (light) / dark surface (dark mode) */}
+      <section className={`px-6 md:px-12 lg:px-20 py-24 md:py-32 ${isLight ? 'bg-[#FCCD4F] text-[#0a0a0b]' : 'bg-white/[0.06] border-t border-white/10 text-text-primary'}`}>
         <motion.div
           className="max-w-3xl mx-auto text-center space-y-8"
           initial={{ opacity: 0, y: 32 }}
@@ -655,7 +655,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           <h3 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">
             <BlurPopUpByWordInView text="Start designing today." wordDelay={0.03} />
           </h3>
-          <p className="text-[var(--color-text-secondary)] leading-relaxed max-w-3xl mx-auto">
+          <p className={`leading-relaxed max-w-3xl mx-auto ${isLight ? 'text-neutral-800' : 'text-text-secondary'}`}>
             <BlurPopUpByWordInView text="Generate a full project in seconds. Edit with natural language. Download or deploy straight from the canvas." wordDelay={0.02} />
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -663,7 +663,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
               <i className="ph ph-magic-wand text-lg"></i>
               Start designing
             </button>
-            <button onClick={() => onSelectPrompt(EXAMPLE_CARDS[1].prompt)} className="btn-ghost flex items-center gap-2 w-full sm:w-auto justify-center px-8 py-3 text-sm font-semibold border-[var(--color-text-primary)] text-[var(--color-text-primary)] hover:bg-black/5">
+            <button onClick={() => onSelectPrompt(EXAMPLE_CARDS[1].prompt)} className={`flex items-center gap-2 w-full sm:w-auto justify-center px-8 py-3 text-sm font-semibold ${isLight ? 'border-[#0a0a0b] text-[#0a0a0b] hover:bg-black/5' : 'btn-ghost border-white/20 text-text-primary hover:bg-white/10'}`}>
               Try SaaS prompt
           </button>
         </div>
