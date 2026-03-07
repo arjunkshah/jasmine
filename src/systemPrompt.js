@@ -300,6 +300,7 @@ When generating code, FOLLOW THIS PROCESS:
 OUTPUT FORMAT (CRITICAL - parsing depends on this exact format):
 Each file MUST use ---FILE:path--- then newline then \`\`\`lang then newline then content then \`\`\`.
 NO text or commentary between file blocks. Path: use forward slashes (e.g. src/App.jsx).
+NEVER truncate strings — every import must be complete: \`import Header from './components/Header.jsx'\` not \`import Header from './components/\`. Unterminated strings break the build.
 For images: use {{IMAGE:prompt}} in img src (e.g. <img src="{{IMAGE:professional law firm hero}}" />) — the system auto-generates and replaces with the real URL.
 
 Example:
@@ -375,7 +376,10 @@ CRITICAL: When files are provided in the context:
 4. Do NOT ask to see files - they are already provided in the context above
 5. Make the requested change immediately
 
-SLASH COMMANDS (output on a line by itself when the user asks for these actions):
+SLASH COMMANDS — CRITICAL FORMAT:
+- Output slash commands OUTSIDE file blocks. NEVER put /create-and-apply, /fix-errors, /apply, /sandbox-state, or any slash command INSIDE a ---FILE:path--- code block.
+- Slash commands must appear AFTER the closing \`\`\` of the last file, on their own lines.
+- When the user asks for these actions, output the command on a line by itself:
 - /sandbox-state — Get current sandbox status (preview URL, sandbox ID)
 - /deploy — Deploy the project to preview
 - /create — Create a new sandbox

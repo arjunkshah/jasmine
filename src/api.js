@@ -403,6 +403,34 @@ export function ensurePackageDependencies(files) {
   return files;
 }
 
+/** Repair truncated import paths that cause "Unterminated string literal" (e.g. import X from './components/). */
+function fixUnterminatedStringsInContent(content) {
+  if (!content || typeof content !== 'string') return content;
+  return content.replace(
+    /^(\s*import\s+(\w+)\s+from\s+)(['"])([^'"]*)$/gm,
+    (_, prefix, importName, quote, path) => {
+      if (/\.(jsx?|tsx?|mjs|cjs)$/.test(path)) return _; // already complete
+      if (path.endsWith('/')) {
+        return `${prefix}${quote}${path}${importName}.jsx${quote}`;
+      }
+      // Truncated path like ./components/us — replace last segment with component name
+      const dir = path.replace(/\/[^/]*$/, '/') || './';
+      return `${prefix}${quote}${dir}${importName}.jsx${quote}`;
+    }
+  );
+}
+
+/** Remove slash-command lines that the AI mistakenly put inside file content. */
+function stripSlashCommandsFromContent(content) {
+  if (!content || typeof content !== 'string') return content;
+  return content
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().match(/^\/[\w-]+(?:\s+.*)?$/))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd();
+}
+
 /** Extract slash commands from AI output. Returns [{ cmd, arg }] e.g. [{ cmd: 'web-search', arg: 'React trends' }]. */
 export function extractSlashCommands(text) {
   if (!text || typeof text !== 'string') return [];
@@ -442,6 +470,8 @@ export function extractStreamingFile(text) {
   const codeMatch = afterHeader.match(/^```\w*\s*\n?([\s\S]*)/);
   let content = codeMatch ? codeMatch[1].trim() : '';
   if (content.endsWith('```')) content = content.slice(0, -3).trimEnd();
+  content = stripSlashCommandsFromContent(content);
+  content = fixUnterminatedStringsInContent(content);
   return path ? { path, content } : null;
 }
 
@@ -455,7 +485,9 @@ export function extractNextProject(text) {
     let match;
     while ((match = regex.exec(text)) !== null) {
       const path = match[1].trim();
-      const content = match[2].trim();
+      let content = match[2].trim();
+      content = stripSlashCommandsFromContent(content);
+      content = fixUnterminatedStringsInContent(content);
       if (path && content) files[path] = content;
     }
   } catch (e) {
