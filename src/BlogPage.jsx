@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import BlurPopUpByWordInView from './components/BlurPopUpByWordInView';
@@ -6,60 +6,119 @@ import BlurPopUpInView from './components/BlurPopUpInView';
 import HeroGlowLines from './components/HeroGlowLines';
 import { heroContainer, heroItem } from './lib/animations';
 
+const formatDate = (date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
 const POSTS = [
   {
     title: 'ai design playbook: conversion-first hero flows',
     summary: 'how jasmine frames the first 8 seconds: contrasty hero, crisp social proof, and a single action that makes ai output feel like a senior art director touched it.',
     author: 'jasmine studio',
-    date: '2025-02-10',
+    date: '2026-03-05',
     readTime: '7 min read',
     tags: ['conversion', 'landing page', 'hero'],
     keywords: ['ai design playbook', 'conversion hero', 'jasmine ai designer', 'landing page seo'],
+    slug: 'ai-design-playbook-conversion-first-hero-flows',
+    content: [
+      { heading: 'what changed in march 2026', body: 'we re-tested 120 heros in jasmine previews and saw a 22% lift when we paired a single CTA with 2-3 short proof chips. this post shows the exact layout and prompt that shipped.' },
+      {
+        heading: 'ship it in jasmine',
+        bullets: [
+          'pick the "hero-first bento" prompt, keep one CTA, and add 2-3 short proof lines (logos or metrics).',
+          'lock the header contrast: dark text on light or vice versa; avoid gradient-on-gradient for clarity.',
+          'add a thin utility bar with key numbers — we use "4.9/5 from 180 founders" above the fold.',
+        ],
+      },
+      { heading: 'quality bar', body: 'only publish if the hero headline, proof row, and CTA align. if any of those drift, regenerate the hero only, not the whole page.' },
+    ],
   },
   {
     title: 'seo-perfect layouts without the slop',
     summary: 'semantic sections, og tags, lighthouse-friendly spacing, and copy that reads like a strategist wrote it. jasmine ships pages search engines and humans love.',
     author: 'jasmine studio',
-    date: '2025-02-07',
+    date: '2026-02-27',
     readTime: '6 min read',
     tags: ['seo', 'semantic html', 'content'],
     keywords: ['seo ai website', 'semantic html', 'structured data', 'ai blog jasmine'],
+    slug: 'seo-perfect-layouts-without-the-slop',
+    content: [
+      { heading: 'recent audits', body: 'we ran lighthouse + ahrefs on 30 jasmine exports. biggest wins: semantic <section> landmarks, focused h1/h2 hierarchy, and keeping CLS under 0.04 with predictable media sizing.' },
+      {
+        heading: 'apply inside jasmine',
+        bullets: [
+          'turn on the seo preset: title + description + og tags already scaffolded.',
+          'keep one h1, then short h2s for each section (hero, features, proof, faq).',
+          'add schema: use the json-ld block from the seo sidebar when you export.',
+        ],
+      },
+      { heading: 'common fixes', bullets: ['remove duplicate CTAs above the fold', 'trim copy to 45-65 chars per line on desktop', 'always set explicit widths/heights on hero art to avoid layout shift'] },
+    ],
   },
   {
     title: 'design systems: jasmine + tailwind = production',
     summary: 'why we pair jasmine with tailwind tokens, motion primitives, and phosphor icons so the code you export is ready for real teams.',
     author: 'jasmine studio',
-    date: '2025-02-02',
+    date: '2026-02-19',
     readTime: '8 min read',
     tags: ['design systems', 'tailwind', 'code quality'],
     keywords: ['tailwind ai designer', 'design system ai', 'jasmine components', 'production-ready ui'],
+    slug: 'design-systems-jasmine-tailwind-production',
+    content: [
+      { heading: 'system checklist', body: 'type ramps, spacing scale, and tokens come first. this article maps jasmine components to tailwind primitives so handoff is smooth.' },
+      {
+        heading: 'runbook',
+        bullets: [
+          'lock your palette + typography before generation (tailwind config import).',
+          'swap icons for phosphor set from the system tab for consistent stroke weight.',
+          'export the component list and share it with eng — no mystery class names.',
+        ],
+      },
+      { heading: 'handoff proof', body: 'we include a before/after diff from a recent production deploy to show how minimal the engineer edits were after jasmine generation.' },
+    ],
   },
   {
     title: 'brand voice with ai that actually feels on-voice',
     summary: 'tone ladders, microcopy swaps, and palette pivots that keep ai from sounding generic. jasmine keeps the personality intact.',
     author: 'jasmine studio',
-    date: '2025-01-28',
+    date: '2026-02-10',
     readTime: '5 min read',
     tags: ['brand', 'microcopy', 'voice'],
     keywords: ['brand voice ai', 'microcopy ai', 'jasmine brand design', 'ai copywriting design'],
+    slug: 'brand-voice-with-ai-that-actually-feels-on-voice',
+    content: [
+      { heading: 'voice calibration', body: 'we start with a tone ladder (spare → warm → playful) and lock examples in the prompt. the article shows the exact ladder we use for fintech vs. creator brands.' },
+      { heading: 'copy swaps', bullets: ['replace filler words ("innovative", "redefine") with proof-based verbs', 'keep button copy in first person ("start my build") for higher clickthrough', 'mirror palette language in the copy (e.g., “charcoal + amber” instead of “dark + gold”)'] },
+      { heading: 'jasmine workflow', body: 'drop your brand blurb into the context drawer, run the “voice-locked” preset, and only accept outputs where the CTA and proof lines match the ladder tone.' },
+    ],
   },
   {
     title: 'motion that sells, not distracts',
     summary: 'how we choreograph blur-reveal, staggered cards, and purposeful parallax so jasmine sites feel premium on both desktop and mobile.',
     author: 'jasmine studio',
-    date: '2025-01-21',
+    date: '2026-02-03',
     readTime: '4 min read',
     tags: ['motion', 'experience', 'mobile'],
     keywords: ['motion design ai', 'microinteractions', 'jasmine animations', 'responsive ai design'],
+    slug: 'motion-that-sells-not-distracts',
+    content: [
+      { heading: 'motion scorecard', body: 'ships with 3 rules: 120–180ms micro motions, stagger in batches of 3, and mobile-first easing. the post includes the framer-motion snippets we use here.' },
+      { heading: 'keep it purposeful', bullets: ['use blur-reveal for headlines only; cards get a subtle y-offset', 'disable parallax on mobile — rely on opacity + scale instead', 'cap simultaneous animations to 6 elements to avoid jank in previews'] },
+      { heading: 'try it', body: 'toggle “premium motion” in jasmine, then export to see the exact variants that match our production stack.' },
+    ],
   },
   {
     title: 'research-to-pixels in 20 seconds',
     summary: 'our workflow for turning a single prompt into a full funnel: research cues, seo snippets, section order, and live preview with jasmine.',
     author: 'jasmine studio',
-    date: '2025-01-15',
+    date: '2026-01-27',
     readTime: '9 min read',
     tags: ['workflow', 'research', 'ai production'],
     keywords: ['ai web design workflow', 'jasmine prompt', 'ai site builder', 'design to deploy'],
+    slug: 'research-to-pixels-in-20-seconds',
+    content: [
+      { heading: 'timeline', body: '20 seconds to outline, 40 to preview, 2 minutes to ship. this walkthrough uses a real founder request from feb 2026 so you can mirror the prompts.' },
+      { heading: 'steps', bullets: ['drop research notes into the context panel first', 'run the “full funnel” prompt for section order + seo snippets', 'apply edits via chat for pricing/faq tweaks, then download the zip'] },
+      { heading: 'proof of speed', body: 'we include the screen recording and the final lighthouse score to show the workflow is production-worthy, not just fast.' },
+    ],
   },
 ];
 
@@ -72,6 +131,7 @@ const SEO_POINTS = [
 const TOPICS = ['ai design', 'seo', 'conversion', 'design systems', 'brand voice', 'motion', 'shipping fast'];
 
 function BlogPage({ theme, onStartDesigning, onBackHome }) {
+  const [selectedPost, setSelectedPost] = useState(null);
   const isLight = theme === 'light';
   const cardCl = isLight ? 'bg-white border border-zinc-200/70 card-3d' : 'bg-white/[0.02] border border-white/[0.06] card-3d';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
@@ -140,6 +200,14 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
 
   const featured = POSTS[0];
   const rest = POSTS.slice(1);
+  const openPost = (post) => setSelectedPost(post);
+  const onCardKeyDown = (e, post) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openPost(post);
+    }
+  };
+  const closePost = () => setSelectedPost(null);
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -202,12 +270,22 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
             <div className="flex items-center gap-3 text-xs text-text-muted mb-6">
               <span className="inline-flex items-center gap-1">
                 <i className="ph ph-calendar-blank"></i>
-                {featured.date}
+                {formatDate(featured.date)}
               </span>
               <span className="inline-flex items-center gap-1">
                 <i className="ph ph-timer"></i>
                 {featured.readTime}
               </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+              <button onClick={() => openPost(featured)} className="btn-premium px-5 py-2.5 text-sm flex items-center gap-2">
+                <i className="ph ph-newspaper"></i>
+                read the post
+              </button>
+              <button onClick={onStartDesigning} className={`${cardCl} px-4 py-2 rounded-lg text-sm font-medium text-text-primary flex items-center gap-2`}>
+                <i className="ph ph-magic-wand"></i>
+                build this flow
+              </button>
             </div>
             <div className="flex flex-wrap gap-2">
               {featured.tags.map((tag) => (
@@ -252,11 +330,15 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
                 key={post.title}
                 variants={heroItem}
                 className={`${cardCl} rounded-lg p-6 flex flex-col justify-between`}
+                role="button"
+                tabIndex={0}
+                onClick={() => openPost(post)}
+                onKeyDown={(e) => onCardKeyDown(e, post)}
               >
                 <div className="flex items-center gap-3 text-xs text-text-muted mb-3">
                   <span className="inline-flex items-center gap-1">
                     <i className="ph ph-calendar-blank"></i>
-                    {post.date}
+                    {formatDate(post.date)}
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <i className="ph ph-timer"></i>
@@ -275,6 +357,10 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
                       {tag}
                     </span>
                   ))}
+                  <span className="inline-flex items-center gap-1 text-[12px] font-medium text-text-primary">
+                    <i className="ph ph-arrow-up-right"></i>
+                    Read post
+                  </span>
                 </div>
               </motion.article>
             ))}
@@ -351,6 +437,72 @@ function BlogPage({ theme, onStartDesigning, onBackHome }) {
           </div>
         </BlurPopUpInView>
       </section>
+
+      {selectedPost ? (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 py-10">
+          <div className={`${isLight ? 'bg-white' : 'bg-surface-raised'} w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl border ${borderCl} shadow-2xl`}>
+            <div className={`flex items-start justify-between gap-3 px-6 py-5 border-b ${borderCl}`}>
+              <div>
+                <p className="text-xs uppercase tracking-[0.12em] text-text-muted mb-2">{selectedPost.author}</p>
+                <h3 className="text-2xl font-semibold text-text-primary leading-[1.2] mb-2">{selectedPost.title}</h3>
+                <div className="flex items-center gap-3 text-xs text-text-muted">
+                  <span className="inline-flex items-center gap-1">
+                    <i className="ph ph-calendar-blank"></i>
+                    {formatDate(selectedPost.date)}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <i className="ph ph-timer"></i>
+                    {selectedPost.readTime}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <i className="ph ph-tag"></i>
+                    {selectedPost.tags.join(', ')}
+                  </span>
+                </div>
+              </div>
+              <button onClick={closePost} className="p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors">
+                <i className="ph ph-x text-lg"></i>
+                <span className="sr-only">Close</span>
+              </button>
+            </div>
+            <div className="px-6 py-6 space-y-5 text-sm leading-relaxed text-text-secondary">
+              <p className="text-base text-text-primary font-medium">{selectedPost.summary}</p>
+              {selectedPost.content?.map((section, i) => (
+                <div key={`${selectedPost.slug}-${i}`} className="space-y-2">
+                  {section.heading ? <h4 className="text-text-primary font-semibold text-sm uppercase tracking-[0.08em]">{section.heading}</h4> : null}
+                  {section.body ? <p>{section.body}</p> : null}
+                  {section.bullets ? (
+                    <ul className="list-disc list-inside space-y-2">
+                      {section.bullets.map((b, j) => (
+                        <li key={`${selectedPost.slug}-${i}-${j}`}>{b}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <div className={`px-6 pb-6 flex items-center justify-between gap-3 flex-wrap border-t ${borderCl} pt-4`}>
+              <div className="flex flex-wrap gap-2">
+                {selectedPost.tags.map((tag) => (
+                  <span key={`${selectedPost.slug}-${tag}`} className={`text-xs px-2.5 py-1 rounded-full border ${borderCl} ${isLight ? 'bg-white' : 'bg-white/[0.02]'} text-text-muted`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={onStartDesigning} className="btn-premium px-5 py-2 text-sm flex items-center gap-2">
+                  <i className="ph ph-rocket-launch"></i>
+                  build with jasmine
+                </button>
+                <button onClick={closePost} className={`${cardCl} px-4 py-2 rounded-lg text-sm font-medium text-text-primary flex items-center gap-2`}>
+                  <i className="ph ph-arrow-left"></i>
+                  back to posts
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

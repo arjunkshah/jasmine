@@ -536,6 +536,7 @@ function AppBody({
             <LandingPage
               onStartDesigning={onStartDesigning}
               onSelectPrompt={onSelectPrompt}
+              onShowBlog={onShowBlog}
               theme={theme}
             />
           )

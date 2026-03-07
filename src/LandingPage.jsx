@@ -261,7 +261,6 @@ function BentoSection({ isLight }) {
     { span: 'col-span-1', title: 'Pricing', desc: 'Plans and tiers.', icon: 'ph-currency-dollar' },
     { span: 'col-span-1', title: 'Testimonials', desc: 'Social proof.', icon: 'ph-quotes' },
     { span: 'col-span-1', title: 'Footer', desc: 'Links and CTA.', icon: 'ph-link' },
-    { span: 'col-span-1 md:col-start-4', title: 'CTA', desc: 'Final conversion block.', icon: 'ph-arrow-right' },
   ];
 
   return (
@@ -282,7 +281,7 @@ function BentoSection({ isLight }) {
           </p>
         </motion.div>
         <motion.div
-          className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
+          className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4"
           initial={{ opacity: 0, y: 24 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
@@ -331,7 +330,9 @@ const PASTEL_CARD_COLORS = [
   'bg-[#E8E6E3]',   /* subtle grey */
 ];
 
-function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
+const LATEST_POST_TITLE = 'ai design playbook: conversion-first hero flows';
+
+function LandingPage({ onStartDesigning, onSelectPrompt, onShowBlog, theme }) {
   const isLight = theme === 'light';
   const borderCl = useMemo(() => (isLight ? 'border-neutral-200' : 'border-white/10'), [isLight]);
   const mutedBg = isLight ? 'bg-neutral-50' : 'bg-surface-raised';
@@ -361,7 +362,15 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           animate="animate"
         >
           <motion.div variants={heroItem}>
-            <Badge>Jasmine — the notebook that designs with you</Badge>
+            <button
+              type="button"
+              onClick={onShowBlog}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-default)] bg-[var(--color-surface-raised)] px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-secondary)] hover:text-text-primary transition-colors cursor-pointer"
+              title={`Latest: ${LATEST_POST_TITLE}`}
+            >
+              Jasmine — the notebook that designs with you
+              <i className="ph ph-arrow-right text-[10px]" />
+            </button>
           </motion.div>
           <motion.h1 variants={heroItem} className="text-4xl md:text-5xl lg:text-[52px] font-semibold leading-[1.08] tracking-[-0.02em] text-text-primary">
             <BlurPopUpByWord text="Build frontends that feel hand-crafted." wordDelay={0.04} />
