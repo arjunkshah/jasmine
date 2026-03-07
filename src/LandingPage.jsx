@@ -58,82 +58,148 @@ const TESTIMONIALS = [
   { quote: 'Finally, an AI that outputs code I\'d actually ship.', author: 'Jordan', role: 'Engineer' },
 ];
 
-function VerticalStepBlock({ step, idx, isLight, borderCl }) {
+const UNDERSTAND_ITEMS = [
+  {
+    title: "Knows what you're building",
+    desc: "It reads your prompt and context. No re-explaining needed.",
+    icon: 'ph-eye',
+  },
+  {
+    title: 'Helps as you go',
+    desc: 'Clarifies layout, refines copy, suggests improvements.',
+    icon: 'ph-sparkle',
+  },
+];
+
+function UnderstandSection({ isLight, borderCl }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, amount: 0.3 });
+  const inView = useInView(ref, { once: true, amount: 0.15 });
 
   return (
-    <div
-      ref={ref}
-      className={`min-h-[70vh] flex items-center border-t ${borderCl} px-6 md:px-12 lg:px-20`}
-    >
-      <div className="max-w-4xl mx-auto w-full flex flex-col md:flex-row md:items-center gap-12 md:gap-16">
-        <motion.div
-          className="flex-shrink-0"
-          initial={{ opacity: 0, x: -48 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <span className={`inline-flex h-14 w-14 md:h-20 md:w-20 rounded-2xl items-center justify-center text-2xl font-bold ${isLight ? 'bg-neutral-100 text-neutral-800 border border-neutral-200' : 'bg-white/10 text-text-primary border border-white/10'}`}>
-            {`0${idx + 1}`}
-          </span>
-        </motion.div>
-        <motion.div
-          className="flex-1"
-          initial={{ opacity: 0, y: 32 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted mb-3">Step</p>
-          <h3 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] text-text-primary mb-4">
-            <BlurPopUpByWordInView text={step.title} wordDelay={0.04} />
-          </h3>
-          <p className="text-text-secondary leading-[1.7] text-lg">
-            <BlurPopUpByWordInView text={step.desc} wordDelay={0.02} />
-          </p>
-        </motion.div>
+    <section ref={ref} className={`flex flex-col gap-20 pt-24 pb-32 lg:pt-32 px-6 md:px-12 lg:px-20 border-t ${borderCl}`}>
+      <motion.div
+        className="max-w-4xl mx-auto w-full space-y-4 text-center"
+        initial={{ opacity: 0, y: 32 }}
+        animate={inView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.02em] text-text-primary">
+          <BlurPopUpByWordInView text="AI that helps you understand, not just answer." wordDelay={0.03} />
+        </h2>
+      </motion.div>
+      <div className="max-w-4xl mx-auto w-full flex flex-col gap-20">
+        {UNDERSTAND_ITEMS.map((item, idx) => (
+          <motion.div
+            key={item.title}
+            className="flex flex-col md:flex-row md:items-start gap-6 md:gap-12"
+            initial={{ opacity: 0, y: 40 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, delay: 0.15 + idx * 0.15, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className={`flex-shrink-0 h-14 w-14 md:h-16 md:w-16 rounded-2xl flex items-center justify-center text-2xl ${isLight ? 'bg-neutral-100 border border-neutral-200 text-neutral-700' : 'bg-white/10 border border-white/10 text-white/80'}`}>
+              <i className={`ph ${item.icon}`} />
+            </div>
+            <div>
+              <h3 className="text-xl md:text-2xl font-semibold tracking-[-0.02em] text-text-primary mb-3">
+                <BlurPopUpByWordInView text={item.title} wordDelay={0.04} />
+              </h3>
+              <p className="text-text-secondary leading-[1.7] text-lg">
+                <BlurPopUpByWordInView text={item.desc} wordDelay={0.02} />
+              </p>
+            </div>
+          </motion.div>
+        ))}
       </div>
-    </div>
+    </section>
   );
 }
 
-function StopJugglingSection({ isLight, borderCl }) {
+function PromptToPreviewSection({ isLight, borderCl }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, amount: 0.1 });
-  const cellCl = isLight ? 'bg-white border-neutral-200' : 'bg-white/[0.04] border-white/10';
+  const inView = useInView(ref, { once: true, amount: 0.2 });
 
   return (
-    <section ref={ref} className={`relative overflow-hidden px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${borderCl}`}>
-      <div className="absolute inset-0 pointer-events-none">
-        <img src="/auth-bg.png" alt="" className={`w-full h-full object-cover object-center ${isLight ? 'opacity-[0.06]' : 'opacity-[0.04]'}`} />
-      </div>
-      <div className="max-w-6xl mx-auto">
+    <section ref={ref} className={`px-6 md:px-12 lg:px-20 py-16 md:py-20 border-t ${borderCl}`}>
+      <div className="max-w-5xl mx-auto">
         <motion.div
-          className="text-center mb-16"
+          className="space-y-4 text-center mb-12"
+          initial={{ opacity: 0, y: 24 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <Badge>How it flows</Badge>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">
+            <BlurPopUpByWordInView text="From prompt to preview." wordDelay={0.03} />
+          </h2>
+        </motion.div>
+        <div className="grid md:grid-cols-3 gap-8 md:gap-6">
+          {STEPS.map((step, idx) => (
+            <motion.div
+              key={step.title}
+              className="flex flex-col md:flex-row md:items-start gap-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, delay: 0.1 + idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <span className={`inline-flex h-12 w-12 flex-shrink-0 rounded-xl items-center justify-center text-lg font-bold ${isLight ? 'bg-neutral-100 text-neutral-800 border border-neutral-200' : 'bg-white/10 text-text-primary border border-white/10'}`}>
+                {`0${idx + 1}`}
+              </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted mb-1">Step</p>
+                <h3 className="text-xl font-semibold tracking-[-0.02em] text-text-primary mb-2">
+                  <BlurPopUpByWordInView text={step.title} wordDelay={0.04} />
+                </h3>
+                <p className="text-text-secondary leading-relaxed text-sm">
+                  <BlurPopUpByWordInView text={step.desc} wordDelay={0.02} />
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FallingCardsStopJugglingSection({ isLight, borderCl }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, amount: 0.1 });
+  const cardBase = isLight ? 'bg-white border-neutral-200 shadow-lg' : 'bg-white/[0.06] border-white/10 shadow-xl';
+
+  return (
+    <section ref={ref} className={`pt-28 pb-32 px-6 md:px-12 lg:px-20 border-t ${borderCl}`}>
+      <div className="container mx-auto px-4 max-w-[36.9rem] flex flex-col items-center gap-16">
+        <motion.div
+          className="text-center space-y-4"
           initial={{ opacity: 0, y: 32 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <Badge>Everything in one canvas</Badge>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em] mt-4 mb-4">
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">
             <BlurPopUpByWordInView text="Stop juggling five different apps." wordDelay={0.03} />
           </h2>
-          <p className="text-text-secondary max-w-2xl mx-auto">
+          <p className="text-text-secondary max-w-xl mx-auto">
             <BlurPopUpByWordInView text="Notes, design, chat, preview, export — Jasmine keeps it all in one place." wordDelay={0.02} />
           </p>
         </motion.div>
-        <div className="relative grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="relative w-full min-h-[380px] md:min-h-[440px] flex items-center justify-center">
           {STOP_JUGGLING_ITEMS.map((item, idx) => (
             <motion.div
               key={item.title}
-              className={`rounded-xl border p-6 ${cellCl}`}
-              initial={{ opacity: 0, y: 24 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: 0.1 + idx * 0.06, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 70, rotate: -4 + idx * 2 }}
+              animate={inView ? { opacity: 1, y: idx * 14, rotate: -4 + idx * 2 } : {}}
+              transition={{ duration: 0.55, delay: 0.08 + idx * 0.09, ease: [0.22, 1, 0.36, 1] }}
+              className={`absolute w-[88%] max-w-md rounded-2xl border p-6 cursor-default hover:scale-[1.02] hover:z-10 transition-transform ${cardBase}`}
+              style={{ zIndex: idx, top: `${18 + idx * 15}%`, left: `${8 + (idx % 2) * 6}%` }}
             >
-              <i className={`ph ${item.icon} text-2xl mb-3 block ${isLight ? 'text-neutral-600' : 'text-white/70'}`} />
-              <h3 className="font-semibold text-text-primary">{item.title}</h3>
-              <p className="text-sm text-text-secondary mt-1">{item.desc}</p>
+              <div className="flex items-center gap-3 mb-2">
+                <span className={`h-10 w-10 rounded-xl flex items-center justify-center text-lg ${isLight ? 'bg-neutral-100 text-neutral-700' : 'bg-white/10 text-text-primary'}`}>
+                  <i className={`ph ${item.icon}`} />
+                </span>
+                <span className="font-semibold text-text-primary">{item.title}</span>
+              </div>
+              <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -148,11 +214,8 @@ function TestimonialsSection({ isLight, borderCl }) {
   const cardCl = isLight ? 'bg-white border-neutral-200' : 'bg-white/[0.04] border-white/10';
 
   return (
-    <section ref={ref} className={`relative overflow-hidden px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${borderCl}`}>
-      <div className="absolute inset-0 pointer-events-none">
-        <img src="/og-image.png" alt="" className={`w-full h-full object-cover object-center ${isLight ? 'opacity-[0.05]' : 'opacity-[0.03]'}`} />
-      </div>
-      <div className="relative max-w-5xl mx-auto">
+    <section ref={ref} className={`px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${borderCl}`}>
+      <div className="max-w-5xl mx-auto">
         <motion.div
           className="text-center mb-14"
           initial={{ opacity: 0, y: 32 }}
@@ -217,41 +280,6 @@ function StatsSection({ isLight, borderCl }) {
   );
 }
 
-function IdeasSection({ isLight, onStartDesigning }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, amount: 0.2 });
-
-  return (
-    <section ref={ref} className={`relative overflow-hidden px-6 md:px-12 lg:px-20 py-24 md:py-32 border-t ${isLight ? 'border-neutral-200' : 'border-white/10'}`}>
-      <div className="absolute inset-0 pointer-events-none">
-        <img src="/auth-bg.png" alt="" className={`w-full h-full object-cover object-center ${isLight ? 'opacity-[0.05]' : 'opacity-[0.03]'}`} />
-      </div>
-      <motion.div
-        className="relative max-w-3xl mx-auto text-center"
-        initial={{ opacity: 0, y: 32 }}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em] mb-4">
-          <BlurPopUpByWordInView text="Your ideas deserve better tools." wordDelay={0.03} />
-        </h2>
-        <p className="text-text-secondary leading-[1.6] mb-8">
-          <BlurPopUpByWordInView text="No matter what you're building, Jasmine is where it all comes together." wordDelay={0.02} />
-        </p>
-        <motion.button
-          onClick={onStartDesigning}
-          className="btn-premium flex items-center gap-2 mx-auto"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <i className="ph ph-magic-wand text-lg" />
-          Start designing
-        </motion.button>
-      </motion.div>
-    </section>
-  );
-}
-
 function StackedCardsSection({ isLight, onSelectPrompt, exampleCards }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, amount: 0.2 });
@@ -307,19 +335,16 @@ function BentoSection({ isLight }) {
   const cellCl = isLight ? 'bg-white border-neutral-200' : 'bg-white/[0.04] border-white/10';
 
   const cells = [
-    { span: 'col-span-2 row-span-2', title: 'Hero', desc: 'Badge, headline, CTA, trust bar.', icon: 'ph-sparkle', image: '/lander-bento-bg.png' },
-    { span: 'col-span-1', title: 'Features', desc: 'Grid of highlights.', icon: 'ph-squares-four', image: '/og-image.png' },
+    { span: 'col-span-2 row-span-2', title: 'Hero', desc: 'Badge, headline, CTA, trust bar.', icon: 'ph-sparkle' },
+    { span: 'col-span-1', title: 'Features', desc: 'Grid of highlights.', icon: 'ph-squares-four' },
     { span: 'col-span-1', title: 'Pricing', desc: 'Plans and tiers.', icon: 'ph-currency-dollar' },
-    { span: 'col-span-1', title: 'Testimonials', desc: 'Social proof.', icon: 'ph-quotes', image: '/empty-state.png' },
+    { span: 'col-span-1', title: 'Testimonials', desc: 'Social proof.', icon: 'ph-quotes' },
     { span: 'col-span-1', title: 'Footer', desc: 'Links and CTA.', icon: 'ph-link' },
   ];
 
   return (
-    <section ref={ref} className={`relative px-6 md:px-12 lg:px-20 py-24 md:py-28 border-t overflow-hidden ${isLight ? 'border-neutral-200' : 'border-white/10'}`}>
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
-        <img src="/lander-bento-bg.png" alt="" className="w-full h-full object-cover object-center" />
-      </div>
-      <div className="max-w-4xl mx-auto relative">
+    <section ref={ref} className={`relative px-6 md:px-12 lg:px-20 py-24 md:py-28 border-t ${isLight ? 'border-neutral-200' : 'border-white/10'}`}>
+      <div className="max-w-4xl mx-auto">
         <motion.div
           className="text-center mb-14"
           initial={{ opacity: 0, y: 24 }}
@@ -346,27 +371,11 @@ function BentoSection({ isLight }) {
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.2 + idx * 0.06, ease: [0.22, 1, 0.36, 1] }}
-              className={`${cell.span} rounded-xl border overflow-hidden p-0 ${cellCl}`}
+              className={`${cell.span} rounded-xl border p-5 md:p-6 ${cellCl}`}
             >
-              {cell.image ? (
-                <>
-                  <div className="relative h-32 md:h-40">
-                    <img src={cell.image} alt="" className="w-full h-full object-cover object-center" />
-                    <div className={`absolute inset-0 bg-gradient-to-t ${isLight ? 'from-white to-transparent' : 'from-[var(--color-surface-raised)] to-transparent'}`} />
-                  </div>
-                  <div className="p-5 md:p-6">
-                    <i className={`ph ${cell.icon} text-2xl mb-3 block ${isLight ? 'text-neutral-600' : 'text-white/70'}`} />
-                    <h3 className="font-semibold text-text-primary">{cell.title}</h3>
-                    <p className="text-sm text-text-secondary mt-1">{cell.desc}</p>
-                  </div>
-                </>
-              ) : (
-                <div className="p-5 md:p-6">
-                  <i className={`ph ${cell.icon} text-2xl mb-3 block ${isLight ? 'text-neutral-600' : 'text-white/70'}`} />
-                  <h3 className="font-semibold text-text-primary">{cell.title}</h3>
-                  <p className="text-sm text-text-secondary mt-1">{cell.desc}</p>
-                </div>
-              )}
+              <i className={`ph ${cell.icon} text-2xl mb-3 block ${isLight ? 'text-neutral-600' : 'text-white/70'}`} />
+              <h3 className="font-semibold text-text-primary">{cell.title}</h3>
+              <p className="text-sm text-text-secondary mt-1">{cell.desc}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -488,7 +497,9 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                   </div>
                 </div>
                 <div className={`rounded-lg border overflow-hidden ${isLight ? 'border-neutral-200 bg-white' : 'border-white/10 bg-white/5'}`}>
-                  <img src="/hero-bg.png" alt="Jasmine design preview" className="w-full h-48 object-cover object-top" />
+                  <div className={`w-full h-32 ${isLight ? 'bg-neutral-100' : 'bg-white/5'} flex items-center justify-center`}>
+                    <span className="text-text-muted text-sm">Live preview</span>
+                  </div>
                 </div>
                 <div className={`rounded-lg border p-4 space-y-3 mt-3 ${isLight ? 'border-neutral-200 bg-white' : 'border-white/10 bg-white/5'}`}>
                   <div className="flex items-center justify-between">
@@ -519,6 +530,9 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* AI that helps you understand */}
+      <UnderstandSection isLight={isLight} borderCl={borderCl} />
 
       {/* stacked cards */}
       <StackedCardsSection isLight={isLight} onSelectPrompt={onSelectPrompt} exampleCards={EXAMPLE_CARDS} />
@@ -551,31 +565,13 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           >
-            {FEATURE_SETS.map((item, idx) => (
-              <Card key={item.title} className={`p-0 flex flex-col overflow-hidden ${idx === 0 ? '' : ''}`} isLight={isLight}>
-                {idx === 0 ? (
-                  <>
-                    <div className="relative h-36 overflow-hidden">
-                      <img src="/og-image.png" alt="" className="w-full h-full object-cover object-center" />
-                      <div className={`absolute inset-0 bg-gradient-to-t ${isLight ? 'from-white to-transparent' : 'from-[var(--color-surface-raised)] to-transparent'}`} />
-                    </div>
-                    <div className="p-6 md:p-8 flex flex-col gap-4 flex-1">
-                      <div className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${isLight ? 'bg-neutral-100 text-neutral-700' : 'bg-white/10 text-text-secondary'}`}>
-                        <i className={`ph ${item.icon} text-lg`} />
-                      </div>
-                      <h3 className="text-lg font-semibold">{item.title}</h3>
-                      <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-6 md:p-8 flex flex-col gap-4 h-full">
-                    <div className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${isLight ? 'bg-neutral-100 text-neutral-700' : 'bg-white/10 text-text-secondary'}`}>
-                      <i className={`ph ${item.icon} text-lg`} />
-                    </div>
-                    <h3 className="text-lg font-semibold">{item.title}</h3>
-                    <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
-                  </div>
-                )}
+            {FEATURE_SETS.map((item) => (
+              <Card key={item.title} className="p-6 md:p-8 flex flex-col gap-4 h-full" isLight={isLight}>
+                <div className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${isLight ? 'bg-neutral-100 text-neutral-700' : 'bg-white/10 text-text-secondary'}`}>
+                  <i className={`ph ${item.icon} text-lg`} />
+                </div>
+                <h3 className="text-lg font-semibold">{item.title}</h3>
+                <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
               </Card>
             ))}
           </motion.div>
@@ -693,13 +689,7 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
             transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           >
             {EXAMPLE_CARDS.map((card, idx) => (
-              <Card key={card.label} className={`p-0 flex flex-col gap-0 h-full border-0 shadow-sm overflow-hidden ${PASTEL_CARD_COLORS[idx % PASTEL_CARD_COLORS.length]}`} isLight={isLight}>
-                {idx === 0 && (
-                  <div className="relative h-28 overflow-hidden">
-                    <img src="/lander-bento-bg.png" alt="" className="w-full h-full object-cover object-center" />
-                  </div>
-                )}
-                <div className="p-6 flex flex-col gap-4 flex-1">
+              <Card key={card.label} className={`p-6 flex flex-col gap-4 h-full border-0 shadow-sm ${PASTEL_CARD_COLORS[idx % PASTEL_CARD_COLORS.length]}`} isLight={isLight}>
                 <div className="flex items-center gap-3">
                   <div className={`h-9 w-9 rounded-full flex items-center justify-center font-semibold ${isLight ? 'bg-neutral-100 border border-neutral-200 text-neutral-700' : 'bg-white/20 border border-white/20 text-text-primary'}`}>
                     {card.label[0]}
@@ -716,42 +706,17 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
                 >
                   Use this prompt <i className="ph ph-arrow-right" />
                 </button>
-                </div>
               </Card>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* steps — vertical scroll, hit each step as you scroll */}
-      <section className={`border-t ${borderCl}`}>
-        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-20 py-16">
-          <motion.div
-            className="space-y-4 text-center mb-20"
-            initial={{ opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <Badge>How it flows</Badge>
-            <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">
-              <BlurPopUpByWordInView text="From prompt to preview." wordDelay={0.03} />
-            </h2>
-          </motion.div>
-        </div>
-        {STEPS.map((step, idx) => (
-          <VerticalStepBlock
-            key={step.title}
-            step={step}
-            idx={idx}
-            isLight={isLight}
-            borderCl={borderCl}
-          />
-        ))}
-      </section>
+      {/* steps — prompt to preview, compact single section */}
+      <PromptToPreviewSection isLight={isLight} borderCl={borderCl} />
 
-      {/* OpenNote-style: Stop juggling — feature grid */}
-      <StopJugglingSection isLight={isLight} borderCl={borderCl} />
+      {/* Stop juggling — falling cards */}
+      <FallingCardsStopJugglingSection isLight={isLight} borderCl={borderCl} />
 
       {/* OpenNote-style: Testimonials */}
       <TestimonialsSection isLight={isLight} borderCl={borderCl} />
@@ -759,16 +724,10 @@ function LandingPage({ onStartDesigning, onSelectPrompt, theme }) {
       {/* Stats — lander-stats-bg */}
       <StatsSection isLight={isLight} borderCl={borderCl} />
 
-      {/* OpenNote-style: Your ideas deserve better tools */}
-      <IdeasSection isLight={isLight} onStartDesigning={onStartDesigning} />
-
       {/* CTA — OpenNote-style warm yellow footer */}
-      <section className="relative overflow-hidden px-6 md:px-12 lg:px-20 py-24 md:py-32 bg-[#FCCD4F] text-[var(--color-text-primary)]">
-        <div className="absolute inset-0 pointer-events-none">
-          <img src="/hero-bg.png" alt="" className="w-full h-full object-cover object-center opacity-[0.08]" />
-        </div>
+      <section className="px-6 md:px-12 lg:px-20 py-24 md:py-32 bg-[#FCCD4F] text-[var(--color-text-primary)]">
         <motion.div
-          className="relative max-w-3xl mx-auto text-center space-y-8"
+          className="max-w-3xl mx-auto text-center space-y-8"
           initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}

@@ -121,20 +121,21 @@ function AttachedFilesSection({ contextFiles, setContextFiles, fileInputRef, isL
 }
 
 function HtmlModeToggle({ htmlMode, setHtmlMode, isLight }) {
-  const activeCl = 'text-white';
+  const activeCl = isLight ? 'text-white' : 'text-neutral-900';
   const inactiveCl = 'text-text-muted hover:text-text-secondary';
+  const pillBg = isLight ? 'bg-[var(--color-text-primary)]' : 'bg-neutral-200';
 
   return (
-    <div className="relative flex items-center rounded-lg border border-[var(--color-border-default)] p-0.5">
+    <div className="relative flex items-center rounded-lg border border-[var(--color-border-default)] p-0.5 h-7">
       <motion.div
-        className={`absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-4px)] rounded-md ${isLight ? 'bg-[var(--color-text-primary)]' : 'bg-white'}`}
+        className={`absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-4px)] rounded-md ${pillBg}`}
         animate={{ x: htmlMode ? '100%' : 0 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       />
       <button
         type="button"
         onClick={() => setHtmlMode(false)}
-        className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${!htmlMode ? activeCl : inactiveCl}`}
+        className={`relative z-10 flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors h-full flex items-center justify-center ${!htmlMode ? activeCl : inactiveCl}`}
         title="Vite + React — full project"
       >
         Vite + React
@@ -142,7 +143,7 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight }) {
       <button
         type="button"
         onClick={() => setHtmlMode(true)}
-        className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${htmlMode ? activeCl : inactiveCl}`}
+        className={`relative z-10 flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors h-full flex items-center justify-center ${htmlMode ? activeCl : inactiveCl}`}
         title="HTML — single file, instant"
       >
         HTML
@@ -151,47 +152,30 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight }) {
   );
 }
 
-const MODEL_OPTIONS = [
-  { value: 'kimi-k2.5', label: 'Kimi' },
-  { value: 'gemini', label: 'Gemini' },
-  { value: 'gpt-5.4', label: 'GPT 5.4' },
-];
-
-function ModelSelectToggle({ provider, setProvider, gatewayModel, setGatewayModel, isLight, borderCl }) {
-  const activeCl = 'text-white';
-  const inactiveCl = 'text-text-muted hover:text-text-secondary';
-  const currentValue = provider === 'gemini' ? 'gemini' : gatewayModel;
-  const activeIdx = Math.max(0, MODEL_OPTIONS.findIndex((o) => o.value === currentValue));
-  const pillBg = isLight ? 'bg-[var(--color-text-primary)]' : 'bg-white';
-
-  const handleSelect = (value) => {
-    if (value === 'gemini') {
-      setProvider('gemini');
-    } else {
-      setProvider('ai-gateway');
-      setGatewayModel(value);
-    }
-  };
+function ModelSelectDropdown({ provider, setProvider, gatewayModel, setGatewayModel, isLight, borderCl }) {
+  const selectCl = isLight
+    ? 'bg-[#fffaf0] text-text-primary border-[rgba(220,211,195,0.9)] hover:bg-[#f6f4ec]'
+    : 'bg-white/[0.06] text-text-primary border-white/[0.08] hover:bg-white/[0.08]';
 
   return (
-    <div className={`relative flex items-center rounded-lg border p-0.5 ${borderCl}`}>
-      <motion.div
-        className={`absolute top-0.5 bottom-0.5 left-0.5 w-[calc(33.333%-4px)] rounded-md ${pillBg}`}
-        animate={{ x: `${activeIdx * 100}%` }}
-        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      />
-      {MODEL_OPTIONS.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => handleSelect(opt.value)}
-          className={`relative z-10 flex-1 min-w-0 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors truncate ${opt.value === currentValue ? activeCl : inactiveCl}`}
-          title={opt.label}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
+    <select
+      value={provider === 'gemini' ? 'gemini' : gatewayModel}
+      onChange={(e) => {
+        const v = e.target.value;
+        if (v === 'gemini') {
+          setProvider('gemini');
+        } else {
+          setProvider('ai-gateway');
+          setGatewayModel(v);
+        }
+      }}
+      className={`h-7 min-w-[6.5rem] text-xs font-medium rounded-lg pl-2.5 pr-7 border cursor-pointer appearance-none bg-no-repeat bg-[length:10px] bg-[right_0.4rem_center] ${borderCl} ${selectCl}`}
+      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
+    >
+      <option value="kimi-k2.5">Kimi K2.5</option>
+      <option value="gemini">Gemini</option>
+      <option value="gpt-5.4">GPT 5.4</option>
+    </select>
   );
 }
 
@@ -740,7 +724,7 @@ function AppBody({
                     />
                     <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                       <div className="flex items-center gap-3">
-                        <ModelSelectToggle
+                        <ModelSelectDropdown
                           provider={provider}
                           setProvider={setProvider}
                           gatewayModel={gatewayModel}
@@ -1076,7 +1060,7 @@ function AppBody({
                 <div className={`flex items-center justify-between px-4 py-2.5 border-t ${borderCl}`}>
                   <div className="flex items-center gap-3">
                     <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} />
-                    <ModelSelectToggle
+                    <ModelSelectDropdown
                       provider={provider}
                       setProvider={setProvider}
                       gatewayModel={gatewayModel}
