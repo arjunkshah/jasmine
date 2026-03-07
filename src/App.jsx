@@ -712,7 +712,7 @@ function AppBody({
                       isLight={isLight}
                       borderCl={borderCl}
                     />
-                    <div className="prompt-container overflow-hidden rounded-xl">
+                    <div className="prompt-container overflow-hidden">
                     <textarea
                       ref={textareaRef}
                       value={prompt}
@@ -1047,7 +1047,7 @@ function AppBody({
                   isLight={isLight}
                   borderCl={borderCl}
                 />
-                <div className="prompt-container overflow-hidden rounded-xl">
+                <div className="prompt-container overflow-hidden">
                 <textarea
                   ref={textareaRef}
                   value={prompt}

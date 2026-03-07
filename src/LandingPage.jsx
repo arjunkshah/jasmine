@@ -44,12 +44,13 @@ const STEPS = [
   { title: 'Refine', desc: 'Chat to adjust copy, layout, and styling. Preview or download instantly.' },
 ];
 
+/* OpenNote-style: each card has bg, text color, rotation (degrees) */
 const STOP_JUGGLING_ITEMS = [
-  { title: 'Notes', desc: 'Capture references, competitive notes, and inspiration in one place.', icon: 'ph-note-pencil' },
-  { title: 'Design', desc: 'Describe your product. Jasmine drafts layouts, sections, and polish.', icon: 'ph-palette' },
-  { title: 'Chat', desc: 'Ask for tweaks. "Make the hero tighter" or "add pricing" — instant updates.', icon: 'ph-chat-circle-dots' },
-  { title: 'Preview', desc: 'Live preview, download, or deploy without leaving the page.', icon: 'ph-browser' },
-  { title: 'Export', desc: 'React, Tailwind, TypeScript — production-ready code.', icon: 'ph-file-code' },
+  { title: 'Notes', desc: 'Capture references, competitive notes, and inspiration in one place.', icon: 'ph-note-pencil', bg: 'var(--color-card-blue-bg)', text: 'var(--color-card-blue-text)', rotate: -10.355 },
+  { title: 'Design', desc: 'Describe your product. Jasmine drafts layouts, sections, and polish.', icon: 'ph-palette', bg: 'var(--color-card-yellow-bg)', text: 'var(--color-card-yellow-text)', rotate: 2.391 },
+  { title: 'Chat', desc: 'Ask for tweaks. "Make the hero tighter" or "add pricing" — instant updates.', icon: 'ph-chat-circle-dots', bg: 'var(--color-card-yellow2-bg)', text: 'var(--color-card-yellow-text)', rotate: 13.222 },
+  { title: 'Preview', desc: 'Live preview, download, or deploy without leaving the page.', icon: 'ph-browser', bg: 'var(--color-card-pink-bg)', text: 'var(--color-card-pink-text)', rotate: -7.758 },
+  { title: 'Export', desc: 'React, Tailwind, TypeScript — production-ready code.', icon: 'ph-file-code', bg: 'var(--color-card-green-bg)', text: 'var(--color-card-green-text)', rotate: 9.399 },
 ];
 
 const TESTIMONIALS = [
@@ -164,7 +165,6 @@ function PromptToPreviewSection({ isLight, borderCl }) {
 function FallingCardsStopJugglingSection({ isLight, borderCl }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, amount: 0.1 });
-  const cardBase = isLight ? 'bg-white border-neutral-200 shadow-lg' : 'bg-white/[0.06] border-white/10 shadow-xl';
 
   return (
     <section ref={ref} className={`pt-28 pb-32 px-6 md:px-12 lg:px-20 border-t ${borderCl}`}>
@@ -176,30 +176,36 @@ function FallingCardsStopJugglingSection({ isLight, borderCl }) {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <Badge>Everything in one canvas</Badge>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em]">
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em] max-w-[30rem] mx-auto">
             <BlurPopUpByWordInView text="Stop juggling five different apps." wordDelay={0.03} />
           </h2>
           <p className="text-text-secondary max-w-xl mx-auto">
             <BlurPopUpByWordInView text="Notes, design, chat, preview, export — Jasmine keeps it all in one place." wordDelay={0.02} />
           </p>
         </motion.div>
-        <div className="relative w-full min-h-[380px] md:min-h-[440px] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-20">
           {STOP_JUGGLING_ITEMS.map((item, idx) => (
             <motion.div
               key={item.title}
-              initial={{ opacity: 0, y: 70, rotate: -4 + idx * 2 }}
-              animate={inView ? { opacity: 1, y: idx * 14, rotate: -4 + idx * 2 } : {}}
-              transition={{ duration: 0.55, delay: 0.08 + idx * 0.09, ease: [0.22, 1, 0.36, 1] }}
-              className={`absolute w-[88%] max-w-md rounded-2xl border p-6 cursor-default hover:scale-[1.02] hover:z-10 transition-transform ${cardBase}`}
-              style={{ zIndex: idx, top: `${18 + idx * 15}%`, left: `${8 + (idx % 2) * 6}%` }}
+              initial={{ opacity: 0, y: 24 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, delay: 0.08 + idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              className="px-8 pb-8 flex flex-col justify-end sticky top-28 lg:top-36 min-h-[22rem] md:min-h-[26rem] w-[18.5rem] md:w-[21.5rem] rounded-xl"
+              style={{
+                backgroundColor: item.bg,
+                color: item.text,
+                rotate: item.rotate,
+              }}
             >
-              <div className="flex items-center gap-3 mb-2">
-                <span className={`h-10 w-10 rounded-xl flex items-center justify-center text-lg ${isLight ? 'bg-neutral-100 text-neutral-700' : 'bg-white/10 text-text-primary'}`}>
+              <div className="grow flex justify-center items-center max-w-[65%] mx-auto py-6">
+                <span className="text-6xl md:text-7xl opacity-90">
                   <i className={`ph ${item.icon}`} />
                 </span>
-                <span className="font-semibold text-text-primary">{item.title}</span>
               </div>
-              <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
+              <div className="flex flex-col gap-3">
+                <h3 className="text-xl font-semibold">{item.title}</h3>
+                <p className="text-sm opacity-80 leading-relaxed">{item.desc}</p>
+              </div>
             </motion.div>
           ))}
         </div>
