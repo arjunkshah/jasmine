@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { generateWithGroq, generateWithGemini, generateWithGateway, editWithGroq, editWithGemini, editWithGateway, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery } from './api';
+import { generateWithGroq, generateWithGemini, generateWithGateway, editWithGroq, editWithGemini, editWithGateway, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery, getHtmlPreviewContent, projectToRaw } from './api';
+import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './LandingPage';
 import BlogPage from './BlogPage';
@@ -272,6 +273,9 @@ function AppBody({
   deployToNetlify,
   netlifyDeploying,
   netlifyUrl,
+  pushToGitHub,
+  githubPushing,
+  githubUrl,
   onThemeToggle,
   themeForToggle,
   retrySandbox,
@@ -640,14 +644,22 @@ function AppBody({
                   </a>
                   </div>
               )}
-              {netlifyUrl && (
-                <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-jasmine-500/10 border border-jasmine-500/20 text-jasmine-400 text-sm flex items-center justify-between gap-3">
-                  <span>Deployed to Netlify</span>
-                  <a href={netlifyUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
-                    View site <i className="ph ph-arrow-square-out text-base"></i>
-                  </a>
-                </div>
-              )}
+                {netlifyUrl && (
+                  <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-jasmine-500/10 border border-jasmine-500/20 text-jasmine-400 text-sm flex items-center justify-between gap-3">
+                    <span>Deployed to Netlify</span>
+                    <a href={netlifyUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
+                      View site <i className="ph ph-arrow-square-out text-base"></i>
+                    </a>
+                  </div>
+                )}
+                {githubUrl && (
+                  <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-gray-500/10 border border-gray-500/20 text-gray-300 text-sm flex items-center justify-between gap-3">
+                    <span>Pushed to GitHub</span>
+                    <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
+                      View repo <i className="ph ph-arrow-square-out text-base"></i>
+                    </a>
+                  </div>
+                )}
               {error && (
                 <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -694,18 +706,31 @@ function AppBody({
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
-                    {deployUrl && (
+                    {htmlMode ? (
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-text-muted)] px-2 py-1 rounded bg-[var(--color-surface-overlay)]">HTML</span>
+                    ) : (
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-text-muted)] px-2 py-1 rounded bg-[var(--color-surface-overlay)]">Vite + React</span>
+                    )}
+                    {deployUrl && !htmlMode && (
                       <a href={deployUrl} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Open preview">
                         <i className="ph ph-eye text-lg"></i>
                       </a>
                     )}
                     <button
                       onClick={deployToNetlify}
-                      disabled={netlifyDeploying || !generatedProject?.files}
+                      disabled={netlifyDeploying || !generatedProject?.files || htmlMode}
                       className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed`}
                       title="Deploy to Netlify"
                     >
                       {netlifyDeploying ? <i className="ph ph-circle-notch text-lg animate-spin"></i> : <i className="ph ph-rocket-launch text-lg"></i>}
+                    </button>
+                    <button
+                      onClick={pushToGitHub}
+                      disabled={githubPushing || !generatedProject?.files}
+                      className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed`}
+                      title="Push to GitHub"
+                    >
+                      {githubPushing ? <i className="ph ph-circle-notch text-lg animate-spin"></i> : <i className="ph ph-github-logo text-lg"></i>}
                     </button>
                     <button onClick={downloadProject} className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Download as ZIP">
                       <i className="ph ph-download-simple text-lg"></i>
@@ -728,7 +753,27 @@ function AppBody({
 
                   {rightTab === 'preview' && (
                     <div className="absolute inset-0 flex flex-col overflow-hidden">
-                      {deployUrl ? (
+                      {htmlMode && getHtmlPreviewContent(generatedProject) ? (
+                        <>
+                          <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2`}>
+                            <span className="text-xs text-text-muted">HTML preview (instant)</span>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewRetryKey((k) => k + 1)}
+                              className="text-xs text-[#2d7f45] hover:text-[#1f5c35] flex items-center gap-1"
+                            >
+                              Refresh <i className="ph ph-arrow-clockwise text-sm"></i>
+                            </button>
+                          </div>
+                          <iframe
+                            key={previewRetryKey}
+                            srcDoc={getHtmlPreviewContent(generatedProject)}
+                            title="HTML Preview"
+                            className="flex-1 w-full min-h-0 border-0 bg-white"
+                            sandbox="allow-scripts allow-same-origin"
+                          />
+                        </>
+                      ) : deployUrl ? (
                         <>
                           <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2`}>
                             <span className="text-xs text-text-muted">Live preview</span>
@@ -753,7 +798,7 @@ function AppBody({
                             sandbox="allow-scripts allow-same-origin"
                           />
                         </>
-                      ) : generatedProject?.files ? (
+                      ) : generatedProject?.files && !htmlMode ? (
                         <div className="flex-1 flex items-center justify-center p-8">
                           <div className="text-center max-w-md">
                             <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
@@ -843,6 +888,24 @@ function AppBody({
                       <i className="ph ph-paperclip"></i>
                       Attach
                         </button>
+                    <div className="flex items-center gap-1 rounded-lg border border-[var(--color-border-default)] p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setHtmlMode(false)}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${!htmlMode ? 'bg-[var(--color-text-primary)] text-white' : 'text-text-muted hover:text-text-secondary'}`}
+                        title="Vite + React — full project with sandbox preview"
+                      >
+                        Vite + React
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHtmlMode(true)}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${htmlMode ? 'bg-[var(--color-text-primary)] text-white' : 'text-text-muted hover:text-text-secondary'}`}
+                        title="HTML — single file, instant preview, no build"
+                      >
+                        HTML
+                      </button>
+                    </div>
                     <select
                       value={provider === 'gemini' ? 'gemini' : gatewayModel}
                       onChange={(e) => {
@@ -892,7 +955,7 @@ function AppBody({
                 </div>
                         </div>
                         </div>
-            {(deployUrl || netlifyUrl || error) && (
+            {(deployUrl || netlifyUrl || githubUrl || error) && (
               <div className="flex-none space-y-0">
                 {deployUrl && (
                   <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center justify-between gap-3">
@@ -910,6 +973,14 @@ function AppBody({
                     </a>
                     </div>
                   )}
+                {githubUrl && (
+                  <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-gray-500/10 border border-gray-500/20 text-gray-300 text-sm flex items-center justify-between gap-3">
+                    <span>Pushed to GitHub</span>
+                    <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline flex items-center gap-1">
+                      View repo <i className="ph ph-github-logo text-base"></i>
+                    </a>
+                  </div>
+                )}
                 {error && (
                   <div className="mx-4 sm:mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -949,6 +1020,8 @@ function App() {
   const [rightTab, setRightTab] = useState('files');
   const [chatMessages, setChatMessages] = useState([]);
   const [netlifyDeploying, setNetlifyDeploying] = useState(false);
+  const [githubPushing, setGithubPushing] = useState(false);
+  const [githubUrl, setGithubUrl] = useState(null);
   const [netlifyUrl, setNetlifyUrl] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [provider, setProvider] = useState(() => {
@@ -985,6 +1058,7 @@ function App() {
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState(null);
   const [e2bBadgeDismissed, setE2bBadgeDismissed] = useState(false);
+  const [htmlMode, setHtmlMode] = useState(() => localStorage.getItem('jasmine_html_mode') === 'true');
   const saveTimeoutRef = useRef(null);
 
   const textareaRef = useRef(null);
@@ -1001,6 +1075,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('jasmine_active_page', activePage);
   }, [activePage]);
+
+  useEffect(() => {
+    localStorage.setItem('jasmine_html_mode', String(htmlMode));
+  }, [htmlMode]);
 
   useEffect(() => {
     sandboxIdRef.current = sandboxId;
@@ -1175,28 +1253,34 @@ function App() {
     setSidebarOpen(false);
     setError('');
     const hasFiles = full.files && Object.keys(full.files).length > 0 && !full._truncated;
+    const isHtmlProject = hasFiles && (full.files['index.html'] || full.files['index.htm']) && !full.files['package.json'];
     if (hasFiles) {
-      pendingSandboxApplyRef.current = full.files;
-      setSandboxStarting(true);
-      try {
-        const apiBase = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${apiBase}/api/sandbox/start`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ theme }),
-        });
-        const data = await parseJsonResponse(res);
-        if (data.success && data.sandboxId && data.url) {
-          setDeployUrl(data.url);
-          setSandboxId(data.sandboxId);
-          setRightTab('preview');
-        } else {
-          setError(data?.error || 'Sandbox start failed');
+      if (isHtmlProject) {
+        setHtmlMode(true);
+        setRightTab('preview');
+      } else {
+        pendingSandboxApplyRef.current = full.files;
+        setSandboxStarting(true);
+        try {
+          const apiBase = import.meta.env.VITE_API_URL || '';
+          const res = await fetch(`${apiBase}/api/sandbox/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ theme }),
+          });
+          const data = await parseJsonResponse(res);
+          if (data.success && data.sandboxId && data.url) {
+            setDeployUrl(data.url);
+            setSandboxId(data.sandboxId);
+            setRightTab('preview');
+          } else {
+            setError(data?.error || 'Sandbox start failed');
+          }
+        } catch (e) {
+          setError(e?.message || 'Sandbox failed');
+        } finally {
+          setSandboxStarting(false);
         }
-      } catch (e) {
-        setError(e?.message || 'Sandbox failed');
-      } finally {
-        setSandboxStarting(false);
       }
     } else if (full._truncated) {
       setError('Project was too large to save. Files were truncated. Try generating again with fewer/smaller files.');
@@ -1391,7 +1475,7 @@ function App() {
           }
         }
       }
-      if (!currentSandboxId && !sandboxStarting) {
+      if (!htmlMode && !currentSandboxId && !sandboxStarting) {
         try {
           console.log('[Jasmine] POST /api/sandbox/start (generate flow)');
           const startRes = await fetch(`${apiBase}/api/sandbox/start`, {
@@ -1429,11 +1513,12 @@ function App() {
         }
       }
 
+      const sysPrompt = htmlMode ? HTML_SYSTEM_PROMPT : undefined;
       const generateFn = provider === 'ai-gateway'
-        ? (_, p, onC, cf, sc) => generateWithGateway(apiBase, gatewayModel, p, onC, cf, sc)
+        ? (_, p, onC, cf, sc) => generateWithGateway(apiBase, gatewayModel, p, onC, cf, sc, sysPrompt)
         : provider === 'groq'
-          ? generateWithGroq
-          : generateWithGemini;
+          ? (k, p, onC, cf, sc) => generateWithGroq(k, p, onC, cf, sc, sysPrompt)
+          : (k, p, onC, cf, sc) => generateWithGemini(k, p, onC, cf, sc, sysPrompt);
       const genKey = provider === 'ai-gateway' ? '' : key;
       let result = await generateFn(genKey, prompt, onChunk, contextFiles, searchContext);
 
@@ -1449,8 +1534,8 @@ function App() {
       if (project) setGeneratedProject(project);
       setGeneratedHTML(result);
 
-      // Post-generation: use other model to check and fix errors
-      if (project?.files) {
+      // Post-generation: fix errors (React only; HTML skip)
+      if (project?.files && !htmlMode) {
         const groqKey = import.meta.env.VITE_GROQ_API_KEY || '';
         const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
         const fixedFiles = await fixProjectErrors(project, provider, groqKey, geminiKey, apiBase, gatewayModel);
@@ -1461,10 +1546,9 @@ function App() {
         applyPackageFixes(project.files);
         ensurePackageDependencies(project.files);
       }
-      // Note: fix pass runs after images; sandbox update below uses latest project.files
 
       const filesToApply = project?.files || {};
-      if (Object.keys(filesToApply).length > 0) {
+      if (Object.keys(filesToApply).length > 0 && !htmlMode) {
         if (currentSandboxId) {
           const deps = (() => {
             try {
@@ -1592,6 +1676,36 @@ function App() {
     }
   };
 
+  const pushToGitHub = async () => {
+    const files = generatedProject?.files;
+    if (!files || Object.keys(files).length === 0) {
+      setError('Generate a project first');
+      return;
+    }
+    setGithubPushing(true);
+    setError('');
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      const repoName = (prompt?.slice(0, 50) || 'jasmine-project').replace(/[^a-zA-Z0-9._-]/g, '-');
+      const res = await fetch(`${apiBase}/api/github/push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files, repoName, description: prompt?.slice(0, 200) || 'Generated with Jasmine', isPrivate: true }),
+      });
+      const data = await parseJsonResponse(res);
+      if (data.success && data.url) {
+        setGithubUrl(data.url);
+        trackDeploy({ platform: 'github' });
+      } else {
+        setError(data?.error || 'GitHub push failed');
+      }
+    } catch (e) {
+      setError(e?.message || 'GitHub push failed');
+    } finally {
+      setGithubPushing(false);
+    }
+  };
+
   const downloadProject = async () => {
     try {
       const project = generatedProject || extractNextProject(streamingRaw || generatedHTML);
@@ -1612,9 +1726,9 @@ function App() {
     setIsEditing(true);
     setError('');
     setStreamingRaw('');
-    setRightTab('files');
+    setRightTab(htmlMode ? 'preview' : 'files');
 
-    const currentCode = generatedHTML || streamingRaw;
+    const currentCode = (generatedProject?.files && projectToRaw(generatedProject)) || generatedHTML || streamingRaw;
     if (!currentCode) {
       setChatMessages((prev) => [...prev, { role: 'assistant', content: 'Generate first.' }]);
       setIsEditing(false);
@@ -1623,11 +1737,12 @@ function App() {
 
     try {
       const apiBase = import.meta.env.VITE_API_URL || '';
+      const editSysPrompt = htmlMode ? HTML_EDIT_SYSTEM_PROMPT : undefined;
       const editFn = provider === 'ai-gateway'
-        ? (_, c, m, onC, cf) => editWithGateway(apiBase, gatewayModel, c, m, onC, cf)
+        ? (_, c, m, onC, cf) => editWithGateway(apiBase, gatewayModel, c, m, onC, cf, editSysPrompt)
         : provider === 'groq'
-          ? editWithGroq
-          : editWithGemini;
+          ? (k, c, m, onC, cf) => editWithGroq(k, c, m, onC, cf, editSysPrompt)
+          : (k, c, m, onC, cf) => editWithGemini(k, c, m, onC, cf, editSysPrompt);
       const editKey = provider === 'ai-gateway' ? '' : key;
       const result = await editFn(editKey, currentCode, msg, (chunk) => setStreamingRaw(chunk), contextFiles);
       const project = extractNextProject(result);
@@ -1639,10 +1754,12 @@ function App() {
           replaced[path] = await replaceImagePlaceholders(String(content), apiBase, geminiKey);
         }
         const mergedFiles = { ...(generatedProject?.files || {}), ...replaced };
-        applyPackageFixes(mergedFiles);
-        ensurePackageDependencies(mergedFiles);
+        if (!htmlMode) {
+          applyPackageFixes(mergedFiles);
+          ensurePackageDependencies(mergedFiles);
+        }
         setGeneratedProject({ files: mergedFiles });
-        if (Object.keys(mergedFiles).length > 0) {
+        if (Object.keys(mergedFiles).length > 0 && !htmlMode) {
           if (sandboxId) {
             try {
               const deps = (() => {
@@ -1668,8 +1785,8 @@ function App() {
       console.log('[Jasmine] edit complete', project?.files ? Object.keys(project.files).length + ' files' : '');
       if (project?.files) trackEdit({ provider, fileCount: Object.keys(project.files).length });
       const summary = extractEditSummary(result);
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: summary || 'Done. Check the Files tab.' }]);
-      setRightTab('files');
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: summary || (htmlMode ? 'Done. Preview updated.' : 'Done. Check the Files tab.') }]);
+      setRightTab(htmlMode ? 'preview' : 'files');
       const commands = extractSlashCommands(result);
       if (commands.length > 0) {
         const proj = project?.files ? { files: project.files } : generatedProject;
@@ -1716,7 +1833,7 @@ function App() {
     }
   };
 
-  const hasOutput = generatedHTML || streamingRaw || isGenerating;
+  const hasOutput = generatedHTML || streamingRaw || isGenerating || (generatedProject?.files && Object.keys(generatedProject.files).length > 0);
   const isLight = theme === 'light';
   const base = 'bg-surface text-text-primary';
   const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
@@ -1806,6 +1923,9 @@ function App() {
     deployToNetlify,
     netlifyDeploying,
     netlifyUrl,
+    pushToGitHub,
+    githubPushing,
+    githubUrl,
     themeForToggle: theme,
     retrySandbox,
     retryPreviewUpdate,

@@ -78,7 +78,7 @@
 
 ### Export & Deploy
 - [ ] **Vercel deploy** — One-click (in addition to Netlify)
-- [ ] **GitHub push** — Create repo and push code
+- [x] **GitHub push** — Create repo and push code (GITHUB_TOKEN, /api/github/push)
 - [ ] **Copy individual file** — One-click copy file content
 - [ ] **Run locally** — "Open in VS Code" or copy `npm run dev` command
 

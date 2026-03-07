@@ -41,7 +41,7 @@ export function apiPlugin() {
     sendJson(res, { ok: true, e2bConfigured: !err, e2bError: err?.error || null });
   });
   api.get('/ping', (req, res) => sendJson(res, { ok: true, message: 'API works' }));
-  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/generate', '/api/edit', '/api/generate-image', '/api/web-search', '/api/health', '/api/test/diagnose', '/api/test/sandbox-flow'] }));
+  api.get('/', (req, res) => sendJson(res, { ok: true, endpoints: ['/api/sandbox/start', '/api/sandbox/update', '/api/generate', '/api/edit', '/api/generate-image', '/api/web-search', '/api/github/push', '/api/health', '/api/test/diagnose', '/api/test/sandbox-flow'] }));
   api.get('/test/diagnose', async (req, res) => {
     const h = (await import('./api/test/diagnose.js')).default;
     return h(req, res);
@@ -75,6 +75,9 @@ export function apiPlugin() {
   });
   api.post('/web-search', async (req, res) => {
     return (await import('./api/web-search.js')).default(req, res);
+  });
+  api.post('/github/push', async (req, res) => {
+    return (await import('./api/github/push.js')).default(req, res);
   });
   api.post('/sandbox/start', async (req, res) => {
     const theme = (req.body?.theme === 'light' || req.body?.theme === 'dark') ? req.body.theme : 'dark';

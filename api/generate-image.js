@@ -1,7 +1,10 @@
 /**
- * Image generation — Vercel AI Gateway (preferred) or Gemini REST/SDK.
- * AI Gateway: google/gemini-2.5-flash-image-preview (requires AI_GATEWAY_API_KEY)
- * Fallback: Gemini (requires GEMINI_API_KEY or VITE_GEMINI_API_KEY)
+ * Image generation — multiple providers in order:
+ * 1. Vercel AI Gateway (AI_GATEWAY_API_KEY)
+ * 2. OpenAI DALL-E 3 (OPENAI_API_KEY)
+ * 3. Replicate Flux (REPLICATE_API_TOKEN)
+ * 4. Gemini REST/SDK (GEMINI_API_KEY)
+ * On total failure: returns placeholder URL (200) instead of 500.
  */
 export const config = { maxDuration: 60 };
 
@@ -63,6 +66,73 @@ async function tryGateway(apiKey, text) {
     } catch (e) {
       console.warn('[generate-image] Gateway', model, 'failed:', e?.message);
     }
+  }
+  return null;
+}
+
+/** Try OpenAI DALL-E 3. */
+async function tryOpenAI(apiKey, text) {
+  try {
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: text.slice(0, 4000),
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json',
+        quality: 'standard',
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const b64 = data.data?.[0]?.b64_json;
+    if (b64) return { base64: b64, mimeType: 'image/png' };
+  } catch (e) {
+    console.warn('[generate-image] OpenAI DALL-E 3 failed:', e?.message);
+  }
+  return null;
+}
+
+/** Try Replicate Flux Schnell. */
+async function tryReplicate(apiKey, text) {
+  try {
+    const res = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'wait=60',
+      },
+      body: JSON.stringify({
+        version: 'black-forest-labs/flux-schnell',
+        input: { prompt: text.slice(0, 2000) },
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.detail || err?.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const out = data.output;
+    const imgUrl = typeof out === 'string' ? out : Array.isArray(out) ? out[0] : null;
+    if (imgUrl && imgUrl.startsWith('http')) {
+      const imgRes = await fetch(imgUrl);
+      if (!imgRes.ok) throw new Error('Failed to fetch Replicate output');
+      const buf = await imgRes.arrayBuffer();
+      const base64 = Buffer.from(buf).toString('base64');
+      const contentType = imgRes.headers.get('content-type') || 'image/png';
+      return { base64, mimeType: contentType.split(';')[0].trim() || 'image/png' };
+    }
+  } catch (e) {
+    console.warn('[generate-image] Replicate Flux failed:', e?.message);
   }
   return null;
 }
@@ -139,24 +209,20 @@ export default async function handler(req, res) {
     return sendJson(res, 400, { error: 'Missing prompt' });
   }
   const gatewayKey = (process.env.AI_GATEWAY_API_KEY || '').trim();
+  const openaiKey = (process.env.OPENAI_API_KEY || '').trim();
+  const replicateKey = (process.env.REPLICATE_API_TOKEN || '').trim();
   const geminiKey = (typeof clientApiKey === 'string' ? clientApiKey : '').trim()
     || (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
 
   const text = prompt.trim();
   let img = null;
 
-  if (gatewayKey) {
-    img = await tryGateway(gatewayKey, text);
-  }
+  if (gatewayKey) img = await tryGateway(gatewayKey, text);
+  if (!img && openaiKey) img = await tryOpenAI(openaiKey, text);
+  if (!img && replicateKey) img = await tryReplicate(replicateKey, text);
   if (!img && geminiKey) {
     img = await tryRestApi(geminiKey, text);
     if (!img) img = await trySdk(geminiKey, text);
-  }
-
-  if (!img && !gatewayKey && !geminiKey) {
-    return sendJson(res, 503, {
-      error: 'AI_GATEWAY_API_KEY or GEMINI_API_KEY required. Add in Vercel → Settings → Environment Variables.',
-    });
   }
 
   if (img) {
@@ -166,7 +232,19 @@ export default async function handler(req, res) {
     });
   }
 
-  return sendJson(res, 500, {
-    error: 'Image generation failed. With AI Gateway: ensure AI_GATEWAY_API_KEY is valid. With Gemini: ensure your key has image generation access (Google AI Studio).',
+  // No provider configured
+  if (!gatewayKey && !openaiKey && !replicateKey && !geminiKey) {
+    return sendJson(res, 503, {
+      error: 'Add AI_GATEWAY_API_KEY, OPENAI_API_KEY, REPLICATE_API_TOKEN, or GEMINI_API_KEY in env.',
+    });
+  }
+
+  // All providers failed — return placeholder (200) so client doesn't spam 500s
+  const placeholderUrl = `https://placehold.co/800x600?text=${encodeURIComponent(text.slice(0, 40))}`;
+  return sendJson(res, 200, {
+    success: false,
+    image: placeholderUrl,
+    placeholder: true,
+    error: 'Image generation failed. Using placeholder. Check API keys (OpenAI, Replicate, Gemini, AI Gateway).',
   });
 }

@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* Iowan Old Serif — OpenNote typography */
+@font-face {
+  font-family: 'Iowan Old Style';
+  src: url('/fonts/IowanOld.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Iowan Old Style';
+  src: url('/fonts/IowanOld-Bold.ttf') format('truetype');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* OpenNote design system */
 @theme {
   --color-jasmine-50: #fefce8;
   --color-jasmine-100: #fef9c3;
@@ -7,37 +25,47 @@
   --color-jasmine-300: #fde047;
   --color-jasmine-400: #facc15;
   --color-jasmine-500: #eab308;
-  --color-surface: #fffdf8;
-  --color-surface-raised: #f6f4ec;
-  --color-surface-overlay: #ebe6d7;
-  --color-border-subtle: #e7e1d8;
-  --color-border-default: #dcd3c3;
-  --color-text-primary: #191919;
-  --color-text-secondary: #404040;
-  --color-text-muted: #7c7c73;
-  --color-accent: #379f57;
-  --color-accent-hover: #2d7f45;
-  --font-sans: 'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'Inter', 'DM Sans', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --color-surface: #F9F8F6;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #f5f4f2;
+  --color-border-subtle: #e8e6e3;
+  --color-border-default: #d4d2ce;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #333333;
+  --color-text-muted: #666666;
+  --color-accent: #1A1A1A;
+  --color-accent-hover: #333333;
+  --color-footer: #FCCD4F;
+  --color-pastel-blue: #B0E0E6;
+  --color-pastel-yellow: #FFF9C4;
+  --color-pastel-pink: #FFB6C1;
+  --color-pastel-mint: #C0F2C0;
+  --color-pastel-beige: #F5F0E8;
+  --font-sans: 'Iowan Old Style', 'Iowan Old Serif', Georgia, 'Times New Roman', serif;
+  --font-display: 'Iowan Old Style', 'Iowan Old Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --container-max: 1400px;
+  --container-padding: 2rem;
+  --section-spacing: 5rem;
 }
 
-/* Light theme overrides */
+/* Light theme (OpenNote-style) */
 html.light {
-  --color-surface: #fffdf8;
-  --color-surface-raised: #f6f4ec;
-  --color-surface-overlay: #ebe6d7;
-  --color-border-subtle: #e7e1d8;
-  --color-border-default: #dcd3c3;
-  --color-text-primary: #191919;
-  --color-text-secondary: #404040;
-  --color-text-muted: #7c7c73;
-  --color-accent: #379f57;
+  --color-surface: #F9F8F6;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #f5f4f2;
+  --color-border-subtle: #e8e6e3;
+  --color-border-default: #d4d2ce;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #333333;
+  --color-text-muted: #666666;
+  --color-accent: #1A1A1A;
 }
 
 * {
@@ -54,20 +82,13 @@ html {
 h1, h2, h3, h4, .font-display, .heading {
   font-family: var(--font-display);
   letter-spacing: -0.02em;
+  font-weight: 600;
   text-transform: none;
 }
 
-/* Subtle 3D text effect for all headers */
-h1, h2, h3, h4, .heading, .text-3d {
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.04),
-    0 2px 4px rgba(0, 0, 0, 0.12);
-}
-
-html.light h1, html.light h2, html.light h3, html.light h4, html.light .heading, html.light .text-3d {
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.8),
-    0 2px 4px rgba(0, 0, 0, 0.06);
+/* OpenNote: clean, no heavy shadows */
+h1, h2, h3, h4, .heading {
+  text-shadow: none;
 }
 
 /* 3D for light text on dark (e.g. Auth left panel) */
@@ -79,7 +100,7 @@ body {
   background: var(--color-surface);
   color: var(--color-text-primary);
   transition: background-color 0.2s ease, color 0.2s ease;
-  font-family: 'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -125,33 +146,26 @@ input, textarea, [contenteditable] {
   animation: spin 1s linear infinite;
 }
 
-/* Premium prompt container — 3D depth */
+/* Prompt container — OpenNote: clean */
 .prompt-container {
-  background: #fffaf0;
-  border: 1px solid #dcd3c3;
-  border-radius: 16px;
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: #ffffff;
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 html.light .prompt-container {
-  background: #fffaf0;
-  border-color: #dcd3c3;
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: #ffffff;
+  border-color: var(--color-border-default);
 }
 
 .prompt-container:focus-within {
-  border-color: #379f57;
-  box-shadow:
-    0 18px 50px rgba(55, 159, 87, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: var(--color-text-primary);
+  box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
 }
 
 html.light .prompt-container:focus-within {
-  border-color: #379f57;
+  border-color: var(--color-text-primary);
 }
 
 /* 3D depth system — minimal, clean */
@@ -169,57 +183,62 @@ html.light .prompt-container:focus-within {
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* CTA button — 3D lift, white top accent */
+/* CTA button — OpenNote: black, minimal, clean */
 .btn-premium {
-  padding: 14px 32px;
-  border-radius: 14px;
-  font-weight: 700;
-  font-size: 0.95rem;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9375rem;
   letter-spacing: -0.01em;
   text-transform: none;
   font-family: var(--font-display);
-  background: linear-gradient(180deg, #3ca45c 0%, #2d7f45 100%);
-  color: #fffdf8;
-  border: 1px solid #2d7f45;
-  box-shadow:
-    0 10px 30px rgba(45, 127, 69, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  transition: transform 0.18s var(--ease-premium), box-shadow 0.18s var(--ease-premium);
+  background: #1A1A1A;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background 0.2s var(--ease-out), transform 0.2s var(--ease-out);
 }
 
 .btn-premium:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow:
-    0 14px 30px rgba(45, 127, 69, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  background: #333333;
+  transform: translateY(-1px);
 }
 
 .btn-premium:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow:
-    0 6px 16px rgba(45, 127, 69, 0.22),
-    inset 0 2px 0 rgba(0, 0, 0, 0.12);
 }
 
-/* Secondary / ghost buttons — subtle 3D, white top accent */
+/* Secondary / ghost — OpenNote: subtle border */
 .btn-ghost {
-  background: #fffdf8;
-  border: 1px solid #dcd3c3;
-  border-radius: 14px;
+  background: transparent;
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
   color: var(--color-text-primary);
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: all 0.18s var(--ease-premium);
+  box-shadow: none;
+  transition: all 0.2s var(--ease-out);
 }
 
 .btn-ghost:hover {
-  background: #f6f4ec;
-  border-color: #cfc5b4;
-  box-shadow:
-    0 10px 26px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: var(--color-surface-overlay);
+  border-color: #a3a3a3;
   transform: translateY(-1px);
+}
+
+/* Motion — OpenNote: subtle, smooth */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  opacity: 0;
+  animation: fadeUp 0.6s var(--ease-out) forwards;
 }
 
 /* Card / example prompt buttons */

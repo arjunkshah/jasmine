@@ -1,4 +1,4 @@
-import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt.js';
+import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt.js';
 import { fixPhosphorIcons, applyPackageFixes } from './lib/package-fixes.js';
 import { fetchApiCompressed } from './lib/compress-api.js';
 
@@ -90,7 +90,7 @@ export async function webSearch(query, apiBase = '') {
   throw new Error(data?.error || 'Web search failed');
 }
 
-export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [], searchContext = null) {
+export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
@@ -103,7 +103,7 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
     body: JSON.stringify({
       model: 'moonshotai/kimi-k2-instruct-0905',
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
       stream: true,
@@ -120,7 +120,7 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
   return streamResponse(response, onChunk);
 }
 
-export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, contextFiles = []) {
+export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles);
   const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -129,7 +129,7 @@ export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, co
     body: JSON.stringify({
       model: 'moonshotai/kimi-k2-instruct-0905',
       messages: [
-        { role: 'system', content: EDIT_SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },
       ],
       stream: true,
@@ -144,7 +144,7 @@ export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, co
   return streamResponse(response, onChunk);
 }
 
-export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, contextFiles = []) {
+export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles);
   const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
   const response = await fetch(
@@ -153,7 +153,7 @@ export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: EDIT_SYSTEM_PROMPT }] },
+        system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.5, maxOutputTokens: 16384 },
       }),
@@ -166,7 +166,7 @@ export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, 
   return streamGeminiResponse(response, onChunk);
 }
 
-export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles = [], searchContext = null) {
+export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
@@ -176,7 +176,7 @@ export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles =
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: userContent }] }],
         generationConfig: {
           temperature: 0.5,
@@ -195,7 +195,7 @@ export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles =
 }
 
 /** Generate via Vercel AI Gateway (kimi-k2.5, gpt-5.4). No client API key — uses server AI_GATEWAY_API_KEY. */
-export async function generateWithGateway(apiBase, modelId, prompt, onChunk, contextFiles = [], searchContext = null) {
+export async function generateWithGateway(apiBase, modelId, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
@@ -205,9 +205,9 @@ export async function generateWithGateway(apiBase, modelId, prompt, onChunk, con
     body: JSON.stringify({
       prompt: userContent,
       model: modelId || 'kimi-k2.5',
-      systemPrompt: SYSTEM_PROMPT,
-      contextFiles: [],
-      searchContext: [],
+      systemPrompt,
+      contextFiles: contextFiles || [],
+      searchContext: searchContext || [],
     }),
   });
 
@@ -220,7 +220,7 @@ export async function generateWithGateway(apiBase, modelId, prompt, onChunk, con
 }
 
 /** Edit via Vercel AI Gateway. */
-export async function editWithGateway(apiBase, modelId, currentCode, userMessage, onChunk, contextFiles = []) {
+export async function editWithGateway(apiBase, modelId, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles);
   const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
 
@@ -230,7 +230,7 @@ export async function editWithGateway(apiBase, modelId, currentCode, userMessage
     body: JSON.stringify({
       prompt,
       model: modelId || 'kimi-k2.5',
-      systemPrompt: EDIT_SYSTEM_PROMPT,
+      systemPrompt,
       contextFiles,
     }),
   });
@@ -506,6 +506,21 @@ export function projectToRaw(project) {
     .join('\n\n');
 }
 
+/** Get HTML string for iframe srcdoc (HTML mode). Handles index.html or combines index.html + style.css + script.js. */
+export function getHtmlPreviewContent(project) {
+  if (!project?.files || typeof project.files !== 'object') return '';
+  const files = project.files;
+  const html = files['index.html'] ?? files['index.htm'] ?? '';
+  if (typeof html === 'string' && html.trim()) return html;
+  // Fallback: if we have style.css and script.js, build a minimal HTML
+  const css = files['style.css'] ?? files['styles.css'] ?? '';
+  const js = files['script.js'] ?? files['main.js'] ?? '';
+  if (css || js) {
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.tailwindcss.com"></script>${css ? `<style>${css}</style>` : ''}</head><body></body>${js ? `<script>${js}</script>` : ''}</html>`;
+  }
+  return '';
+}
+
 const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;
 
 const FIX_ERRORS_PROMPT = `You are a code reviewer. Review this Vite + React project and fix ALL errors.
@@ -611,13 +626,14 @@ export async function replaceImagePlaceholders(text, apiBase = '', _unused = '')
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.image) {
         result = result.split(full).join(data.image);
+        if (data.placeholder) skipApi = true; // All providers failed; use placeholders for rest
       } else {
         result = result.split(full).join(placeholder(prompt));
         const errMsg = (data?.error || '').toLowerCase();
         if (!res.ok) {
           if (errMsg.includes('token') || errMsg.includes('replicate') || errMsg.includes('required')) {
             skipApi = true;
-            console.warn('[Jasmine] Image gen disabled. Add REPLICATE_API_TOKEN in Vercel env. Using placeholders.');
+            console.warn('[Jasmine] Image gen disabled. Add API key (OpenAI, Replicate, Gemini, or AI Gateway). Using placeholders.');
           } else if (data?.error) console.warn('[Jasmine] image gen:', data.error);
         }
       }
