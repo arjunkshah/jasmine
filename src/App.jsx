@@ -6,6 +6,8 @@ import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
 import BlogPage from './pages/BlogPage';
+import WaitlistPage from './pages/WaitlistPage';
+import PasswordGate from './components/PasswordGate';
 import FileExplorer from './FileExplorer';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import AuthPage from './components/AuthPage';
@@ -1176,6 +1178,12 @@ function AppBody({
 
 function App() {
   const { user, loading: authLoading, signIn, signUp, signInWithGoogle, signOut, getIdToken, isConfigured: firebaseConfigured } = useAuth();
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isRoot = pathname === '' || pathname === '/';
+  const isWebsite = pathname.startsWith('/website');
+  const [websiteUnlocked, setWebsiteUnlocked] = useState(() =>
+    typeof sessionStorage !== 'undefined' && sessionStorage.getItem('website_unlocked') === '1'
+  );
   const [prompt, setPrompt] = useState('');
   const [generatedHTML, setGeneratedHTML] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1190,6 +1198,7 @@ function App() {
   const parseLocationToRoute = () => {
     if (typeof window === 'undefined') return { page: 'home', slug: null, sharedProjectId: null };
     const parts = (window.location.pathname || '').split('/').filter(Boolean);
+    if (parts[0] === 'website') parts.shift();
     if (parts[0] === 'blog') return { page: 'blog', slug: parts[1] || null, sharedProjectId: null };
     if (parts[0] === 'build' || parts[0] === 'designer') return { page: 'designer', slug: null, sharedProjectId: null };
     if (parts[0] === 'p' && parts[1]) return { page: 'shared', slug: null, sharedProjectId: parts[1] };
@@ -1359,9 +1368,9 @@ function App() {
     localStorage.setItem('jasmine_active_page', page);
     if (typeof window !== 'undefined') {
       const { search } = window.location;
-      let path = '/';
-      if (page === 'blog') path = `/blog${slug ? `/${slug}` : ''}`;
-      else if (page === 'designer') path = '/build';
+      let path = '/website';
+      if (page === 'blog') path = `/website/blog${slug ? `/${slug}` : ''}`;
+      else if (page === 'designer') path = '/website/build';
       const url = `${path}${search}`;
       if (options.replace) window.history.replaceState(null, '', url);
       else window.history.pushState(null, '', url);
@@ -1381,6 +1390,12 @@ function App() {
     return () => window.removeEventListener('popstate', handlePop);
   }, []);
 
+  useEffect(() => {
+    if (!isRoot && !isWebsite && pathname && !pathname.startsWith('/admin')) {
+      window.location.replace('/');
+    }
+  }, [pathname, isRoot, isWebsite]);
+
   // Load shared project when user opens /p/:id — require auth first
   useEffect(() => {
     if (!sharedProjectId || !firebaseConfigured) return;
@@ -1391,7 +1406,7 @@ function App() {
     loadProject({ id: sharedProjectId });
     setPage('designer');
     setSharedProjectId(null);
-    window.history.replaceState(null, '', '/build');
+    window.history.replaceState(null, '', '/website/build');
   }, [sharedProjectId, firebaseConfigured, user]);
 
   // Fetch projects when user logs in
@@ -2255,6 +2270,25 @@ function App() {
       });
     },
   };
+
+  if (isRoot) {
+    return <WaitlistPage />;
+  }
+  if (isWebsite && !websiteUnlocked) {
+    return (
+      <PasswordGate
+        onUnlock={() => {
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem('website_unlocked', '1');
+          }
+          setWebsiteUnlocked(true);
+        }}
+      />
+    );
+  }
+  if (!isWebsite && !isRoot) {
+    return null;
+  }
 
   if (authLoading) {
     return (
