@@ -2,14 +2,85 @@
  * System prompt for Jasmine — AI design tool.
  */
 
+/** Predefined design styles with exact AI instructions. Keys match UI selector. */
+export const DESIGN_STYLES = {
+  elegant: {
+    label: 'Elegant',
+    instructions: `DESIGN STYLE: ELEGANT — Apply these exact visual rules:
+- Typography: Use a refined serif for headings (Playfair Display, Cormorant Garamond, or similar) paired with a clean sans-serif for body (Lora, Source Serif Pro). Large, graceful headline sizes (text-5xl to text-7xl). Generous letter-spacing (tracking-wide, tracking-wider on headings).
+- Colors: Sophisticated palette — cream/ivory backgrounds (#faf9f6, #f5f3ef), charcoal text (#2c2c2c, #1a1a1a), gold or bronze accents (#b8860b, #8b7355, #c9a227). No bright primaries. Subtle warm grays.
+- Layout: Generous whitespace (py-24 to py-32 sections). Centered, balanced compositions. Max-width 1280px. Elegant dividers (thin 1px borders, subtle).
+- Surfaces: Soft shadows (shadow-lg with low opacity, 0 25px 50px -12px rgba(0,0,0,0.08)). Rounded corners (rounded-2xl, rounded-3xl). No harsh edges.
+- Buttons: Refined pill or rounded-lg. Border + subtle fill. Hover: slight scale, shadow lift. Never flat or neon.
+- Motion: Slow, graceful (0.6–1s). Fade-in, gentle slide-up. Easing: cubic-bezier(0.22,1,0.36,1). Stagger 80–120ms.
+- Overall: Luxury editorial feel. Think high-end brands, premium products. Calm, confident, timeless.`,
+  },
+  minimalist: {
+    label: 'Minimalist',
+    instructions: `DESIGN STYLE: MINIMALIST — Apply these exact visual rules:
+- Typography: One clean sans-serif (Inter, Geist, SF Pro). Large, bold headlines (text-4xl to text-6xl). Tight line-height (leading-tight). Minimal font weight variation (400, 600, 700 only).
+- Colors: Monochromatic or near-monochrome. White/off-white bg (#ffffff, #fafafa). Black/charcoal text (#111, #1a1a1a). Single accent — one color only (e.g. one blue or one green), used sparingly for CTAs and links.
+- Layout: Maximum whitespace. Sections py-20 to py-32. Few elements per section. Grid: 1–2 columns max. No clutter.
+- Surfaces: Flat or near-flat. No shadows or very subtle (shadow-sm). Clean borders (1px border-gray-200). No gradients.
+- Buttons: Simple. Solid fill or outline. Rounded-lg or rounded-full. No decoration.
+- Motion: Minimal. Fade-in only, 0.4–0.6s. No bounce, no scale. Subtle hover (opacity, underline).
+- Overall: Apple, Linear, Vercel aesthetic. Less is more. Every element earns its place.`,
+  },
+  serif: {
+    label: 'Serif',
+    instructions: `DESIGN STYLE: SERIF — Apply these exact visual rules:
+- Typography: Serif-first. Display serif for headlines (Libre Baskerville, Merriweather, EB Garamond) — text-5xl to text-7xl. Body: readable serif (Lora, Source Serif 4) or contrasting sans. Strong hierarchy.
+- Colors: Warm, editorial. Cream/paper backgrounds (#fdfcfb, #f8f6f3). Dark ink (#1a1a1a, #2d2d2d). Warm accent (burgundy #722f37, navy #1e3a5f, or forest #2d5016).
+- Layout: Editorial column. Max-w-3xl or max-w-4xl for readability. Generous margins. Clear section breaks.
+- Surfaces: Paper-like. Subtle texture or none. Soft drop shadows. Rounded corners optional (rounded-lg).
+- Buttons: Understated. Border, or solid with serif font. No rounded-full — use rounded-md or rounded-lg.
+- Motion: Gentle. Fade-in, slight slide. 0.5–0.8s. Stagger 60–100ms.
+- Overall: Magazine, newspaper, book. Authoritative, readable, classic.`,
+  },
+  neobrutalist: {
+    label: 'Neobrutalist',
+    instructions: `DESIGN STYLE: NEOBRUTALIST — Apply these exact visual rules:
+- Typography: Bold, chunky. Heavy weights (700, 800, 900). Sans-serif (Space Grotesk, Bebas Neue, Archivo Black). Oversized headlines (text-6xl to text-8xl). Tight tracking. All-caps optional for impact.
+- Colors: High contrast. Pure black (#000) and white (#fff). One or two bold accent colors (bright yellow #facc15, hot pink #ec4899, electric blue #3b82f6, lime #84cc16). No pastels, no grays.
+- Layout: Raw, asymmetric. Thick borders (2px, 4px, 8px). Overlapping elements. Hard edges. No rounded corners or minimal (rounded-none, rounded-sm).
+- Surfaces: Flat. Hard shadows (translate 4px 4px 0, or box-shadow: 4px 4px 0 #000). Borders everywhere. No gradients.
+- Buttons: Chunky. Thick border (4px). Offset shadow. Hover: translate to "press" effect. Bold, in-your-face.
+- Motion: Snappy. 0.2–0.3s. Instant. Hover: translate, no fade. Punchy.
+- Overall: Raw, bold, unapologetic. Brutalist web design. Stripe's brutalist era. Memorable, striking.`,
+  },
+  neumorphism: {
+    label: 'Neumorphism',
+    instructions: `DESIGN STYLE: NEUMORPHISM — Apply these exact visual rules:
+- Typography: Clean sans-serif (Poppins, Nunito, Quicksand). Medium weights (500, 600). Rounded feel. text-4xl to text-6xl for headlines.
+- Colors: Soft, muted. Single base (light gray #e0e5ec, #e4e8ec, or #d1d9e6). Same color for bg and "raised" surfaces. Text: dark gray (#2d3748, #4a5568). Accent: soft blue or purple (#6366f1, #8b5cf6).
+- Layout: Soft, padded. Generous padding (p-8, p-10). Rounded corners (rounded-2xl, rounded-3xl). Cards feel "pressed in" or "popped out."
+- Surfaces: Dual shadows — light source top-left. Raised: box-shadow: 6px 6px 12px #c4cdd8, -6px -6px 12px #fff. Inset: box-shadow: inset 4px 4px 8px #c4cdd8, inset -4px -4px 8px #fff. No flat surfaces.
+- Buttons: Soft, pill-shaped. Same dual-shadow technique. Hover: inset (pressed) or more pronounced raise.
+- Motion: Smooth. 0.3–0.5s. Soft transitions. Hover: subtle shadow change.
+- Overall: Soft UI, tactile. Like physical buttons. Calm, modern, distinctive. Avoid harsh contrasts.`,
+  },
+  retro: {
+    label: 'Retro',
+    instructions: `DESIGN STYLE: RETRO — Apply these exact visual rules:
+- Typography: Vintage fonts. Display: Bebas Neue, Oswald, or condensed serif. Body: Courier, IBM Plex Mono, or vintage sans. Mix of all-caps and normal. text-5xl to text-7xl headlines.
+- Colors: Warm, faded. Mustard (#eab308, #f59e0b), burnt orange (#ea580c), cream (#fef3c7), brown (#78350f, #92400e). Or: 70s palette — avocado (#4ade80), orange (#fb923c), brown. Slightly desaturated.
+- Layout: Bold grids. Thick borders. Section dividers. Striped or patterned backgrounds (subtle). Max-w-6xl.
+- Surfaces: Textured or gradient. Grain overlay optional. Rounded corners (rounded-lg, rounded-xl). Warm shadows.
+- Buttons: Bold. Rounded. Solid fill. Hover: darker shade. Retro badge style.
+- Motion: Playful. 0.4–0.6s. Slight bounce (ease-out). Stagger 50–80ms.
+- Overall: 70s, 80s, or early web aesthetic. Nostalgic, warm, fun. Think vintage ads, old software.`,
+  },
+};
+
 /**
- * Build the system prompt with optional conversation context, edit mode, and targeted edit context.
+ * Build the system prompt with optional conversation context, edit mode, targeted edit context, and design style.
  * @param {Object} opts
  * @param {string} [opts.conversationContext=''] - Conversation history/context to inject
  * @param {boolean} [opts.isEdit=false] - Whether this is an edit request (adds edit-specific rules)
  * @param {Object|null} [opts.editContext=null] - Optional targeted edit context with editIntent and primaryFiles
+ * @param {string} [opts.designStyle=null] - Key from DESIGN_STYLES to inject style instructions
  */
-export function buildSystemPrompt({ conversationContext = '', isEdit = false, editContext = null } = {}) {
+export function buildSystemPrompt({ conversationContext = '', isEdit = false, editContext = null, designStyle = null } = {}) {
   return `You are an expert React developer with perfect memory of the conversation. You maintain context across messages and remember scraped websites, generated components, and applied code. Generate clean, modern React code for Vite applications.
 ${conversationContext}
 
@@ -192,6 +263,11 @@ When the user references "the app", "the website", or "the site" without specifi
 If you see scraped websites in the context, you're working on a clone/recreation of that site.
 
 - NEVER use emojis in any code, text, console logs, or UI elements
+${designStyle && DESIGN_STYLES[designStyle] ? `
+
+🎨 USER-SELECTED DESIGN STYLE — FOLLOW EXACTLY (OVERRIDES DEFAULT THEME):
+${DESIGN_STYLES[designStyle].instructions}
+` : ''}
 
 JASMINE DESIGN ENGINE — REFERENCE-FREE PIPELINE:
 Most AI tools do: Prompt → Code → Website. Jasmine does: Prompt → Design System → Assets → Layout → Motion → Conversion → Code. Follow this order.
@@ -500,6 +576,18 @@ export const SYSTEM_PROMPT = buildSystemPrompt({ conversationContext: '', isEdit
 
 /** System prompt for edit requests. */
 export const EDIT_SYSTEM_PROMPT = buildSystemPrompt({ conversationContext: '', isEdit: true });
+
+/** Get system prompt for generation, with optional design style. Use for React and HTML modes. */
+export function getSystemPromptForGeneration(designStyle = null, htmlMode = false) {
+  if (htmlMode) {
+    const base = HTML_SYSTEM_PROMPT;
+    if (designStyle && DESIGN_STYLES[designStyle]) {
+      return `${base}\n\n🎨 USER-SELECTED DESIGN STYLE — FOLLOW EXACTLY:\n${DESIGN_STYLES[designStyle].instructions}`;
+    }
+    return base;
+  }
+  return buildSystemPrompt({ conversationContext: '', isEdit: false, designStyle });
+}
 
 /** HTML mode: multi-file HTML/CSS/JS — no build, no sandbox, instant preview. */
 export const HTML_SYSTEM_PROMPT = `You are an expert web developer. Generate a comprehensive, production-quality website using plain HTML, CSS, and JavaScript. NO sandbox, NO build step — preview runs instantly in the browser.

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { generateWithGroq, generateWithGemini, generateWithGateway, generateWithOpenAI, editWithGroq, editWithGemini, editWithGateway, editWithOpenAI, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery, getHtmlPreviewContent, projectToRaw, GROQ_MODEL_KIMI } from './api';
-import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT } from './systemPrompt.js';
+import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT, DESIGN_STYLES, getSystemPromptForGeneration } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
 import BlogPage from './pages/BlogPage';
@@ -152,6 +152,28 @@ function ModelSelectDropdown({ provider, setProvider, gatewayModel, setGatewayMo
       <option value="gemini-3-flash">Gemini 3 Flash (gateway)</option>
       <option value="kimi-k2.5">Kimi K2.5</option>
       <option value="gpt-5.4">GPT 5.4</option>
+    </select>
+  );
+}
+
+function DesignStyleSelector({ designStyle, setDesignStyle, isLight, borderCl, disabled }) {
+  const selectCl = isLight
+    ? 'bg-[#fffaf0] text-text-primary border-[rgba(220,211,195,0.9)] hover:bg-[#f6f4ec]'
+    : 'bg-white/[0.06] text-text-primary border-white/[0.08] hover:bg-white/[0.08]';
+
+  return (
+    <select
+      value={designStyle || ''}
+      onChange={(e) => setDesignStyle(e.target.value || null)}
+      disabled={disabled}
+      className={`h-7 min-w-[7rem] text-xs font-medium rounded-lg pl-2.5 pr-7 border cursor-pointer appearance-none bg-no-repeat bg-[length:10px] bg-[right_0.4rem_center] ${borderCl} ${selectCl} ${disabled ? 'opacity-60' : ''}`}
+      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
+      title="Design style for generation"
+    >
+      <option value="">Style: Auto</option>
+      {Object.entries(DESIGN_STYLES).map(([key, { label }]) => (
+        <option key={key} value={key}>Style: {label}</option>
+      ))}
     </select>
   );
 }
@@ -471,6 +493,8 @@ function AppBody({
   loadingSharedProjects,
   blogSlug,
   sharedProjectsCount,
+  designStyle,
+  setDesignStyle,
 }) {
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
@@ -857,6 +881,7 @@ function AppBody({
                         >
                           <i className="ph ph-paperclip text-base" />
                         </motion.button>
+                        <DesignStyleSelector designStyle={designStyle} setDesignStyle={setDesignStyle} isLight={isLight} borderCl={borderCl} disabled={isGenerating} />
                         <ModelSelectDropdown
                           provider={provider}
                           setProvider={setProvider}
@@ -1139,6 +1164,7 @@ function AppBody({
                     >
                       <i className="ph ph-paperclip text-base" />
                     </motion.button>
+                    <DesignStyleSelector designStyle={designStyle} setDesignStyle={setDesignStyle} isLight={isLight} borderCl={borderCl} disabled={isGenerating} />
                     <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} disabled={isGenerating || isEditing} />
                     <ModelSelectDropdown
                       provider={provider}
@@ -1314,6 +1340,10 @@ function App() {
   const [currentProjectId, setCurrentProjectId] = useState(null);
   const [e2bBadgeDismissed, setE2bBadgeDismissed] = useState(false);
   const [htmlMode, setHtmlMode] = useState(() => localStorage.getItem('jasmine_html_mode') === 'true');
+  const [designStyle, setDesignStyle] = useState(() => {
+    const s = localStorage.getItem('jasmine_design_style');
+    return s && DESIGN_STYLES[s] ? s : null;
+  });
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [shareModalProject, setShareModalProject] = useState(null);
   const saveTimeoutRef = useRef(null);
@@ -1348,6 +1378,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('jasmine_html_mode', String(htmlMode));
   }, [htmlMode]);
+
+  useEffect(() => {
+    if (designStyle) localStorage.setItem('jasmine_design_style', designStyle);
+    else localStorage.removeItem('jasmine_design_style');
+  }, [designStyle]);
 
   useEffect(() => {
     sandboxIdRef.current = sandboxId;
@@ -1868,7 +1903,7 @@ function App() {
         }
       }
 
-      const sysPrompt = htmlMode ? HTML_SYSTEM_PROMPT : undefined;
+      const sysPrompt = getSystemPromptForGeneration(designStyle || null, htmlMode);
       const groqModel = GROQ_MODEL_KIMI;
       const generateFn =
         provider === 'gemini'
@@ -2374,6 +2409,8 @@ function App() {
     blogSlug,
     htmlMode,
     setHtmlMode,
+    designStyle,
+    setDesignStyle,
   };
 
   if (WAITLIST_ENABLED && isRoot) {
