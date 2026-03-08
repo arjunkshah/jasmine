@@ -139,7 +139,7 @@ export default function WaitlistPage() {
               <span className="text-lg font-semibold text-white tracking-tight">jasmine</span>
             </div>
             <h1 className="text-3xl font-bold text-white tracking-tight leading-[1.15] max-w-md">
-              The world's best designer.
+              The World's Best Frontend Engineer
             </h1>
             <p className="mt-3 text-white/70 text-sm max-w-sm">
               Describe what you want. Jasmine crafts it. Edit, download, deploy.

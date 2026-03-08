@@ -751,7 +751,7 @@ function AppBody({
                       what will you design today?
                     </h1>
                     <p className="text-text-secondary text-center mb-4 text-base">
-                      the world's best designer. one prompt.
+                      The World's Best Frontend Engineer
                     </p>
                     {(deployUrl || sandboxStarting) && !htmlMode && (
                       <div className="mb-6 flex items-center justify-center gap-2">
@@ -1033,7 +1033,7 @@ function AppBody({
                   what will you design today?
                 </h1>
                 <p className="text-text-secondary text-center mb-4 text-base">
-                  the world's best designer. one prompt.
+                  The World's Best Frontend Engineer
                 </p>
                 {(deployUrl || sandboxStarting) && !htmlMode && (
                   <div className="mb-6 flex items-center justify-center gap-2">
@@ -1456,6 +1456,19 @@ function App() {
     }
     refreshProjects();
   }, [firebaseConfigured, user?.uid, refreshProjects]);
+
+  // Auto-open sidebar when user has projects (so they're visible)
+  useEffect(() => {
+    if (firebaseConfigured && user && projects.length > 0 && !loadingProjects) {
+      setSidebarOpen((prev) => {
+        if (!prev) {
+          localStorage.setItem('jasmine_sidebar_open', 'true');
+          return true;
+        }
+        return prev;
+      });
+    }
+  }, [firebaseConfigured, user, projects.length, loadingProjects]);
 
   const saveProject = useCallback(
     async (data) => {

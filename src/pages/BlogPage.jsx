@@ -200,7 +200,7 @@ function BlogPage({ theme, onStartDesigning, onBackHome, onOpenPost, onBackToLis
 
   useEffect(() => {
     const prevTitle = document.title;
-    const baseDescription = "jasmine blog - ai design, seo, and production-ready frontends. learn how the world's best designer ships sites that rank and convert.";
+    const baseDescription = "jasmine blog - ai design, seo, and production-ready frontends. learn how The World's Best Frontend Engineer ships sites that rank and convert.";
     const isArticle = Boolean(selectedPost);
     const description = isArticle ? selectedPost.summary : baseDescription;
     const title = isArticle ? `${selectedPost.title} - Jasmine Blog` : 'Jasmine Blog - ai design systems, seo, and launch-ready code';
