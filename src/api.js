@@ -150,7 +150,7 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
 
 export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT, model = GROQ_MODEL_KIMI) {
   const contextBlock = buildContextBlock(contextFiles);
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -174,7 +174,7 @@ export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, co
 
 export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles);
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
@@ -281,7 +281,7 @@ export async function generateWithOpenAI(apiKey, prompt, onChunk, contextFiles =
 /** Edit via OpenAI API. */
 export async function editWithOpenAI(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles);
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -312,7 +312,7 @@ export async function editWithOpenAI(apiKey, currentCode, userMessage, onChunk, 
 /** Edit via Vercel AI Gateway. */
 export async function editWithGateway(apiBase, modelId, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles);
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. Output ONLY the files you changed in ---FILE:path--- format.`;
+  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
 
   const response = await fetch(`${apiBase}/api/ai`, {
     method: 'POST',
@@ -550,12 +550,36 @@ export function extractStreamingFile(text) {
   return path ? { path, content } : null;
 }
 
-/** Parse multi-file output (---FILE:path---). Returns { files: { path: content } } or null. */
-export function extractNextProject(text) {
+/** Parse ---EDIT:path--- blocks with ---SEARCH---/---REPLACE--- for minimal edits. Returns { edits: [{ path, search, replace }] } or null. */
+export function extractEdits(text) {
+  if (!text || typeof text !== 'string') return [];
+  const edits = [];
+  try {
+    const blockRegex = /---EDIT:([^\n]+)---\s*\n([\s\S]*?)(?=---EDIT:|---FILE:|\Z)/g;
+    let blockMatch;
+    while ((blockMatch = blockRegex.exec(text)) !== null) {
+      const path = blockMatch[1].trim();
+      const block = blockMatch[2];
+      const pairRegex = /---SEARCH---\s*\n([\s\S]*?)---REPLACE---\s*\n([\s\S]*?)(?=---SEARCH---|$)/g;
+      let pairMatch;
+      while ((pairMatch = pairRegex.exec(block)) !== null) {
+        const search = pairMatch[1].replace(/\n$/, '');
+        const replace = pairMatch[2].replace(/\n$/, '');
+        if (path && search) edits.push({ path, search, replace });
+      }
+    }
+  } catch (e) {
+    console.warn('[Jasmine] extractEdits error:', e?.message);
+  }
+  return edits;
+}
+
+/** Parse multi-file output (---FILE:path---) and minimal edits (---EDIT:path---). Returns { files } or null. */
+export function extractNextProject(text, existingFiles = null) {
   if (!text || typeof text !== 'string') return null;
   const files = {};
+  const edits = extractEdits(text);
   try {
-    // Path: chars until --- (allows dashes in filenames like some-file.jsx)
     const regex = /---FILE:([^\n]+?)---\s*```(?:\w+)?\s*\n([\s\S]*?)```/g;
     let match;
     while ((match = regex.exec(text)) !== null) {
@@ -564,6 +588,16 @@ export function extractNextProject(text) {
       content = stripSlashCommandsFromContent(content);
       content = fixUnterminatedStringsInContent(content);
       if (path && content) files[path] = content;
+    }
+    if (existingFiles && edits.length > 0) {
+      for (const { path, search, replace } of edits) {
+        if (path in files) continue;
+        let content = existingFiles[path] || '';
+        if (content.includes(search)) {
+          content = content.replace(search, replace);
+          files[path] = content;
+        }
+      }
     }
   } catch (e) {
     console.warn('[Jasmine] extractNextProject regex error:', e?.message);
