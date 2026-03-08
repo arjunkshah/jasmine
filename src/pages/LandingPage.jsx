@@ -64,15 +64,22 @@ function DemoVideoSection({ isLight, borderCl }) {
   const inView = useInView(ref, { once: true, amount: 0.15 });
 
   return (
-    <section ref={ref} className={`pt-24 pb-32 lg:pt-32 px-6 md:px-12 lg:px-20 border-t ${borderCl}`}>
+    <section id="demo" ref={ref} className={`pt-24 pb-32 lg:pt-32 px-6 md:px-12 lg:px-20 border-t ${borderCl}`}>
       <div className="max-w-4xl mx-auto">
         <motion.div
-          className={`aspect-video rounded-2xl border ${isLight ? 'border-neutral-200 bg-neutral-100' : 'border-white/10 bg-white/[0.04]'} flex items-center justify-center`}
+          className={`aspect-video rounded-2xl border overflow-hidden ${isLight ? 'border-neutral-200 bg-neutral-100' : 'border-white/10 bg-white/[0.04]'}`}
           initial={{ opacity: 0, y: 24 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <span className="text-text-muted text-sm font-medium">Demo video coming soon</span>
+          <video
+            src="/Jasmine%20Launch%20Video.mp4"
+            controls
+            playsInline
+            className="w-full h-full object-cover"
+          >
+            Your browser does not support the video tag.
+          </video>
         </motion.div>
       </div>
     </section>

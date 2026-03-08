@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { addToWaitlist } from '../lib/waitlist';
+import { addToWaitlist, isEmailInWaitlist } from '../lib/waitlist';
 
 export default function WaitlistPage() {
   const { signUp, signInWithGoogle, isConfigured: firebaseConfigured } = useAuth();
@@ -9,10 +9,12 @@ export default function WaitlistPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [alreadySignedUp, setAlreadySignedUp] = useState(false);
 
   const handleEmailSignUp = async (e) => {
     e.preventDefault();
     setError('');
+    setAlreadySignedUp(false);
     if (!email.trim() || !password) {
       setError('Email and password required');
       return;
@@ -31,17 +33,25 @@ export default function WaitlistPage() {
       const { auth } = await import('../lib/firebase');
       const user = auth?.currentUser;
       if (user) {
-        await addToWaitlist({
-          email: user.email,
-          uid: user.uid,
-          provider: 'email',
-        });
+        const alreadyIn = await isEmailInWaitlist(user.email);
+        if (alreadyIn) {
+          setAlreadySignedUp(true);
+          setSuccess(true);
+        } else {
+          await addToWaitlist({
+            email: user.email,
+            uid: user.uid,
+            provider: 'email',
+          });
+          setSuccess(true);
+        }
       }
-      setSuccess(true);
     } catch (err) {
       const msg = err?.message || 'Sign-up failed';
-      if (msg.includes('auth/email-already-in-use')) setError('Email already registered. Try signing in.');
-      else if (msg.includes('auth/weak-password')) setError('Password must be at least 6 characters');
+      if (msg.includes('auth/email-already-in-use')) {
+        setAlreadySignedUp(true);
+        setSuccess(true);
+      } else if (msg.includes('auth/weak-password')) setError('Password must be at least 6 characters');
       else if (msg.includes('auth/invalid-email')) setError('Invalid email address');
       else setError(msg);
     } finally {
@@ -51,6 +61,7 @@ export default function WaitlistPage() {
 
   const handleGoogleSignUp = async () => {
     setError('');
+    setAlreadySignedUp(false);
     if (!firebaseConfigured) {
       setError('Sign-up is not configured yet. Try again later.');
       return;
@@ -61,13 +72,19 @@ export default function WaitlistPage() {
       const { auth } = await import('../lib/firebase');
       const user = auth?.currentUser;
       if (user) {
-        await addToWaitlist({
-          email: user.email,
-          uid: user.uid,
-          provider: 'google',
-        });
+        const alreadyIn = await isEmailInWaitlist(user.email);
+        if (alreadyIn) {
+          setAlreadySignedUp(true);
+          setSuccess(true);
+        } else {
+          await addToWaitlist({
+            email: user.email,
+            uid: user.uid,
+            provider: 'google',
+          });
+          setSuccess(true);
+        }
       }
-      setSuccess(true);
     } catch (err) {
       const msg = err?.message || 'Google sign-up failed';
       if (msg.includes('auth/popup-blocked')) setError('Popup blocked. Allow popups for this site.');
@@ -85,9 +102,13 @@ export default function WaitlistPage() {
           <div className="w-16 h-16 rounded-2xl bg-jasmine-400/20 flex items-center justify-center mx-auto">
             <i className="ph ph-check-circle text-3xl text-jasmine-400" />
           </div>
-          <h1 className="text-2xl font-semibold">You're on the list</h1>
+          <h1 className="text-2xl font-semibold">
+            {alreadySignedUp ? "You're already on the list" : "You're on the list"}
+          </h1>
           <p className="text-text-secondary">
-            We'll be in touch when Jasmine is ready. In the meantime, you can access the full site with the password.
+            {alreadySignedUp
+              ? "You've already signed up for the waitlist. We'll be in touch when Jasmine is ready."
+              : "We'll be in touch when Jasmine is ready. In the meantime, you can access the full site with the password."}
           </p>
           <a
             href="/website"
