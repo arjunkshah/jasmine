@@ -9,6 +9,7 @@ export default function ShareModal({ project, onClose, onSuccess, theme, getIdTo
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
+  const [deliveryWarning, setDeliveryWarning] = useState(false);
 
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.08]';
@@ -61,6 +62,7 @@ export default function ShareModal({ project, onClose, onSuccess, theme, getIdTo
         return;
       }
 
+      setDeliveryWarning(!!data?.deliveryWarning);
       setSent(true);
       onSuccess?.();
     } catch (e) {
@@ -110,6 +112,15 @@ export default function ShareModal({ project, onClose, onSuccess, theme, getIdTo
                 <i className="ph ph-check-circle text-3xl text-jasmine-400 mb-2 block" />
                 <p className="text-sm text-text-primary font-medium">Invites sent</p>
                 <p className="text-xs text-text-muted mt-1">Recipients will receive an email with a link.</p>
+                {deliveryWarning && (
+                  <div className="mt-4 p-3 rounded-lg bg-amber-500/15 border border-amber-500/30 text-left">
+                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Recipients may not receive emails</p>
+                    <p className="text-xs text-text-secondary mt-1">
+                      The default sender only delivers to the Resend account owner. To reach recipients: add and verify your domain at{' '}
+                      <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="underline text-jasmine-400">resend.com/domains</a>, then set <code className="text-xs bg-black/10 dark:bg-white/10 px-1 rounded">RESEND_FROM=Jasmine &lt;share@yourdomain.com&gt;</code> in your env vars and redeploy.
+                    </p>
+                  </div>
+                )}
               </motion.div>
             ) : (
               <motion.form

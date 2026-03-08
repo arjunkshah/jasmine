@@ -78,7 +78,7 @@ function buildMetadata(data) {
     userId: data.userId,
     name: data.name || 'Untitled',
     prompt: data.prompt || '',
-    provider: data.provider || 'groq',
+    provider: data.provider || 'gemini',
     gatewayModel: data.gatewayModel || 'gemini-3-flash',
     chatMessages: data.chatMessages || [],
     createdAt: data.createdAt,

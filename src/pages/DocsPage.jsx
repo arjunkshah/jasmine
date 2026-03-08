@@ -8,18 +8,14 @@ import DocsChat from '../components/DocsChat';
 
 const SECTIONS = [
   { id: 'overview', title: 'Overview' },
-  { id: 'quick-start', title: 'Quick start' },
-  { id: 'architecture', title: 'Architecture' },
-  { id: 'generation', title: 'Generation flow' },
-  { id: 'edit', title: 'Edit flow' },
+  { id: 'getting-started', title: 'Getting started' },
+  { id: 'prompts', title: 'Writing effective prompts' },
+  { id: 'modes', title: 'Design modes' },
+  { id: 'chat-edits', title: 'Chat & edits' },
+  { id: 'models', title: 'Model selection' },
+  { id: 'preview-deploy', title: 'Preview & deployment' },
   { id: 'slash-commands', title: 'Slash commands' },
-  { id: 'preview', title: 'Preview & E2B' },
-  { id: 'output-format', title: 'Output format' },
-  { id: 'error-prevention', title: 'Error prevention' },
-  { id: 'api-reference', title: 'API reference' },
-  { id: 'tech-stack', title: 'Tech stack' },
-  { id: 'auth', title: 'Auth & projects' },
-  { id: 'deploy', title: 'Deployment' },
+  { id: 'tips', title: 'Tips & best practices' },
   { id: 'troubleshooting', title: 'Troubleshooting' },
 ];
 
@@ -70,10 +66,10 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
               <BlurPopUpByWord text="documentation" wordDelay={0.02} />
             </p>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.05] text-text-primary font-display text-3d">
-              <BlurPopUpByWord text="how jasmine is built." wordDelay={0.05} />
+              <BlurPopUpByWord text="how to use jasmine." wordDelay={0.05} />
             </h1>
             <p className={`text-base md:text-lg leading-[1.6] ${isLight ? 'text-text-secondary' : 'text-text-secondary [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]'}`}>
-              <BlurPopUpByWord text="architecture, generation flow, preview sandbox, and deployment. technical deep-dive for developers." wordDelay={0.025} />
+              <BlurPopUpByWord text="step-by-step guide, prompt tips, chat edits, deployment, and best practices." wordDelay={0.025} />
             </p>
             <div className="flex flex-wrap gap-3 items-center">
               <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-8 py-3">
@@ -149,77 +145,150 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
             <section id="overview" className="scroll-mt-24">
               <h2 className={headingCl}>Overview</h2>
               <p className="text-text-secondary leading-relaxed mb-4">
-                Jasmine is an AI-powered design notebook that turns natural language prompts into full, production-ready frontends. It combines multiple AI providers (Groq/Kimi, Gemini, OpenAI) with a design-first workflow: the system analyzes your prompt, breaks it into sections, identifies audience and goals, designs the frontend structure, and only then generates code.
+                Jasmine turns natural language into production-ready frontends. Describe what you want — a landing page, SaaS dashboard, portfolio — and Jasmine generates the full project with structure, styling, and polish. No coding required.
               </p>
               <p className="text-text-secondary leading-relaxed">
-                Two output modes: <strong>Vite+React</strong> for full projects (integratable with your backend) and <strong>HTML</strong> for rapid prototyping. Live preview runs in E2B cloud sandboxes — no local build required. Chat-based edits apply changes in real time.
+                Choose <strong>Vite+React</strong> for full projects you can integrate with a backend, or <strong>HTML</strong> for rapid prototyping with instant preview. Use the chat to refine: change colors, add sections, fix copy. Deploy to Netlify, push to GitHub, or download as ZIP.
               </p>
             </section>
 
-            {/* Quick start */}
-            <section id="quick-start" className="scroll-mt-24">
-              <h2 className={headingCl}>Quick start</h2>
-              <ol className="list-decimal list-inside space-y-3 text-text-secondary leading-relaxed">
-                <li>Enter a prompt (e.g. &quot;A meditation app with a timer and calming colors&quot;) in the designer</li>
-                <li>Choose <strong>Vite+React</strong> or <strong>HTML</strong> mode</li>
-                <li>Click <strong>Generate</strong> — code streams in real time</li>
-                <li>Preview appears in the E2B sandbox; use the chat to refine</li>
-                <li>Deploy to Netlify, push to GitHub, or download as ZIP</li>
+            {/* Getting started */}
+            <section id="getting-started" className="scroll-mt-24">
+              <h2 className={headingCl}>Getting started</h2>
+              <ol className="list-decimal list-inside space-y-4 text-text-secondary leading-relaxed">
+                <li><strong>Enter a prompt</strong> — Describe your app in plain English. Example: &quot;A meditation app with a timer, calming gradients, and breathing exercises.&quot;</li>
+                <li><strong>Pick a mode</strong> — Toggle <strong>Vite+React</strong> (full project) or <strong>HTML</strong> (simple, instant preview) in the designer.</li>
+                <li><strong>Click Generate</strong> — Code streams in real time. Watch the Files tab populate as the AI builds.</li>
+                <li><strong>Preview</strong> — The live preview loads in the right panel. First load can take 30–60 seconds while the sandbox starts.</li>
+                <li><strong>Refine in chat</strong> — Ask for changes: &quot;make the header black&quot;, &quot;add a pricing section&quot;, &quot;update the hero text&quot;.</li>
+                <li><strong>Deploy or download</strong> — Use the Deploy button for Netlify, Push to GitHub, or Download as ZIP.</li>
               </ol>
               <p className="text-text-secondary mt-4">
-                Sign in with Google or email to save projects and enable auto-save.
+                <strong>Tip:</strong> Sign in with Google or email to save projects and enable auto-save.
               </p>
             </section>
 
-            {/* Architecture */}
-            <section id="architecture" className="scroll-mt-24">
-              <h2 className={headingCl}>Architecture</h2>
-              <p className="text-text-secondary leading-relaxed mb-6">
-                Jasmine is a Vite + React frontend with serverless API routes (Vercel). The frontend handles UI, streaming, and project parsing; the API handles AI calls, E2B sandbox management, and deployment.
+            {/* Writing effective prompts */}
+            <section id="prompts" className="scroll-mt-24">
+              <h2 className={headingCl}>Writing effective prompts</h2>
+              <p className="text-text-secondary leading-relaxed mb-4">
+                Better prompts = better output. Be specific about the product, audience, and feel.
               </p>
-              <div className={`${cardCl} p-6 rounded-lg overflow-x-auto`}>
-                <pre className={`text-sm font-mono p-4 rounded-lg ${codeCl} border`}>{`Jasmine/
-├── src/                    # Frontend (React + Vite)
-│   ├── App.jsx             # Main app, routing, designer UI
-│   ├── api.js              # API client, project parsing (extractNextProject, etc.)
-│   ├── systemPrompt.js     # AI prompts (Vite+React, HTML, edit modes)
-│   ├── pages/              # LandingPage, BlogPage, DocsPage
-│   ├── components/         # Reusable UI
-│   └── lib/                # firebase, analytics, projects, waitlist
-├── api/                    # Serverless routes (Vercel)
-│   ├── ai.js               # Unified generate + edit
-│   ├── fix-errors.js       # AI-powered error fixing
-│   ├── generate-image.js   # Image generation
-│   ├── sandbox/start.js    # E2B sandbox creation
-│   ├── sandbox/update.js   # E2B file push, hot-reload
-│   └── deploy.js           # Netlify deploy
-├── lib/                    # Server utilities
-│   ├── chat.js             # Non-streaming AI (Gateway)
-│   └── sandbox/            # E2B config, boilerplate
-└── e2b-template/           # E2B template build`}</pre>
+              <div className={`${cardCl} p-5 rounded-xl mb-6`}>
+                <h4 className="font-semibold text-text-primary mb-3">What to include</h4>
+                <ul className="space-y-2 text-text-secondary text-sm">
+                  <li><strong>Product type</strong> — e.g. law firm, SaaS, restaurant, portfolio, agency</li>
+                  <li><strong>Key sections</strong> — hero, features, pricing, testimonials, contact, etc.</li>
+                  <li><strong>Visual direction</strong> — &quot;dark and minimal&quot;, &quot;warm and inviting&quot;, &quot;professional blue&quot;</li>
+                  <li><strong>Specific features</strong> — &quot;with a pricing table&quot;, &quot;team member cards with photos&quot;, &quot;FAQ accordion&quot;</li>
+                </ul>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-text-primary mb-2">Good examples</h4>
+                  <ul className="list-disc list-inside space-y-1 text-text-secondary text-sm">
+                    <li>&quot;A law firm landing page: hero with tagline, practice areas grid, attorney bios, contact form. Professional, trustworthy, navy and gold.&quot;</li>
+                    <li>&quot;SaaS product page for a project management tool. Hero, feature comparison, testimonials, pricing tiers, CTA. Clean, modern, blue accent.&quot;</li>
+                    <li>&quot;Restaurant website: hero with food imagery, menu highlights, reservation CTA, location. Warm, appetizing, dark wood aesthetic.&quot;</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-text-primary mb-2">Tips</h4>
+                  <ul className="list-disc list-inside space-y-1 text-text-secondary text-sm">
+                    <li>Start broad, then refine in chat. Don&apos;t try to specify everything in the first prompt.</li>
+                    <li>Mention the industry or use case — it helps the AI infer imagery and tone.</li>
+                    <li>For images: say &quot;add a hero image&quot; or &quot;team photos&quot; — the AI will use placeholders that get auto-generated.</li>
+                    <li>Avoid vague requests like &quot;make it look good&quot;. Be concrete: &quot;use a darker header&quot;, &quot;add more spacing between sections&quot;.</li>
+                  </ul>
+                </div>
               </div>
             </section>
 
-            {/* Generation flow */}
-            <section id="generation" className="scroll-mt-24">
-              <h2 className={headingCl}>Generation flow</h2>
-              <ol className="list-decimal list-inside space-y-4 text-text-secondary leading-relaxed">
-                <li><strong>User prompt</strong> → <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>generate()</code> in App.jsx calls <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>generateWithGateway</code> / <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>generateWithGroq</code> / <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>generateWithGemini</code> in api.js</li>
-                <li><strong>AI streams</strong> → <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>extractNextProject()</code> parses <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>---FILE:path---</code> blocks in real time</li>
-                <li><strong>Repair</strong> → <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>fixUnterminatedStringsInContent()</code> repairs truncated imports and literals</li>
-                <li><strong>Fix pass</strong> (optional) → <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/api/fix-errors</code> — alternate model reviews and fixes phantom imports, Tailwind, Phosphor icons</li>
-                <li><strong>Preview</strong> → <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/api/sandbox/update</code> pushes files to E2B → Vite hot-reload</li>
-              </ol>
+            {/* Design modes */}
+            <section id="modes" className="scroll-mt-24">
+              <h2 className={headingCl}>Design modes</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className={`${cardCl} p-6 rounded-xl`}>
+                  <h4 className="font-semibold text-text-primary mb-2">Vite + React</h4>
+                  <p className="text-sm text-text-secondary mb-3">Full project with components, Tailwind, and a build step. Best for production apps you&apos;ll extend or connect to a backend.</p>
+                  <ul className="text-sm text-text-secondary space-y-1">
+                    <li>• Components (Header, Hero, Footer, etc.)</li>
+                    <li>• Live preview in cloud sandbox</li>
+                    <li>• Download as full project</li>
+                    <li>• Deploy to Netlify</li>
+                  </ul>
+                </div>
+                <div className={`${cardCl} p-6 rounded-xl`}>
+                  <h4 className="font-semibold text-text-primary mb-2">HTML</h4>
+                  <p className="text-sm text-text-secondary mb-3">Plain HTML, CSS, and JavaScript. No build step. Preview loads instantly in the browser.</p>
+                  <ul className="text-sm text-text-secondary space-y-1">
+                    <li>• index.html, styles.css, script.js</li>
+                    <li>• Instant iframe preview</li>
+                    <li>• Great for quick mockups</li>
+                    <li>• No sandbox needed</li>
+                  </ul>
+                </div>
+              </div>
+              <p className="text-text-secondary text-sm mt-4">
+                <strong>Tip:</strong> Use HTML mode for fast iteration; switch to Vite+React when you need a real project structure.
+              </p>
             </section>
 
-            {/* Edit flow */}
-            <section id="edit" className="scroll-mt-24">
-              <h2 className={headingCl}>Edit flow</h2>
+            {/* Chat & edits */}
+            <section id="chat-edits" className="scroll-mt-24">
+              <h2 className={headingCl}>Chat & edits</h2>
               <p className="text-text-secondary leading-relaxed mb-4">
-                Chat messages are sent to the edit API with the current project state. The AI returns a diff (changed files only) in the same <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>---FILE:path---</code> format. The frontend merges edits into the project and pushes to the sandbox.
+                After generating, use the chat to refine. The AI applies targeted edits — it won&apos;t rewrite entire files for small changes.
               </p>
-              <p className="text-text-secondary leading-relaxed">
-                Use slash commands in chat or let the AI invoke them automatically.
+              <div className={`${cardCl} p-5 rounded-xl mb-6`}>
+                <h4 className="font-semibold text-text-primary mb-3">What works well</h4>
+                <ul className="space-y-2 text-text-secondary text-sm">
+                  <li><strong>Style changes:</strong> &quot;make the header black&quot;, &quot;change the CTA to green&quot;, &quot;use a darker background&quot;</li>
+                  <li><strong>Text updates:</strong> &quot;update the hero headline to X&quot;, &quot;change the tagline&quot;</li>
+                  <li><strong>Additions:</strong> &quot;add a pricing section&quot;, &quot;add a testimonials carousel&quot;, &quot;add a newsletter signup in the footer&quot;</li>
+                  <li><strong>Removals:</strong> &quot;remove the FAQ section&quot;, &quot;simplify the hero&quot;</li>
+                </ul>
+              </div>
+              <p className="text-text-secondary text-sm">
+                <strong>Tip:</strong> Be specific. &quot;Change the header to black&quot; is better than &quot;make it darker&quot;. For complex changes, break them into multiple chat messages.
+              </p>
+            </section>
+
+            {/* Model selection */}
+            <section id="models" className="scroll-mt-24">
+              <h2 className={headingCl}>Model selection</h2>
+              <p className="text-text-secondary leading-relaxed mb-4">
+                Use the model dropdown in the designer to choose your AI provider. Each has different strengths and rate limits.
+              </p>
+              <div className={`${cardCl} overflow-hidden rounded-xl`}>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={isLight ? 'bg-zinc-50 border-b border-zinc-200' : 'bg-white/[0.04] border-b border-white/10'}>
+                      <th className="text-left py-3 px-4 font-semibold text-text-primary">Model</th>
+                      <th className="text-left py-3 px-4 font-semibold text-text-primary">Best for</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">Gemini (direct)</td><td className="py-2.5 px-4 text-text-secondary">Default. Good balance of speed and quality. Requires VITE_GEMINI_API_KEY.</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">Gemini 3 Flash (gateway)</td><td className="py-2.5 px-4 text-text-secondary">Via AI Gateway. Uses server-side key.</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">Kimi K2.5</td><td className="py-2.5 px-4 text-text-secondary">Fast. Requires VITE_GROQ_API_KEY.</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">GPT 5.4</td><td className="py-2.5 px-4 text-text-secondary">Via AI Gateway. Uses server-side key.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* Preview & deployment */}
+            <section id="preview-deploy" className="scroll-mt-24">
+              <h2 className={headingCl}>Preview & deployment</h2>
+              <p className="text-text-secondary leading-relaxed mb-4">
+                <strong>Preview:</strong> Vite+React projects run in a cloud sandbox. The first load can take 30–60 seconds. HTML mode previews instantly in an iframe. Use the Files tab to browse generated code; click a file to view it.
+              </p>
+              <p className="text-text-secondary leading-relaxed mb-4">
+                <strong>Deploy:</strong> One-click deploy to Netlify (requires NETLIFY_AUTH_TOKEN). Push to GitHub to create a repo and push your code (requires GITHUB_TOKEN). Or download as ZIP for local development.
+              </p>
+              <p className="text-text-secondary text-sm">
+                <strong>Tip:</strong> If the preview fails to load, wait a minute and try again. Sandbox startup can be slow under load.
               </p>
             </section>
 
@@ -227,7 +296,7 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
             <section id="slash-commands" className="scroll-mt-24">
               <h2 className={headingCl}>Slash commands</h2>
               <p className="text-text-secondary leading-relaxed mb-4">
-                Parsed from AI output in <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>runSlashCommands()</code>. Each handler in App.jsx calls the relevant API.
+                Type these in chat or let the AI invoke them. The AI often runs <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/create-and-apply</code>, <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/fix-errors</code>, and <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/apply</code> automatically after generation.
               </p>
               <div className={`${cardCl} overflow-hidden rounded-xl`}>
                 <table className="w-full text-sm">
@@ -238,124 +307,34 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/apply</td><td className="py-2.5 px-4 text-text-secondary">Apply pending edits to the project</td></tr>
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/fix-errors</td><td className="py-2.5 px-4 text-text-secondary">Run AI fix pass (imports, Tailwind, Phosphor)</td></tr>
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/create-and-apply</td><td className="py-2.5 px-4 text-text-secondary">Create new project from scratch and apply</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/create-and-apply</td><td className="py-2.5 px-4 text-text-secondary">Create sandbox (if needed) and apply code to preview</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/apply</td><td className="py-2.5 px-4 text-text-secondary">Apply current code to the preview sandbox</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/fix-errors</td><td className="py-2.5 px-4 text-text-secondary">Run AI fix pass (imports, Tailwind, icons)</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/deploy</td><td className="py-2.5 px-4 text-text-secondary">Deploy to Netlify</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/netlify-deploy</td><td className="py-2.5 px-4 text-text-secondary">Same as /deploy</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/download</td><td className="py-2.5 px-4 text-text-secondary">Download project as ZIP</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/web-search &lt;query&gt;</td><td className="py-2.5 px-4 text-text-secondary">Search the web for context (design trends, etc.)</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/generate-image &lt;prompt&gt;</td><td className="py-2.5 px-4 text-text-secondary">Generate an image from a text prompt</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/retry</td><td className="py-2.5 px-4 text-text-secondary">Retry applying code if preview failed</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/open-preview</td><td className="py-2.5 px-4 text-text-secondary">Open preview in a new tab</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/list-files</td><td className="py-2.5 px-4 text-text-secondary">List generated files in chat</td></tr>
                   </tbody>
                 </table>
               </div>
             </section>
 
-            {/* Preview & E2B */}
-            <section id="preview" className="scroll-mt-24">
-              <h2 className={headingCl}>Preview & E2B</h2>
-              <p className="text-text-secondary leading-relaxed mb-4">
-                Live preview runs in <strong>E2B</strong> cloud sandboxes. No local Node/npm required. <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/api/sandbox/start</code> creates a sandbox; <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/api/sandbox/update</code> writes files and runs <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>npm install</code> + <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>npx vite</code>. File writes trigger hot-reload.
-              </p>
-              <p className="text-text-secondary leading-relaxed">
-                Config: <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>lib/sandbox/sandbox-config.js</code> — port, startup delay, poll attempts. Optional <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>E2B_TEMPLATE_ID</code> for custom pre-built templates.
-              </p>
-            </section>
-
-            {/* Output format */}
-            <section id="output-format" className="scroll-mt-24">
-              <h2 className={headingCl}>Output format</h2>
-              <p className="text-text-secondary leading-relaxed mb-4">
-                AI outputs files in <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>---FILE:path---</code> blocks. Each block: header line, then code. Output order matters: pages/components before App.jsx to avoid phantom imports.
-              </p>
-              <div className={`${cardCl} p-4 rounded-lg font-mono text-sm ${codeCl} border`}>
-                <pre>{`---FILE:src/pages/Home.jsx---
-\`\`\`jsx
-export default function Home() { ... }
-\`\`\`
-
----FILE:src/App.jsx---
-\`\`\`jsx
-import Home from './pages/Home';
-...
-\`\`\``}</pre>
-              </div>
-            </section>
-
-            {/* Error prevention */}
-            <section id="error-prevention" className="scroll-mt-24">
-              <h2 className={headingCl}>Error prevention</h2>
-              <p className="text-text-secondary leading-relaxed mb-4">
-                Models: Groq (Kimi K2), Gemini 3 Flash, OpenAI. Temperature 0.5. Post-generation fix pass uses the <em>other</em> model to repair: unterminated literals, missing deps, phantom imports, Tailwind/Phosphor errors.
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-text-secondary">
-                <li><strong>Phantom imports</strong> — every import must have a corresponding file; output order enforces this</li>
-                <li><strong>Tailwind</strong> — zinc, slate, gray allowed; dark-950/900 banned</li>
-                <li><strong>Phosphor icons</strong> — named imports only, never generic Icon</li>
-                <li><strong>package.json</strong> — ensurePackageDependencies() patches client- and server-side</li>
+            {/* Tips & best practices */}
+            <section id="tips" className="scroll-mt-24">
+              <h2 className={headingCl}>Tips & best practices</h2>
+              <ul className="space-y-3 text-text-secondary">
+                <li><strong>Start simple, iterate.</strong> Generate a basic version first, then refine in chat. Don&apos;t overload the initial prompt.</li>
+                <li><strong>Use context files.</strong> Attach a .txt or .md with brand guidelines, copy, or structure. The AI uses it as reference.</li>
+                <li><strong>Sign in to save.</strong> Projects auto-save when you&apos;re signed in. Load from the sidebar anytime.</li>
+                <li><strong>Small edits = faster.</strong> &quot;Change the header to black&quot; applies a targeted edit. &quot;Rebuild the whole site&quot; regenerates everything.</li>
+                <li><strong>If the preview breaks,</strong> try <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>/fix-errors</code> in chat. The AI will repair imports and common issues.</li>
+                <li><strong>HTML mode for speed.</strong> When you need a quick mockup, HTML mode skips the sandbox and previews instantly.</li>
+                <li><strong>Share projects.</strong> Sign in, then use Share to invite collaborators by email. They&apos;ll need to sign in to view.</li>
               </ul>
-            </section>
-
-            {/* Tech stack */}
-            <section id="tech-stack" className="scroll-mt-24">
-              <h2 className={headingCl}>Tech stack</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className={`${cardCl} p-5 rounded-lg`}>
-                  <h4 className="font-semibold text-text-primary mb-2">Frontend</h4>
-                  <p className="text-sm text-text-secondary">React 19, Vite 7, Framer Motion, Tailwind 4, Phosphor Icons</p>
-                </div>
-                <div className={`${cardCl} p-5 rounded-lg`}>
-                  <h4 className="font-semibold text-text-primary mb-2">Backend</h4>
-                  <p className="text-sm text-text-secondary">Vercel serverless, Firebase (Auth, Firestore), E2B sandboxes</p>
-                </div>
-                <div className={`${cardCl} p-5 rounded-lg`}>
-                  <h4 className="font-semibold text-text-primary mb-2">AI</h4>
-                  <p className="text-sm text-text-secondary">Groq (Kimi K2), Google Gemini, OpenAI. Streaming via fetch + ReadableStream</p>
-                </div>
-                <div className={`${cardCl} p-5 rounded-lg`}>
-                  <h4 className="font-semibold text-text-primary mb-2">Deploy</h4>
-                  <p className="text-sm text-text-secondary">Netlify (one-click), GitHub push, ZIP download</p>
-                </div>
-              </div>
-            </section>
-
-            {/* API reference */}
-            <section id="api-reference" className="scroll-mt-24">
-              <h2 className={headingCl}>API reference</h2>
-              <p className="text-text-secondary leading-relaxed mb-4">
-                Serverless routes (Vercel). All require <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>POST</code> unless noted.
-              </p>
-              <div className={`${cardCl} overflow-hidden rounded-xl`}>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className={isLight ? 'bg-zinc-50 border-b border-zinc-200' : 'bg-white/[0.04] border-b border-white/10'}>
-                      <th className="text-left py-3 px-4 font-semibold text-text-primary">Endpoint</th>
-                      <th className="text-left py-3 px-4 font-semibold text-text-primary">Purpose</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/ai</td><td className="py-2.5 px-4 text-text-secondary">Generate & edit (streaming)</td></tr>
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/fix-errors</td><td className="py-2.5 px-4 text-text-secondary">Post-generation fix pass</td></tr>
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/sandbox/start</td><td className="py-2.5 px-4 text-text-secondary">Create E2B sandbox</td></tr>
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/sandbox/update</td><td className="py-2.5 px-4 text-text-secondary">Push files, npm install, vite</td></tr>
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/deploy</td><td className="py-2.5 px-4 text-text-secondary">Netlify deploy</td></tr>
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/github/push</td><td className="py-2.5 px-4 text-text-secondary">Create repo and push</td></tr>
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/generate-image</td><td className="py-2.5 px-4 text-text-secondary">Replace {`{{IMAGE:prompt}}`} placeholders</td></tr>
-                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/health</td><td className="py-2.5 px-4 text-text-secondary">Health check (GET)</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* Auth & projects */}
-            <section id="auth" className="scroll-mt-24">
-              <h2 className={headingCl}>Auth & projects</h2>
-              <p className="text-text-secondary leading-relaxed mb-4">
-                Firebase Auth: email/password + Google sign-in. Firestore stores projects: metadata (userId, name, prompt, chatMessages) in the main doc; files in <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>projects/{'{id}'}/files</code> subcollection to avoid the 1MB doc limit. Projects are private; sharing uses <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>sharedWith</code> email list. Auto-save when signed in.
-              </p>
-            </section>
-
-            {/* Deployment */}
-            <section id="deploy" className="scroll-mt-24">
-              <h2 className={headingCl}>Deployment</h2>
-              <p className="text-text-secondary leading-relaxed mb-4">
-                <strong>Netlify</strong> — one-click from the app. <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/api/netlify/deploy</code> creates a site from the project ZIP. <strong>GitHub</strong> — <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/api/github/push</code> creates a repo and pushes. <strong>ZIP</strong> — client-side JSZip export.
-              </p>
             </section>
 
             {/* Troubleshooting */}
@@ -364,19 +343,19 @@ import Home from './pages/Home';
               <div className="space-y-4">
                 <div>
                   <h4 className="font-semibold text-text-primary mb-1">Preview not loading</h4>
-                  <p className="text-text-secondary text-sm">Check <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>/api/health</code>. Ensure <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>E2B_API_KEY</code> is set. Sandbox startup can take 30–60s.</p>
+                  <p className="text-text-secondary text-sm">Wait 30–60 seconds for the sandbox to start. If it still fails, try generating again or use <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>/retry</code> in chat.</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-text-primary mb-1">Phantom imports / build errors</h4>
-                  <p className="text-text-secondary text-sm">Use <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>/fix-errors</code> in chat. The fix pass uses an alternate model to repair imports, Tailwind, and Phosphor.</p>
+                  <h4 className="font-semibold text-text-primary mb-1">Build errors / broken preview</h4>
+                  <p className="text-text-secondary text-sm">Type <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>/fix-errors</code> in chat. The AI will repair phantom imports, Tailwind issues, and icon errors.</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-text-primary mb-1">Project too large to save</h4>
-                  <p className="text-text-secondary text-sm">Files are stored in a Firestore subcollection per file — no truncation. If you see this on old projects, re-save to migrate.</p>
+                  <h4 className="font-semibold text-text-primary mb-1">AI not responding / rate limit</h4>
+                  <p className="text-text-secondary text-sm">Try a different model (e.g. Gemini if Kimi is rate-limited). Ensure your API key is set for the selected model.</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-text-primary mb-1">AI not responding</h4>
-                  <p className="text-text-secondary text-sm">Verify <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>AI_GATEWAY_API_KEY</code> (Gateway) or <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>VITE_GROQ_API_KEY</code> / <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>VITE_GEMINI_API_KEY</code> for client-side providers.</p>
+                  <h4 className="font-semibold text-text-primary mb-1">Project won&apos;t save</h4>
+                  <p className="text-text-secondary text-sm">Sign in with Google or email. Projects only save when you&apos;re authenticated.</p>
                 </div>
               </div>
             </section>

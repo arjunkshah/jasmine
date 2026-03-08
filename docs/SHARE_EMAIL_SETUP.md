@@ -30,3 +30,15 @@ Use a subdomain like `share@` or `noreply@` to isolate sending reputation.
 ## 4. Redeploy
 
 After adding env vars, redeploy your Vercel project so the new values take effect.
+
+## Troubleshooting: "I still don't get the emails"
+
+1. **Using default sender** — If `RESEND_FROM` is not set, Resend uses `onboarding@resend.dev`, which **only delivers to the Resend account owner's email**. Other recipients will not receive anything. You must verify a domain and set `RESEND_FROM`.
+
+2. **Local dev** — Add `RESEND_API_KEY` and `RESEND_FROM` to your `.env` file (not just Vercel). Restart the dev server after changing env vars.
+
+3. **Spam folder** — Ask recipients to check spam/junk. New domains can land there until reputation builds.
+
+4. **DNS propagation** — After adding DKIM/SPF records, wait 10–30 minutes. Resend shows verification status at resend.com/domains.
+
+5. **Resend dashboard** — Check [resend.com/emails](https://resend.com/emails) for delivery status and any bounce/failure logs.

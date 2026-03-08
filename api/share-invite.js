@@ -83,6 +83,7 @@ export default async function handler(req, res) {
   const projectName = data.name || 'Untitled project';
 
   const fromEmail = process.env.RESEND_FROM || 'Jasmine <onboarding@resend.dev>';
+  const usingDefaultSender = !process.env.RESEND_FROM || fromEmail.includes('onboarding@resend.dev');
   const emailErrors = [];
 
   for (const email of newEmails) {
@@ -137,6 +138,7 @@ export default async function handler(req, res) {
       sharedWith: newEmails,
       message: `Invite sent to ${newEmails.length - emailErrors.length} recipient(s). Failed for: ${emailErrors.map((e) => e.email).join(', ')}`,
       emailErrors: emailErrors.map((e) => ({ email: e.email, error: e.error })),
+      deliveryWarning: usingDefaultSender,
     });
   }
 
@@ -144,5 +146,6 @@ export default async function handler(req, res) {
     success: true,
     sharedWith: newEmails,
     message: `Invite sent to ${newEmails.length} recipient(s)`,
+    deliveryWarning: usingDefaultSender,
   });
 }

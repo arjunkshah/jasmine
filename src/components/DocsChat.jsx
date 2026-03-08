@@ -1,20 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const DOCS_SYSTEM_PROMPT = `You are a helpful assistant for Jasmine, an AI-powered design tool that turns prompts into full frontends (Vite+React or HTML). Answer questions about:
+const DOCS_SYSTEM_PROMPT = `You are a helpful assistant for Jasmine, an AI-powered design tool that turns prompts into full frontends. Answer questions about how to use Jasmine:
 
-- Architecture: Vite+React frontend, Vercel serverless API, Firebase Auth/Firestore, E2B sandboxes
-- Generation flow: User prompt → AI streams → extractNextProject parses ---FILE:path--- blocks → fix pass → E2B preview
-- Edit flow: Chat messages → edit API → diff in ---FILE:path--- format → merge and push to sandbox
-- Slash commands: /apply, /fix-errors, /create-and-apply
-- Preview: E2B cloud sandboxes, /api/sandbox/start and /api/sandbox/update, hot-reload
-- Output format: ---FILE:path--- blocks with code
-- Error prevention: Phantom imports, Tailwind (zinc/slate allowed, dark-950 banned), Phosphor icons, package.json
-- Tech stack: React 19, Vite 7, Framer Motion, Tailwind 4, Phosphor Icons, Groq/Gemini/OpenAI
-- Auth: Firebase email/password + Google, Firestore projects (metadata + files subcollection)
-- Deployment: Netlify, GitHub push, ZIP download
+- Getting started: Enter a prompt, pick Vite+React or HTML mode, click Generate, refine in chat
+- Writing prompts: Be specific (product type, sections, visual direction). Good: "Law firm landing page: hero, practice areas, attorney bios, contact. Professional, navy and gold."
+- Design modes: Vite+React = full project with components; HTML = instant preview, no build
+- Chat & edits: Ask for changes like "make the header black", "add a pricing section". Be specific.
+- Models: Gemini (direct), Gemini 3 Flash, Kimi K2.5, GPT 5.4. Gemini is default.
+- Slash commands: /create-and-apply, /apply, /fix-errors, /deploy, /download, /web-search, /generate-image
+- Preview: Vite+React uses cloud sandbox (30-60s first load). HTML previews instantly.
+- Deployment: Netlify (one-click), GitHub push, ZIP download
+- Tips: Start simple and iterate, use context files, sign in to save, /fix-errors if preview breaks
 
-Be concise and accurate. If unsure, say so.`;
+Be concise and helpful. Focus on usage, not implementation.`;
 
 function DocsChat({ theme, className = '' }) {
   const [open, setOpen] = useState(false);
