@@ -321,6 +321,50 @@ function fixIndexCssTailwind(files) {
 }
 
 /**
+ * Fix CSS that causes PostCSS "Unexpected '/'" errors.
+ * - Truncated fractions: w-1/ → w-1/2, opacity-50/ → opacity-50
+ * - JS-style // comments → block comments
+ * - Unclosed block comments
+ * - Orphan / and invalid selectors (div / span → div span)
+ */
+function fixIndexCssPostcss(files) {
+  if (!files || typeof files !== 'object') return;
+  for (const path of Object.keys(files)) {
+    if (!path.endsWith('.css')) continue;
+    let css = files[path];
+    if (!css || typeof css !== 'string') continue;
+
+    // JS-style // comments → /* */ (PostCSS doesn't support //)
+    css = css.replace(/\/\/([^\n]*)/g, '/* $1 */');
+
+    // Fix truncated Tailwind fractions in @apply (w-1/ or opacity-50/ at end)
+    css = css.replace(/(@apply\s+[^;]*?)(\b\w+-(\d+)\/)(\s|;|$)/g, (_, prefix, bad, num, tail) => {
+      const fix = { 1: '2', 2: '3', 3: '4', 4: '5', 5: '6' }[num] || '2';
+      const base = bad.replace(/\/$/, '');
+      const isFraction = /^(w|h|min-w|min-h|max-w|max-h|top|right|bottom|left|basis|flex-grow|flex-shrink)-/.test(base);
+      const replacement = isFraction ? base + '/' + fix : base;
+      return prefix + replacement + tail;
+    });
+
+    // Orphan / at end of @apply or standalone
+    css = css.replace(/(@apply\s+[^\n;]*)\s+\/\s*([;\n]|$)/g, '$1$2');
+    css = css.replace(/([.{}\s])\/\s*([,}\n])/g, '$1$2');
+
+    // Invalid selector: "a / b" (bare / as combinator) → "a b" (descendant)
+    css = css.replace(/\s+\/\s+/g, ' ');
+
+    // Unclosed /* — add */ at end
+    const openCount = (css.match(/\/\*/g) || []).length;
+    const closeCount = (css.match(/\*\//g) || []).length;
+    if (openCount > closeCount) {
+      css = css.trimEnd() + '\n*/';
+    }
+
+    files[path] = css;
+  }
+}
+
+/**
  * Remove @tailwindcss/vite from vite.config — we use postcss + tailwind v3.
  */
 function fixViteConfigTailwind(files) {
@@ -344,6 +388,7 @@ export function applyPackageFixes(files) {
   fixViteVersion(files);
   fixTailwindVersion(files);
   fixIndexCssTailwind(files);
+  fixIndexCssPostcss(files);
   fixViteConfigTailwind(files);
   deduplicatePhosphorImports(files);
   fixPhosphorIcons(files);

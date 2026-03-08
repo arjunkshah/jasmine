@@ -629,7 +629,7 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 7. **Responsive** — min-w-0, overflow-hidden on flex children.
 8. **Phosphor icons** — Each icon imported ONCE. Never: import { UserIcon, UserIcon, UserIcon }. Use: import { UserIcon } and reference it multiple times in JSX. NEVER use: HomeIcon, MailIcon, etc. Use: HouseIcon, EnvelopeIcon, UsersIcon, MagnifyingGlassIcon, ListIcon, XIcon. Valid: HouseIcon, UserIcon, UsersIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, MagnifyingGlassIcon, ListIcon, XIcon, GearIcon.
 9. **Invalid RegExp** — ONLY valid flags: g, i, m, s, u, y. Remove x, e, duplicates. Invalid flags cause SyntaxError.
-10. **src/index.css** — If missing, add with @tailwind base; @tailwind components; @tailwind utilities;
+10. **src/index.css** — If missing, add with @tailwind base; @tailwind components; @tailwind utilities. NO // comments (use /* */). NO truncated @apply (e.g. w-1/ → w-1/2). Fix unclosed /*.
 11. **Tailwind v3 ONLY** — Use tailwindcss ^3.3.0 with postcss + autoprefixer. NEVER use tailwindcss ^4 or @tailwindcss/vite. index.css must use @tailwind base/components/utilities, NOT @import "tailwindcss". Remove @tailwindcss/vite from vite.config.
 12. **Vite v4 ONLY** — Use vite ^4.3.9 and @vitejs/plugin-react ^4.0.0 in devDependencies. NEVER use vite ^5, ^6, or ^7 — causes "Cannot find module dep-*.js" in preview.
 

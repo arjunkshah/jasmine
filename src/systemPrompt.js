@@ -228,6 +228,7 @@ CRITICAL STYLING RULES (Vite + React):
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
+- index.css: NO // comments (use /* */). NO truncated @apply (w-1/ → w-1/2). Every /* must have */. Prefer Tailwind classes in JSX over @apply in index.css. If using @apply, never end a utility with / (e.g. w-1/ is wrong).
 - Use Tailwind's full utility set: spacing, colors, typography, flexbox, grid, animations, etc.
 - ALWAYS add smooth transitions and animations where appropriate:
   - Use transition-all, transition-colors, transition-opacity for hover states

@@ -23,7 +23,7 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 6. **package.json** — Valid JSON, no trailing commas.
 7. **Phosphor icons** — Each icon imported ONCE. Use HouseIcon, UserIcon, etc. Never HomeIcon, MailIcon.
 8. **Invalid RegExp** — ONLY flags g, i, m, s, u, y. Remove x, e, duplicates.
-9. **src/index.css** — If missing, add with @tailwind base/components/utilities.
+9. **src/index.css** — If missing, add with @tailwind base/components/utilities. NO // comments (use /* */). NO truncated @apply (w-1/ → w-1/2). Fix unclosed /*.
 
 Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
 
