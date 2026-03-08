@@ -83,6 +83,7 @@ export default async function handler(req, res) {
   const projectName = data.name || 'Untitled project';
 
   const fromEmail = process.env.RESEND_FROM || 'Jasmine <onboarding@resend.dev>';
+  const emailErrors = [];
 
   for (const email of newEmails) {
     try {
@@ -108,12 +109,35 @@ export default async function handler(req, res) {
         }),
       });
       if (!emailRes.ok) {
-        const err = await emailRes.text();
-        console.warn('[share-invite] Resend failed for', email, err);
+        const errText = await emailRes.text();
+        let errMsg = errText;
+        try {
+          const parsed = JSON.parse(errText);
+          errMsg = parsed.message || parsed.error?.message || errText;
+        } catch (_) {}
+        console.warn('[share-invite] Resend failed for', email, errText);
+        emailErrors.push({ email, error: errMsg });
       }
     } catch (e) {
       console.warn('[share-invite] Email send failed:', e?.message);
+      emailErrors.push({ email, error: e?.message || 'Network error' });
     }
+  }
+
+  if (emailErrors.length === newEmails.length) {
+    const firstErr = emailErrors[0]?.error || 'Email delivery failed';
+    return res.status(500).json({
+      error: `Could not send invites: ${firstErr}. Verify RESEND_API_KEY and RESEND_FROM (use a verified domain — onboarding@resend.dev only delivers to Resend account owner).`,
+    });
+  }
+
+  if (emailErrors.length > 0) {
+    return res.status(200).json({
+      success: true,
+      sharedWith: newEmails,
+      message: `Invite sent to ${newEmails.length - emailErrors.length} recipient(s). Failed for: ${emailErrors.map((e) => e.email).join(', ')}`,
+      emailErrors: emailErrors.map((e) => ({ email: e.email, error: e.error })),
+    });
   }
 
   return res.status(200).json({

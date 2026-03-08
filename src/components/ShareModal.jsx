@@ -54,6 +54,13 @@ export default function ShareModal({ project, onClose, onSuccess, theme, getIdTo
         return;
       }
 
+      if (data?.emailErrors?.length > 0) {
+        const failed = data.emailErrors.map((e) => `${e.email}: ${e.error}`).join('; ');
+        setError(`Some invites failed: ${failed}. Add and verify your domain at resend.com/domains, then set RESEND_FROM.`);
+        setSending(false);
+        return;
+      }
+
       setSent(true);
       onSuccess?.();
     } catch (e) {

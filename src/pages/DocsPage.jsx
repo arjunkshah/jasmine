@@ -7,20 +7,20 @@ import HeroGlowLines from '../components/HeroGlowLines';
 import DocsChat from '../components/DocsChat';
 
 const SECTIONS = [
-  { id: 'overview', title: 'Overview', icon: 'ph-file-text' },
-  { id: 'quick-start', title: 'Quick start', icon: 'ph-rocket-launch' },
-  { id: 'architecture', title: 'Architecture', icon: 'ph-tree-structure' },
-  { id: 'generation', title: 'Generation flow', icon: 'ph-lightning' },
-  { id: 'edit', title: 'Edit flow', icon: 'ph-pencil-simple' },
-  { id: 'slash-commands', title: 'Slash commands', icon: 'ph-terminal' },
-  { id: 'preview', title: 'Preview & E2B', icon: 'ph-browser' },
-  { id: 'output-format', title: 'Output format', icon: 'ph-code' },
-  { id: 'error-prevention', title: 'Error prevention', icon: 'ph-shield-check' },
-  { id: 'api-reference', title: 'API reference', icon: 'ph-plug' },
-  { id: 'tech-stack', title: 'Tech stack', icon: 'ph-stack' },
-  { id: 'auth', title: 'Auth & projects', icon: 'ph-user' },
-  { id: 'deploy', title: 'Deployment', icon: 'ph-cloud-arrow-up' },
-  { id: 'troubleshooting', title: 'Troubleshooting', icon: 'ph-wrench' },
+  { id: 'overview', title: 'Overview' },
+  { id: 'quick-start', title: 'Quick start' },
+  { id: 'architecture', title: 'Architecture' },
+  { id: 'generation', title: 'Generation flow' },
+  { id: 'edit', title: 'Edit flow' },
+  { id: 'slash-commands', title: 'Slash commands' },
+  { id: 'preview', title: 'Preview & E2B' },
+  { id: 'output-format', title: 'Output format' },
+  { id: 'error-prevention', title: 'Error prevention' },
+  { id: 'api-reference', title: 'API reference' },
+  { id: 'tech-stack', title: 'Tech stack' },
+  { id: 'auth', title: 'Auth & projects' },
+  { id: 'deploy', title: 'Deployment' },
+  { id: 'troubleshooting', title: 'Troubleshooting' },
 ];
 
 function DocsPage({ theme, onStartDesigning, onBackHome }) {
@@ -84,44 +84,33 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
                 <i className="ph ph-arrow-left"></i>
                 back to overview
               </button>
-              <div className="lg:hidden">
-                <DocsChat theme={theme} />
-              </div>
             </div>
           </div>
         </div>
       </section>
 
       <div className="flex lg:flex-row gap-12">
-        {/* Sidebar nav */}
-        <aside className={`hidden lg:block flex-shrink-0 w-64 ${sectionCl} pt-12`}>
+        {/* Sidebar nav — compact */}
+        <aside className={`hidden lg:block flex-shrink-0 w-48 ${sectionCl} pt-12`}>
           <nav className="sticky top-24">
-            <div className={`rounded-2xl p-4 ${isLight ? 'bg-white/80 border border-zinc-200/80 shadow-sm' : 'bg-white/[0.03] border border-white/[0.06]'}`}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">Contents</p>
-              <div className="space-y-0.5">
-                {SECTIONS.map((s) => {
-                  const isActive = activeSection === s.id;
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => scrollToSection(s.id)}
-                      className={`flex items-center gap-2.5 w-full text-left text-sm py-2.5 px-3 rounded-xl transition-all duration-200 ${
-                        isActive
-                          ? isLight
-                            ? 'bg-jasmine-100/80 text-zinc-900 font-medium'
-                            : 'bg-jasmine-400/15 text-jasmine-300 font-medium'
-                          : 'text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
-                      }`}
-                    >
-                      <i className={`ph ${s.icon} text-base flex-shrink-0 ${isActive ? 'text-jasmine-500' : 'opacity-70'}`} />
-                      <span className="truncate">{s.title}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <DocsChat theme={theme} />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted mb-3">Contents</p>
+            <div className="space-y-0.5">
+              {SECTIONS.map((s) => {
+                const isActive = activeSection === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => scrollToSection(s.id)}
+                    className={`block w-full text-left text-sm py-1.5 px-0 rounded transition-colors ${
+                      isActive
+                        ? 'text-jasmine-400 font-medium'
+                        : 'text-text-muted hover:text-text-primary'
+                    }`}
+                  >
+                    {s.title}
+                  </button>
+                );
+              })}
             </div>
           </nav>
         </aside>
@@ -148,7 +137,6 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
                     }}
                     className={`flex items-center gap-2 w-full text-left text-sm py-2 px-3 rounded-lg ${activeSection === s.id ? 'bg-jasmine-400/15 text-jasmine-400' : 'text-text-muted hover:text-text-primary'}`}
                   >
-                    <i className={`ph ${s.icon} text-base`} />
                     {s.title}
                   </button>
                 ))}
@@ -394,6 +382,11 @@ import Home from './pages/Home';
             </section>
           </div>
         </main>
+      </div>
+
+      {/* Chatbot — fixed bottom-right */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <DocsChat theme={theme} />
       </div>
 
       {/* CTA */}
