@@ -266,6 +266,28 @@ CRITICAL STRING AND SYNTAX RULES:
 - Be extra careful with user-generated content or scraped text
 - Always validate that JSX syntax is correct before generating
 
+UNTERMINATED LITERALS — ZERO TOLERANCE (breaks Vite build):
+Every string, attribute, and bracket MUST be properly closed. Before outputting any file, verify:
+1. Every " has a matching " — every ' has a matching ' — every \` has a matching \`
+2. Every { has } — every [ has ] — every ( has )
+3. Every <tag> has /> or </tag> — every style={{ has }}
+
+❌ WRONG (causes "Unterminated string constant" or parse errors):
+- import X from './components/
+- className="min-h-screen bg-gray
+- href="https://example.com
+- style={{ color: 'red'
+- <img src="{{IMAGE:hero
+- content: 'Moved our agent's web
+
+✅ CORRECT:
+- import X from './components/Header.jsx'
+- className="min-h-screen bg-gray-50"
+- href="https://example.com"
+- style={{ color: 'red' }}
+- <img src="{{IMAGE:hero}}" />
+- content: "Moved our agent's web scraping..."
+
 CRITICAL CODE SNIPPET DISPLAY RULES:
 - When displaying code examples in JSX, NEVER put raw curly braces { } in text
 - ALWAYS wrap code snippets in template literals with backticks
@@ -327,6 +349,12 @@ OUTPUT FORMAT (CRITICAL - parsing depends on this exact format):
 Each file MUST use ---FILE:path--- then newline then \`\`\`lang then newline then content then \`\`\`.
 NO text or commentary between file blocks. Path: use forward slashes (e.g. src/App.jsx).
 NEVER truncate strings — every import must be complete: \`import Header from './components/Header.jsx'\` not \`import Header from './components/\`. Unterminated strings break the build.
+
+PRE-OUTPUT CHECKLIST (verify before every file block):
+□ Every " ' \` has a matching closer
+□ Every { [ ( has } ] )
+□ Every style={{ ends with }}
+□ Every <tag or <img has /> or </tag>
 For images: use {{IMAGE:prompt}} in img src (e.g. <img src="{{IMAGE:professional law firm hero}}" />) — the system auto-generates and replaces with the real URL.
 
 Example:

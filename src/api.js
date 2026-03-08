@@ -492,25 +492,27 @@ export function ensurePackageDependencies(files) {
   return files;
 }
 
-/** Repair truncated import paths that cause "Unterminated string literal" (e.g. import X from './components/). */
+/** Repair truncated/unterminated strings that cause "Unterminated string literal" and similar parse errors. */
 function fixUnterminatedStringsInContent(content) {
   if (!content || typeof content !== 'string') return content;
   let out = content;
-  // Pattern 1: import X from './path (default import, truncated — no closing quote)
+
+  // --- Imports ---
+  // Pattern 1: import X from './path (default import, truncated)
   out = out.replace(
     /^(\s*import\s+(\w+)\s+from\s+)(['"])([^'"]*)$/gm,
     (_, prefix, importName, quote, path) => {
-      if (/\.(jsx?|tsx?|mjs|cjs)$/.test(path)) return `${prefix}${quote}${path}${quote}`; // complete path, add missing quote
+      if (/\.(jsx?|tsx?|mjs|cjs)$/.test(path)) return `${prefix}${quote}${path}${quote}`;
       if (path.endsWith('/')) return `${prefix}${quote}${path}${importName}.jsx${quote}`;
       const dir = path.replace(/\/[^/]*$/, '/') || './';
       return `${prefix}${quote}${dir}${importName}.jsx${quote}`;
     }
   );
-  // Pattern 2: import { X } or import { X, Y } from './path (named imports, truncated)
+  // Pattern 2: import { X } from './path (named imports, truncated)
   out = out.replace(
     /^(\s*import\s+\{[^}]*\}\s+from\s+)(['"])([^'"]*)$/gm,
     (_, prefix, quote, path) => {
-      if (/\.(jsx?|tsx?|mjs|cjs)$/.test(path)) return `${prefix}${quote}${path}${quote}`; // add missing quote
+      if (/\.(jsx?|tsx?|mjs|cjs)$/.test(path)) return `${prefix}${quote}${path}${quote}`;
       const m = prefix.match(/import\s+\{\s*(\w+)/);
       const firstName = m ? m[1] : 'index';
       if (path.endsWith('/')) return `${prefix}${quote}${path}${firstName}.jsx${quote}`;
@@ -518,7 +520,7 @@ function fixUnterminatedStringsInContent(content) {
       return `${prefix}${quote}${dir}${firstName}.jsx${quote}`;
     }
   );
-  // Pattern 3: package imports with trailing slash (e.g. react-router-dom/) — remove slash, add quote
+  // Pattern 3: package imports with trailing slash
   out = out.replace(
     /^(\s*import\s+.*?\s+from\s+)(['"])([^'"]*)\/$/gm,
     (_, prefix, quote, path) => {
@@ -526,6 +528,35 @@ function fixUnterminatedStringsInContent(content) {
       return _;
     }
   );
+
+  // --- JSX attributes truncated (className="..., href="..., src="..., alt="..., etc.) ---
+  const attrNames = 'className|href|src|alt|placeholder|title|aria-label|id|name|type|value';
+  out = out.replace(
+    new RegExp(`(\\s(${attrNames})=)(["'])([^"']*)$`, 'gm'),
+    (_, prefix, quote, val) => prefix + quote + val + quote
+  );
+
+  // --- style={{ ... truncated (missing }}) — [^}]* stops at first }, so only matches when no } in value
+  out = out.replace(
+    /(style=\{\{[^}]*)(\n|$)/g,
+    (m, inner, tail) => inner + ' }}' + tail
+  );
+
+  // --- Lines ending with unclosed " or ' or ` (odd delimiter count) ---
+  out = out.split('\n')
+    .map((line) => {
+      const t = line.trim();
+      if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return line;
+      const dq = (line.match(/"/g) || []).length;
+      if (dq % 2 === 1 && line.endsWith('"') && !line.endsWith('\\"')) return line + '"';
+      const sq = (line.match(/'/g) || []).length;
+      if (sq % 2 === 1 && line.endsWith("'") && !line.endsWith("\\'")) return line + "'";
+      const bk = (line.match(/`/g) || []).length;
+      if (bk % 2 === 1 && line.endsWith('`') && !line.endsWith('\\`')) return line + '`';
+      return line;
+    })
+    .join('\n');
+
   return out;
 }
 
