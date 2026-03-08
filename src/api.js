@@ -5,6 +5,17 @@ import { fetchApiCompressed } from './lib/compress-api.js';
 
 export { fixPhosphorIcons, applyPackageFixes };
 
+/** Detect if user pasted a build/syntax error — if so, prepend instruction to use ---EDIT:--- only. */
+function maybePrependErrorFixInstruction(userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') return userMessage;
+  const hasError = /ERROR:|Transform failed|Expected.*but found|:\d+:\d+:/.test(userMessage);
+  const hasFileLine = /src\/[^\s]+\.(jsx?|tsx?|css):\d+/.test(userMessage);
+  if (hasError && hasFileLine) {
+    return `[USER PASTED A BUILD ERROR — Fix ONLY the exact line/location in the error. Use ---EDIT:path--- with ---SEARCH---/---REPLACE---. Do NOT output full ---FILE:path--- blocks. One-line fix only.]\n\n${userMessage}`;
+  }
+  return userMessage;
+}
+
 function buildContextBlock(files, searchContext = null) {
   const parts = [];
   if (searchContext?.length) {
@@ -150,7 +161,8 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
 
 export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT, model = GROQ_MODEL_KIMI) {
   const contextBlock = buildContextBlock(contextFiles);
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
+  const msg = maybePrependErrorFixInstruction(userMessage);
+  const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -174,7 +186,8 @@ export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, co
 
 export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles);
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
+  const msg = maybePrependErrorFixInstruction(userMessage);
+  const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
@@ -281,7 +294,8 @@ export async function generateWithOpenAI(apiKey, prompt, onChunk, contextFiles =
 /** Edit via OpenAI API. */
 export async function editWithOpenAI(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles);
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
+  const msg = maybePrependErrorFixInstruction(userMessage);
+  const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -312,7 +326,8 @@ export async function editWithOpenAI(apiKey, currentCode, userMessage, onChunk, 
 /** Edit via Vercel AI Gateway. */
 export async function editWithGateway(apiBase, modelId, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles);
-  const prompt = `EDIT REQUEST: ${userMessage}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
+  const msg = maybePrependErrorFixInstruction(userMessage);
+  const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
 
   const response = await fetch(`${apiBase}/api/ai`, {
     method: 'POST',
@@ -615,11 +630,23 @@ export function projectToRaw(project) {
     .join('\n\n');
 }
 
-/** Get HTML string for iframe srcdoc (HTML mode). Inlines index.html + all CSS + all JS for preview. No sandbox needed. */
-export function getHtmlPreviewContent(project) {
+/** List HTML page files in project (index.html, about.html, contact.html, etc.). */
+export function getHtmlPages(project) {
+  if (!project?.files || typeof project.files !== 'object') return [];
+  return Object.keys(project.files).filter((p) => /\.html?$/i.test(p)).sort((a, b) => {
+    if (a.toLowerCase() === 'index.html' || a.toLowerCase() === 'index.htm') return -1;
+    if (b.toLowerCase() === 'index.html' || b.toLowerCase() === 'index.htm') return 1;
+    return a.localeCompare(b);
+  });
+}
+
+/** Get HTML string for iframe srcdoc (HTML mode). Inlines page + all CSS + all JS for preview. No sandbox needed. */
+export function getHtmlPreviewContent(project, page = null) {
   if (!project?.files || typeof project.files !== 'object') return '';
   const files = project.files;
-  let html = files['index.html'] ?? files['index.htm'] ?? '';
+  const htmlPages = getHtmlPages(project);
+  const pageKey = page || htmlPages[0] || 'index.html';
+  let html = files[pageKey] ?? '';
   if (typeof html !== 'string' || !html.trim()) return '';
   // Collect all CSS and JS from project
   const cssFiles = Object.entries(files).filter(([p]) => /\.css$/i.test(p));

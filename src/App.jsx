@@ -966,7 +966,7 @@ function AppBody({
                     <div className="absolute inset-0 flex flex-col overflow-hidden">
                       {htmlMode && getHtmlPreviewContent(generatedProject) ? (
                         <EditableHtmlPreview
-                          html={getHtmlPreviewContent(generatedProject)}
+                          project={generatedProject}
                           theme={theme}
                         />
                       ) : deployUrl ? (
