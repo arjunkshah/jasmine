@@ -7,11 +7,11 @@ import { getBoilerplate, checkE2B } from '../lib/sandbox/e2b.js';
 import { sandboxConfig } from '../lib/sandbox/sandbox-config.js';
 import { parseBody } from '../lib/parse-body.js';
 import JSZip from 'jszip';
-import FormData from 'form-data';
 
 export const config = { maxDuration: 120 };
 
 const NETLIFY_API = 'https://api.netlify.com/api/v1';
+const MAX_ZIP_BYTES = 50 * 1024 * 1024; // 50MB — Netlify has limits; large zips can cause 400
 
 export default async function handler(req, res) {
   const t0 = Date.now();
@@ -24,7 +24,13 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const body = await parseBody(req);
+  let body;
+  try {
+    body = await parseBody(req);
+  } catch (e) {
+    logErr('Parse body failed:', e?.message);
+    return res.status(400).json({ error: 'Invalid request body. ' + (e?.message || 'Check payload size and format.') });
+  }
   const { target, sandboxId, files } = body;
 
   if (target === 'netlify') {
@@ -217,6 +223,13 @@ async function handleNetlify(req, res, body, log, logErr) {
   }
 
   try {
+    if (zipBuffer.length > MAX_ZIP_BYTES) {
+      logErr('Zip too large:', zipBuffer.length, 'bytes');
+      return res.status(400).json({
+        error: `Deploy zip is too large (${Math.round(zipBuffer.length / 1024 / 1024)}MB). Netlify may reject large uploads. Try a smaller project or fewer assets.`,
+      });
+    }
+    log('Zip size:', Math.round(zipBuffer.length / 1024), 'KB');
 
     log('Creating Netlify site...');
     const siteRes = await fetch(`${NETLIFY_API}/sites`, {
@@ -234,7 +247,7 @@ async function handleNetlify(req, res, body, log, logErr) {
       const err = await siteRes.text();
       logErr('Netlify create site failed:', siteRes.status, err);
       return res.status(500).json({
-        error: 'Netlify site creation failed. ' + (err?.slice(0, 100) || siteRes.statusText),
+        error: 'Netlify site creation failed. ' + (err?.slice(0, 150) || siteRes.statusText),
       });
     }
     const site = await siteRes.json();
@@ -243,13 +256,12 @@ async function handleNetlify(req, res, body, log, logErr) {
     log('Deploying to Netlify...');
     const form = new FormData();
     form.append('title', 'Jasmine deploy');
-    form.append('zip', zipBuffer, { filename: 'dist.zip', contentType: 'application/zip' });
+    form.append('zip', new Blob([zipBuffer], { type: 'application/zip' }), 'dist.zip');
 
     const deployRes = await fetch(`${NETLIFY_API}/sites/${siteId}/builds`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
-        ...form.getHeaders(),
       },
       body: form,
     });
@@ -257,8 +269,13 @@ async function handleNetlify(req, res, body, log, logErr) {
     if (!deployRes.ok) {
       const err = await deployRes.text();
       logErr('Netlify deploy failed:', deployRes.status, err);
+      let errMsg = err;
+      try {
+        const parsed = JSON.parse(err);
+        errMsg = parsed.message || parsed.error || err;
+      } catch (_) {}
       return res.status(500).json({
-        error: 'Netlify deploy failed. ' + (err?.slice(0, 100) || deployRes.statusText),
+        error: 'Netlify deploy failed. ' + (String(errMsg).slice(0, 200) || deployRes.statusText) + (err.includes('too large') ? ' Try a smaller project.' : ''),
       });
     }
 
