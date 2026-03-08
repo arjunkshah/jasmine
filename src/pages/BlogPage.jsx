@@ -131,6 +131,51 @@ const POSTS = [
       { heading: 'pitfalls avoided', body: 'the post covers three traps: overlong intros, missing social proof above the fold, and under-specified pricing tables. we show the prompts that fix each in under 30 seconds.' },
     ],
   },
+  {
+    title: 'why jasmine designs before it codes',
+    summary: 'most ai builders jump straight to output. jasmine breaks down the prompt, identifies audience and tone, and designs the frontend structure first. only then does it generate code.',
+    author: 'jasmine studio',
+    date: '2026-01-20',
+    readTime: '5 min read',
+    tags: ['process', 'design-first', 'ai'],
+    keywords: ['ai design process', 'design before code', 'jasmine workflow', 'ai frontend'],
+    slug: 'why-jasmine-designs-before-it-codes',
+    content: [
+      { heading: 'the problem with vibe coding', body: 'tools that go prompt to code produce generic output. no consideration for hierarchy, conversion flow, or brand. jasmine inserts a design layer.' },
+      { heading: 'the jasmine flow', bullets: ['parse prompt into sections (hero, features, proof, cta)', 'identify target audience and product goal', 'choose layout and tone from design system', 'generate code that matches the design intent'] },
+      { heading: 'result', body: 'output that feels intentional. typography, spacing, and structure align with the prompt instead of defaulting to ai slop.' },
+    ],
+  },
+  {
+    title: 'vite vs html mode: when to use each',
+    summary: 'jasmine outputs two project types. vite+react for full apps you can integrate with a backend. html for rapid prototyping and wireframes. here is how to choose.',
+    author: 'jasmine studio',
+    date: '2026-01-15',
+    readTime: '4 min read',
+    tags: ['vite', 'html', 'modes'],
+    keywords: ['jasmine vite', 'jasmine html mode', 'ai frontend stack', 'rapid prototyping'],
+    slug: 'vite-vs-html-mode-when-to-use-each',
+    content: [
+      { heading: 'vite + react', body: 'full project: package.json, src/, components, routing. use when you need to hand off to engineers, integrate with an api, or build a multi-page app. export is a complete npm project.' },
+      { heading: 'html mode', body: 'single index.html with inline css and js. no build step. use for wireframes, landing page mocks, or when you need something in 10 seconds. paste into any host.' },
+      { heading: 'switching', body: 'toggle in the header. same chat, same edit flow. the output format changes. start in html for speed, switch to vite when you are ready to ship.' },
+    ],
+  },
+  {
+    title: 'e2b sandboxes: preview without local dev',
+    summary: 'jasmine runs your generated project in the cloud. no npm install on your machine. instant hot-reload. here is how it works.',
+    author: 'jasmine studio',
+    date: '2026-01-10',
+    readTime: '6 min read',
+    tags: ['e2b', 'preview', 'sandbox'],
+    keywords: ['e2b sandbox', 'cloud preview', 'jasmine preview', 'no local build'],
+    slug: 'e2b-sandboxes-preview-without-local-dev',
+    content: [
+      { heading: 'the setup', body: 'each preview is an e2b cloud sandbox — a full linux env with node, npm, vite. we write your files, run npm install, start vite. you get a live url in seconds.' },
+      { heading: 'hot-reload', body: 'every edit pushes updated files to the sandbox. vite picks up changes. no full rebuild. the iframe refreshes with your latest code.' },
+      { heading: 'limits', body: 'sandboxes spin down after inactivity. if the preview goes stale, hit retry and we re-apply the project. download the zip to run locally anytime.' },
+    ],
+  },
 ];
 
 const SEO_POINTS = [

@@ -6,6 +6,7 @@ import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
 import BlogPage from './pages/BlogPage';
+import DocsPage from './pages/DocsPage';
 import WaitlistPage from './pages/WaitlistPage';
 import PasswordGate from './components/PasswordGate';
 import FileExplorer from './FileExplorer';
@@ -23,6 +24,9 @@ import { trackGeneration, trackEdit, trackDeploy } from './lib/analytics';
 import { fetchApiCompressed } from './lib/compress-api';
 
 const EASE = [0.22, 1, 0.36, 1];
+
+/** Set to true to show waitlist on / and password gate on /website. Set to false to go straight to the website. */
+const WAITLIST_ENABLED = false;
 
 function FilePreviewChip({ f, i, onRemove, isLight, compact }) {
   const chipCl = isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10';
@@ -457,6 +461,7 @@ function AppBody({
   onSelectPrompt,
   onOpenPost,
   onBackToList,
+  onShowDocs,
   blogSlug,
 }) {
   const isLight = theme === 'light';
@@ -545,6 +550,9 @@ function AppBody({
               <button onClick={onShowBlog} className={navCl('blog')}>
                 blog
               </button>
+              <button onClick={onShowDocs} className={navCl('docs')}>
+                docs
+              </button>
             </div>
           </div>
 
@@ -562,6 +570,13 @@ function AppBody({
               title="Blog"
             >
               <i className="ph ph-newspaper text-lg"></i>
+            </button>
+          <button
+              onClick={onShowDocs}
+              className="md:hidden p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+              title="Docs"
+            >
+              <i className="ph ph-book-open text-lg"></i>
             </button>
             {onOpenCommandPalette && (
               <button
@@ -624,8 +639,14 @@ function AppBody({
               onBackToList={onBackToList}
               activeSlug={blogSlug}
               theme={theme}
-          />
-        ) : (
+            />
+          ) : activePage === 'docs' ? (
+            <DocsPage
+              onStartDesigning={onStartDesigning}
+              onBackHome={onShowHome}
+              theme={theme}
+            />
+          ) : (
             <LandingPage
               onStartDesigning={onStartDesigning}
               onSelectPrompt={onSelectPrompt}
@@ -1198,8 +1219,9 @@ function App() {
   const parseLocationToRoute = () => {
     if (typeof window === 'undefined') return { page: 'home', slug: null, sharedProjectId: null };
     const parts = (window.location.pathname || '').split('/').filter(Boolean);
-    if (parts[0] === 'website') parts.shift();
+    if (WAITLIST_ENABLED && parts[0] === 'website') parts.shift();
     if (parts[0] === 'blog') return { page: 'blog', slug: parts[1] || null, sharedProjectId: null };
+    if (parts[0] === 'docs') return { page: 'docs', slug: null, sharedProjectId: null };
     if (parts[0] === 'build' || parts[0] === 'designer') return { page: 'designer', slug: null, sharedProjectId: null };
     if (parts[0] === 'p' && parts[1]) return { page: 'shared', slug: null, sharedProjectId: parts[1] };
     return { page: 'home', slug: null, sharedProjectId: null };
@@ -1207,9 +1229,9 @@ function App() {
   const getInitialRoute = () => {
     if (typeof window === 'undefined') return { page: 'home', slug: null, sharedProjectId: null };
     const fromPath = parseLocationToRoute();
-    if (fromPath.page === 'blog' || fromPath.page === 'designer' || fromPath.slug || fromPath.sharedProjectId) return fromPath;
+    if (fromPath.page === 'blog' || fromPath.page === 'docs' || fromPath.page === 'designer' || fromPath.slug || fromPath.sharedProjectId) return fromPath;
     const stored = localStorage.getItem('jasmine_active_page');
-    return { page: stored === 'blog' || stored === 'designer' ? stored : 'home', slug: null, sharedProjectId: null };
+    return { page: stored === 'blog' || stored === 'docs' || stored === 'designer' ? stored : 'home', slug: null, sharedProjectId: null };
   };
 
   const [provider, setProvider] = useState(() => {
@@ -1368,9 +1390,12 @@ function App() {
     localStorage.setItem('jasmine_active_page', page);
     if (typeof window !== 'undefined') {
       const { search } = window.location;
-      let path = '/website';
-      if (page === 'blog') path = `/website/blog${slug ? `/${slug}` : ''}`;
-      else if (page === 'designer') path = '/website/build';
+      const base = WAITLIST_ENABLED ? '/website' : '';
+      let path = base;
+      if (page === 'blog') path = `${base}/blog${slug ? `/${slug}` : ''}`;
+      else if (page === 'docs') path = `${base}/docs`;
+      else if (page === 'designer') path = `${base}/build`;
+      path = path.replace(/^\/\//, '/') || '/';
       const url = `${path}${search}`;
       if (options.replace) window.history.replaceState(null, '', url);
       else window.history.pushState(null, '', url);
@@ -1391,8 +1416,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!isRoot && !isWebsite && pathname && !pathname.startsWith('/admin')) {
+    if (WAITLIST_ENABLED && !isRoot && !isWebsite && pathname && !pathname.startsWith('/admin')) {
       window.location.replace('/');
+    }
+    if (!WAITLIST_ENABLED && pathname.startsWith('/website')) {
+      const rest = pathname.replace(/^\/website/, '') || '/';
+      window.location.replace(rest || '/');
     }
   }, [pathname, isRoot, isWebsite]);
 
@@ -1406,7 +1435,7 @@ function App() {
     loadProject({ id: sharedProjectId });
     setPage('designer');
     setSharedProjectId(null);
-    window.history.replaceState(null, '', '/website/build');
+    window.history.replaceState(null, '', WAITLIST_ENABLED ? '/website/build' : '/build');
   }, [sharedProjectId, firebaseConfigured, user]);
 
   // Fetch projects when user logs in
@@ -2104,6 +2133,7 @@ function App() {
 
   const handleShowHome = useCallback(() => setPage('home'), [setPage]);
   const handleShowBlog = useCallback(() => setPage('blog', { slug: null }), [setPage]);
+  const handleShowDocs = useCallback(() => setPage('docs'), [setPage]);
   const handleOpenBlogPost = useCallback((slug) => setPage('blog', { slug }), [setPage]);
   const handleBackToBlogList = useCallback(() => setPage('blog', { slug: null }), [setPage]);
 
@@ -2153,6 +2183,7 @@ function App() {
       { id: 'home', label: 'Go to home', icon: 'ph-house', keywords: ['home'], onSelect: handleShowHome },
       { id: 'build', label: 'Start designing', icon: 'ph-magic-wand', keywords: ['build', 'design', 'generate'], onSelect: handleStartDesigning },
       { id: 'blog', label: 'Open blog', icon: 'ph-newspaper', keywords: ['blog'], onSelect: handleShowBlog },
+      { id: 'docs', label: 'Open docs', icon: 'ph-book-open', keywords: ['docs', 'documentation'], onSelect: handleShowDocs },
       { id: 'theme', label: `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`, icon: theme === 'dark' ? 'ph-sun' : 'ph-moon', keywords: ['theme', 'dark', 'light'], onSelect: handleThemeToggle },
     ];
     if (firebaseConfigured && !user) {
@@ -2257,6 +2288,7 @@ function App() {
     onSelectPrompt: handleSelectPrompt,
     onOpenPost: handleOpenBlogPost,
     onBackToList: handleBackToBlogList,
+    onShowDocs: handleShowDocs,
     blogSlug,
     htmlMode,
     setHtmlMode,
@@ -2271,10 +2303,10 @@ function App() {
     },
   };
 
-  if (isRoot) {
+  if (WAITLIST_ENABLED && isRoot) {
     return <WaitlistPage />;
   }
-  if (isWebsite && !websiteUnlocked) {
+  if (WAITLIST_ENABLED && isWebsite && !websiteUnlocked) {
     return (
       <PasswordGate
         onUnlock={() => {
@@ -2286,7 +2318,7 @@ function App() {
       />
     );
   }
-  if (!isWebsite && !isRoot) {
+  if (WAITLIST_ENABLED && !isWebsite && !isRoot) {
     return null;
   }
 
