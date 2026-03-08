@@ -76,15 +76,39 @@ export default async function handler(req, res) {
     updatedAt: FieldValue.serverTimestamp(),
   });
 
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.JASMINE_APP_URL || 'https://jasmine.vercel.app';
+  const baseUrl = process.env.JASMINE_APP_URL || 'https://tryjasmine.dev';
   const shareUrl = `${baseUrl}/p/${projectId}`;
   const projectName = data.name || 'Untitled project';
 
   const fromEmail = process.env.RESEND_FROM || 'Jasmine <onboarding@resend.dev>';
   const usingDefaultSender = !process.env.RESEND_FROM || fromEmail.includes('onboarding@resend.dev');
   const emailErrors = [];
+
+  const sharerName = user.email || 'Someone';
+  const subject = `${sharerName} shared "${projectName}" with you`;
+  const plainText = `${sharerName} shared the project "${projectName}" with you on Jasmine.\n\nView it here: ${shareUrl}\n\nSign in with your Jasmine account to open and collaborate.`;
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;font-family:system-ui,-apple-system,sans-serif;background:#f5f5f5;padding:24px;">
+  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+    <p style="margin:0 0 16px;color:#1a1a1a;font-size:16px;line-height:1.5;">${sharerName} shared <strong>${projectName}</strong> with you.</p>
+    <p style="margin:0 0 24px;color:#4a4a4a;font-size:14px;line-height:1.5;">Sign in to your Jasmine account to view and collaborate.</p>
+    <a href="${shareUrl}" style="display:inline-block;padding:12px 24px;background:#eab308;color:#0a0a0b;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View project</a>
+    <p style="margin:24px 0 0;font-size:12px;color:#888;">This was sent from Jasmine. If you didn't expect this, you can ignore it.</p>
+  </div>
+</body>
+</html>`;
+
+  const payload = {
+    from: fromEmail,
+    to: [],
+    subject,
+    html,
+    text: plainText,
+    reply_to: user.email || undefined,
+  };
 
   for (const email of newEmails) {
     try {
@@ -94,20 +118,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [email],
-          subject: `${user.email || 'Someone'} shared a project with you — ${projectName}`,
-          html: `
-            <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto;">
-              <h2 style="color: #1a1a1a;">You've been invited to collaborate</h2>
-              <p style="color: #333;">${user.email || 'Someone'} shared <strong>${projectName}</strong> with you on Jasmine.</p>
-              <p style="color: #666;">Sign in to view and collaborate. You'll need a Jasmine account.</p>
-              <a href="${shareUrl}" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #eab308; color: #0a0a0b; text-decoration: none; font-weight: 600; border-radius: 8px;">Open project</a>
-              <p style="margin-top: 24px; font-size: 12px; color: #999;">If you didn't expect this email, you can ignore it.</p>
-            </div>
-          `,
-        }),
+        body: JSON.stringify({ ...payload, to: [email] }),
       });
       if (!emailRes.ok) {
         const errText = await emailRes.text();

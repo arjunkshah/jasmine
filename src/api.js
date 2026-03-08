@@ -538,12 +538,13 @@ export function extractSlashCommands(text) {
   return commands;
 }
 
-/** Extract summary from edit response (text before first ---FILE:---). */
+/** Extract summary from edit response (text before first ---FILE:--- or ---EDIT:---). Never show raw edit blocks in chat. */
 export function extractEditSummary(text) {
   if (!text || typeof text !== 'string') return null;
-  const idx = text.indexOf('---FILE:');
-  if (idx < 0) return text.trim() || null;
-  const summary = text.slice(0, idx).trim();
+  const fileIdx = text.indexOf('---FILE:');
+  const editIdx = text.indexOf('---EDIT:');
+  const idx = fileIdx < 0 ? editIdx : editIdx < 0 ? fileIdx : Math.min(fileIdx, editIdx);
+  const summary = idx < 0 ? text.trim() : text.slice(0, idx).trim();
   return summary.length > 0 ? summary : null;
 }
 
@@ -606,11 +607,9 @@ export function extractNextProject(text, existingFiles = null) {
     }
     if (existingFiles && edits.length > 0) {
       for (const { path, search, replace } of edits) {
-        if (path in files) continue;
-        let content = existingFiles[path] || '';
-        if (content.includes(search)) {
-          content = content.replace(search, replace);
-          files[path] = content;
+        const base = path in files ? files[path] : (existingFiles[path] || '');
+        if (base.includes(search)) {
+          files[path] = base.replace(search, replace);
         }
       }
     }

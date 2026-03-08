@@ -7,6 +7,7 @@ import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
 import BlogPage from './pages/BlogPage';
 import DocsPage from './pages/DocsPage';
+import NotificationsPage from './pages/NotificationsPage';
 import WaitlistPage from './pages/WaitlistPage';
 import PasswordGate from './components/PasswordGate';
 import FileExplorer from './FileExplorer';
@@ -19,7 +20,7 @@ import CommandPalette from './components/CommandPalette';
 import EditableHtmlPreview from './components/EditableHtmlPreview';
 import ShareModal from './components/ShareModal';
 import { useAuth } from './contexts/AuthContext';
-import { createProject, updateProject, listProjects, getProject, deleteProject } from './lib/projects';
+import { createProject, updateProject, listProjects, listSharedWithMe, getProject, deleteProject } from './lib/projects';
 import { trackGeneration, trackEdit, trackDeploy } from './lib/analytics';
 import { fetchApiCompressed } from './lib/compress-api';
 
@@ -463,7 +464,13 @@ function AppBody({
   onOpenPost,
   onBackToList,
   onShowDocs,
+  onShowNotifications,
+  onLoadProject,
+  onRefreshSharedProjects,
+  sharedProjects,
+  loadingSharedProjects,
   blogSlug,
+  sharedProjectsCount,
 }) {
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
@@ -554,6 +561,16 @@ function AppBody({
               <button onClick={onShowDocs} className={navCl('docs')}>
                 docs
               </button>
+              {firebaseConfigured && (
+                <button onClick={onShowNotifications} className={`${navCl('notifications')} relative`} title="Notifications">
+                  notifications
+                  {sharedProjectsCount > 0 && (
+                    <span className="absolute -top-0.5 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-medium bg-jasmine-400 text-black rounded-full">
+                      {sharedProjectsCount > 9 ? '9+' : sharedProjectsCount}
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
@@ -579,6 +596,20 @@ function AppBody({
             >
               <i className="ph ph-book-open text-lg"></i>
             </button>
+            {firebaseConfigured && (
+              <button
+                onClick={onShowNotifications}
+                className="md:hidden relative p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+                title="Notifications"
+              >
+                <i className="ph ph-bell text-lg"></i>
+                {sharedProjectsCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-1 flex items-center justify-center text-[9px] font-medium bg-jasmine-400 text-black rounded-full">
+                    {sharedProjectsCount > 9 ? '9+' : sharedProjectsCount}
+                  </span>
+                )}
+              </button>
+            )}
             {onOpenCommandPalette && (
               <button
                 onClick={onOpenCommandPalette}
@@ -646,6 +677,17 @@ function AppBody({
               onStartDesigning={onStartDesigning}
               onBackHome={onShowHome}
               theme={theme}
+            />
+          ) : activePage === 'notifications' ? (
+            <NotificationsPage
+              theme={theme}
+              user={user}
+              sharedProjects={sharedProjects}
+              loading={loadingSharedProjects}
+              onLoadProject={onLoadProject}
+              onBackHome={onShowHome}
+              onStartDesigning={onStartDesigning}
+              onRefresh={onRefreshSharedProjects}
             />
           ) : (
             <LandingPage
@@ -1220,6 +1262,7 @@ function App() {
     if (WAITLIST_ENABLED && parts[0] === 'website') parts.shift();
     if (parts[0] === 'blog') return { page: 'blog', slug: parts[1] || null, sharedProjectId: null };
     if (parts[0] === 'docs') return { page: 'docs', slug: null, sharedProjectId: null };
+    if (parts[0] === 'notifications') return { page: 'notifications', slug: null, sharedProjectId: null };
     if (parts[0] === 'build' || parts[0] === 'designer') return { page: 'designer', slug: null, sharedProjectId: null };
     if (parts[0] === 'p' && parts[1]) return { page: 'shared', slug: null, sharedProjectId: parts[1] };
     return { page: 'home', slug: null, sharedProjectId: null };
@@ -1227,9 +1270,9 @@ function App() {
   const getInitialRoute = () => {
     if (typeof window === 'undefined') return { page: 'home', slug: null, sharedProjectId: null };
     const fromPath = parseLocationToRoute();
-    if (fromPath.page === 'blog' || fromPath.page === 'docs' || fromPath.page === 'designer' || fromPath.slug || fromPath.sharedProjectId) return fromPath;
+    if (fromPath.page === 'blog' || fromPath.page === 'docs' || fromPath.page === 'notifications' || fromPath.page === 'designer' || fromPath.slug || fromPath.sharedProjectId) return fromPath;
     const stored = localStorage.getItem('jasmine_active_page');
-    return { page: stored === 'blog' || stored === 'docs' || stored === 'designer' ? stored : 'home', slug: null, sharedProjectId: null };
+    return { page: stored === 'blog' || stored === 'docs' || stored === 'notifications' || stored === 'designer' ? stored : 'home', slug: null, sharedProjectId: null };
   };
 
   const [provider, setProvider] = useState(() => {
@@ -1266,6 +1309,8 @@ function App() {
   const [pendingAfterAuth, setPendingAfterAuth] = useState(null);
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [sharedProjects, setSharedProjects] = useState([]);
+  const [loadingSharedProjects, setLoadingSharedProjects] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState(null);
   const [e2bBadgeDismissed, setE2bBadgeDismissed] = useState(false);
   const [htmlMode, setHtmlMode] = useState(() => localStorage.getItem('jasmine_html_mode') === 'true');
@@ -1392,6 +1437,7 @@ function App() {
       let path = base;
       if (page === 'blog') path = `${base}/blog${slug ? `/${slug}` : ''}`;
       else if (page === 'docs') path = `${base}/docs`;
+      else if (page === 'notifications') path = `${base}/notifications`;
       else if (page === 'designer') path = `${base}/build`;
       path = path.replace(/^\/\//, '/') || '/';
       const url = `${path}${search}`;
@@ -1456,6 +1502,23 @@ function App() {
     }
     refreshProjects();
   }, [firebaseConfigured, user?.uid, refreshProjects]);
+
+  const refreshSharedProjects = useCallback(() => {
+    if (!firebaseConfigured || !user?.email) return;
+    setLoadingSharedProjects(true);
+    listSharedWithMe(user.email)
+      .then(setSharedProjects)
+      .catch(() => setSharedProjects([]))
+      .finally(() => setLoadingSharedProjects(false));
+  }, [firebaseConfigured, user?.email]);
+
+  useEffect(() => {
+    if (!firebaseConfigured || !user?.email) {
+      setSharedProjects([]);
+      return;
+    }
+    refreshSharedProjects();
+  }, [firebaseConfigured, user?.email, refreshSharedProjects]);
 
   // Auto-open sidebar when user has projects (so they're visible)
   useEffect(() => {
@@ -2151,6 +2214,7 @@ function App() {
   const handleShowHome = useCallback(() => setPage('home'), [setPage]);
   const handleShowBlog = useCallback(() => setPage('blog', { slug: null }), [setPage]);
   const handleShowDocs = useCallback(() => setPage('docs'), [setPage]);
+  const handleShowNotifications = useCallback(() => setPage('notifications'), [setPage]);
   const handleOpenBlogPost = useCallback((slug) => setPage('blog', { slug }), [setPage]);
   const handleBackToBlogList = useCallback(() => setPage('blog', { slug: null }), [setPage]);
 
@@ -2296,11 +2360,17 @@ function App() {
     onSignInClick: () => setShowAuthModal(true),
     onSignOut: signOut,
     firebaseConfigured,
-    onStartDesigning: handleStartDesigning,
+  onStartDesigning: handleStartDesigning,
     onSelectPrompt: handleSelectPrompt,
-    onOpenPost: handleOpenBlogPost,
-    onBackToList: handleBackToBlogList,
-    onShowDocs: handleShowDocs,
+  onOpenPost: handleOpenBlogPost,
+  onBackToList: handleBackToBlogList,
+  onShowDocs: handleShowDocs,
+  onShowNotifications: handleShowNotifications,
+  onLoadProject: loadProject,
+  onRefreshSharedProjects: refreshSharedProjects,
+  sharedProjects,
+  loadingSharedProjects,
+  sharedProjectsCount: sharedProjects?.length ?? 0,
     blogSlug,
     htmlMode,
     setHtmlMode,

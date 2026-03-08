@@ -25,6 +25,8 @@ Add to Vercel env vars:
 RESEND_FROM=Jasmine <share@tryjasmine.dev>
 ```
 
+Share links in invite emails use `https://tryjasmine.dev` by default. To override, set `JASMINE_APP_URL` in Vercel env vars.
+
 Use a subdomain like `share@` or `noreply@` to isolate sending reputation.
 
 ## 4. Redeploy
@@ -37,7 +39,7 @@ After adding env vars, redeploy your Vercel project so the new values take effec
 
 2. **Local dev** — Add `RESEND_API_KEY` and `RESEND_FROM` to your `.env` file (not just Vercel). Restart the dev server after changing env vars.
 
-3. **Spam folder** — Ask recipients to check spam/junk. New domains can land there until reputation builds.
+3. **Spam folder** — Emails include Reply-To (sharer's address) and plain-text for better deliverability. Use a verified domain (RESEND_FROM); `onboarding@resend.dev` has poor reputation. New domains may land in spam until reputation builds—ensure SPF, DKIM, and DMARC are set.
 
 4. **DNS propagation** — After adding DKIM/SPF records, wait 10–30 minutes. Resend shows verification status at resend.com/domains.
 

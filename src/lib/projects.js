@@ -180,6 +180,19 @@ export async function listProjects(userId) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/** Projects shared with this user (by email). */
+export async function listSharedWithMe(userEmail) {
+  if (!isFirebaseConfigured() || !db || !userEmail) return [];
+  const email = String(userEmail).trim().toLowerCase();
+  const q = query(
+    collection(db, PROJECTS),
+    where('sharedWith', 'array-contains', email),
+    orderBy('updatedAt', 'desc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data(), _shared: true }));
+}
+
 export async function getProject(projectId) {
   if (!isFirebaseConfigured() || !db) return null;
   const ref = doc(db, PROJECTS, projectId);
