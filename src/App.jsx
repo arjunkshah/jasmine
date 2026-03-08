@@ -2298,7 +2298,7 @@ function App() {
       setGeneratedProject((prev) => {
         if (!prev?.files) return prev;
         const files = { ...prev.files, 'index.html': newHtml };
-        return { files };
+        return { ...prev, files };
       });
     },
   };

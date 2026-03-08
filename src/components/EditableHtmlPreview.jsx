@@ -62,9 +62,9 @@ const EDITOR_SCRIPT = `
       <button type="button" data-action="del" title="Delete">✕</button>
     \`;
     Object.assign(toolbar.style, {
-      position: 'fixed', zIndex: 99999, display: 'flex', gap: '2px', padding: '4px',
-      background: '#1a1a1a', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-      fontFamily: 'system-ui', fontSize: '12px'
+      position: 'fixed', zIndex: 99999, display: 'flex', gap: '2px', padding: '6px 8px',
+      background: '#1a1a1a', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+      fontFamily: 'system-ui', fontSize: '12px', border: '1px solid rgba(255,255,255,0.08)'
     });
     toolbar.querySelectorAll('button').forEach(btn => {
       btn.style.cssText = 'padding:6px 8px;border:none;background:transparent;color:#fff;cursor:pointer;border-radius:4px';
@@ -111,7 +111,7 @@ const EDITOR_SCRIPT = `
   }
 
   const style = document.createElement('style');
-  style.textContent = '[data-jasmine-selected]{outline:2px solid rgba(59,130,246,0.8) !important;outline-offset:2px}';
+  style.textContent = '[data-jasmine-selected]{outline:2px solid rgba(250,204,21,0.9) !important;outline-offset:2px} [data-jasmine-hover]{outline:2px dashed rgba(250,204,21,0.6) !important}';
   document.head.appendChild(style);
 
   document.addEventListener('click', (e) => {
@@ -125,7 +125,6 @@ const EDITOR_SCRIPT = `
     document.querySelectorAll('[' + HOVER + ']').forEach(n => { n.removeAttribute(HOVER); n.style.outline = ''; });
     if (el && el !== selected) {
       el.setAttribute(HOVER, '1');
-      el.style.outline = '2px dashed rgba(59, 130, 246, 0.6)';
     }
   });
   document.addEventListener('mouseout', (e) => {
@@ -155,6 +154,17 @@ export default function EditableHtmlPreview({ html, onSave, editMode, onEditMode
   const [injectKey, setInjectKey] = useState(0);
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
+  const btnCl = isLight
+    ? 'bg-[#f6f4ec] hover:bg-[#e9dfcf] border-[rgba(220,211,195,0.9)] text-text-primary'
+    : 'bg-white/[0.06] hover:bg-white/[0.1] border-white/[0.08] text-text-primary';
+
+  const openInNewTab = useCallback(() => {
+    if (!html) return;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }, [html]);
 
   const htmlWithEditor = useCallback(() => {
     if (!html || !editMode) return html;
@@ -187,19 +197,28 @@ export default function EditableHtmlPreview({ html, onSave, editMode, onEditMode
   }, [editMode]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      <div className={`flex-none flex items-center justify-between px-3 py-2 border-b ${borderCl} gap-2 flex-wrap`}>
-        <span className="text-xs text-text-muted">
-          {editMode ? 'Visual edit — click elements to edit' : 'HTML preview (instant)'}
+    <div className={`flex-1 flex flex-col min-h-0 ${isLight ? 'bg-[#f9f8f6]' : 'bg-surface'}`}>
+      <div className={`flex-none flex items-center justify-between px-4 py-2.5 border-b ${borderCl} gap-3 flex-wrap`}>
+        <span className="text-xs font-medium text-text-secondary">
+          {editMode ? 'Visual edit — click elements to edit' : 'HTML preview'}
         </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={openInNewTab}
+            className={`text-xs px-3 py-1.5 rounded-lg font-medium border flex items-center gap-1.5 transition-colors ${btnCl}`}
+            title="Open in new tab"
+          >
+            <i className="ph ph-arrow-square-out text-sm" />
+            Open in new tab
+          </button>
+          <button
+            type="button"
             onClick={() => onEditModeChange?.(!editMode)}
-            className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
+            className={`text-xs px-3 py-1.5 rounded-lg font-medium border transition-colors ${
               editMode
-                ? 'bg-jasmine-400/20 text-jasmine-400'
-                : 'text-[#2d7f45] hover:text-[#1f5c35] hover:bg-[#2d7f45]/10'
+                ? 'bg-jasmine-400/20 border-jasmine-400/40 text-jasmine-400'
+                : btnCl
             }`}
           >
             {editMode ? 'Done editing' : 'Edit visually'}
@@ -207,9 +226,10 @@ export default function EditableHtmlPreview({ html, onSave, editMode, onEditMode
           <button
             type="button"
             onClick={() => setInjectKey((k) => k + 1)}
-            className="text-xs text-[#2d7f45] hover:text-[#1f5c35] flex items-center gap-1"
+            className={`text-xs px-2.5 py-1.5 rounded-lg font-medium border flex items-center gap-1 transition-colors ${btnCl}`}
+            title="Refresh preview"
           >
-            Refresh <i className="ph ph-arrow-clockwise text-sm" />
+            <i className="ph ph-arrow-clockwise text-sm" />
           </button>
         </div>
       </div>
@@ -219,8 +239,8 @@ export default function EditableHtmlPreview({ html, onSave, editMode, onEditMode
           ref={iframeRef}
           srcDoc={htmlWithEditor()}
           title="HTML Preview"
-          className="absolute inset-0 w-full h-full border-0 bg-white"
-          sandbox="allow-scripts allow-same-origin"
+          className={`absolute inset-0 w-full h-full border-0 ${isLight ? 'bg-white' : 'bg-white'}`}
+          sandbox="allow-scripts allow-same-origin allow-forms"
         />
       </div>
     </div>

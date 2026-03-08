@@ -1,23 +1,30 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import BlurPopUpByWord from '../components/BlurPopUpByWord';
 import BlurPopUpByWordInView from '../components/BlurPopUpByWordInView';
 import BlurPopUpInView from '../components/BlurPopUpInView';
 import HeroGlowLines from '../components/HeroGlowLines';
+import DocsChat from '../components/DocsChat';
 
 const SECTIONS = [
-  { id: 'overview', title: 'Overview' },
-  { id: 'architecture', title: 'Architecture' },
-  { id: 'generation', title: 'Generation flow' },
-  { id: 'edit', title: 'Edit flow' },
-  { id: 'preview', title: 'Preview & E2B' },
-  { id: 'output-format', title: 'Output format' },
-  { id: 'error-prevention', title: 'Error prevention' },
-  { id: 'tech-stack', title: 'Tech stack' },
-  { id: 'auth', title: 'Auth & projects' },
-  { id: 'deploy', title: 'Deployment' },
+  { id: 'overview', title: 'Overview', icon: 'ph-file-text' },
+  { id: 'quick-start', title: 'Quick start', icon: 'ph-rocket-launch' },
+  { id: 'architecture', title: 'Architecture', icon: 'ph-tree-structure' },
+  { id: 'generation', title: 'Generation flow', icon: 'ph-lightning' },
+  { id: 'edit', title: 'Edit flow', icon: 'ph-pencil-simple' },
+  { id: 'slash-commands', title: 'Slash commands', icon: 'ph-terminal' },
+  { id: 'preview', title: 'Preview & E2B', icon: 'ph-browser' },
+  { id: 'output-format', title: 'Output format', icon: 'ph-code' },
+  { id: 'error-prevention', title: 'Error prevention', icon: 'ph-shield-check' },
+  { id: 'api-reference', title: 'API reference', icon: 'ph-plug' },
+  { id: 'tech-stack', title: 'Tech stack', icon: 'ph-stack' },
+  { id: 'auth', title: 'Auth & projects', icon: 'ph-user' },
+  { id: 'deploy', title: 'Deployment', icon: 'ph-cloud-arrow-up' },
+  { id: 'troubleshooting', title: 'Troubleshooting', icon: 'ph-wrench' },
 ];
 
 function DocsPage({ theme, onStartDesigning, onBackHome }) {
+  const [activeSection, setActiveSection] = useState('overview');
   const isLight = theme === 'light';
   const cardCl = isLight ? 'bg-white border border-zinc-200/70 card-3d' : 'bg-white/[0.02] border border-white/[0.06] card-3d';
   const borderCl = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
@@ -26,6 +33,25 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
   const headingCl = 'text-2xl md:text-3xl font-semibold text-text-primary mb-4 leading-[1.2] font-display text-3d';
   const maxW = 'max-w-5xl mx-auto';
   const codeCl = isLight ? 'bg-zinc-100 text-zinc-800 border-zinc-200' : 'bg-white/[0.06] text-text-primary border-white/10';
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setActiveSection(e.target.id);
+            break;
+          }
+        }
+      },
+      { rootMargin: '-80px 0px -60% 0px', threshold: 0 }
+    );
+    SECTIONS.forEach((s) => {
+      const el = document.getElementById(s.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
 
   const scrollToSection = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -49,7 +75,7 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
             <p className={`text-base md:text-lg leading-[1.6] ${isLight ? 'text-text-secondary' : 'text-text-secondary [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]'}`}>
               <BlurPopUpByWord text="architecture, generation flow, preview sandbox, and deployment. technical deep-dive for developers." wordDelay={0.025} />
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 items-center">
               <button onClick={onStartDesigning} className="btn-premium flex items-center gap-2 text-sm px-8 py-3">
                 <i className="ph ph-rocket-launch text-base"></i>
                 try jasmine
@@ -58,6 +84,9 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
                 <i className="ph ph-arrow-left"></i>
                 back to overview
               </button>
+              <div className="lg:hidden">
+                <DocsChat theme={theme} />
+              </div>
             </div>
           </div>
         </div>
@@ -65,23 +94,68 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
 
       <div className="flex lg:flex-row gap-12">
         {/* Sidebar nav */}
-        <aside className={`hidden lg:block flex-shrink-0 w-56 ${sectionCl} pt-12`}>
-          <nav className="sticky top-24 space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted mb-4">Contents</p>
-            {SECTIONS.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => scrollToSection(s.id)}
-                className="block w-full text-left text-sm py-2 px-3 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.04] transition-colors"
-              >
-                {s.title}
-              </button>
-            ))}
+        <aside className={`hidden lg:block flex-shrink-0 w-64 ${sectionCl} pt-12`}>
+          <nav className="sticky top-24">
+            <div className={`rounded-2xl p-4 ${isLight ? 'bg-white/80 border border-zinc-200/80 shadow-sm' : 'bg-white/[0.03] border border-white/[0.06]'}`}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted mb-4">Contents</p>
+              <div className="space-y-0.5">
+                {SECTIONS.map((s) => {
+                  const isActive = activeSection === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => scrollToSection(s.id)}
+                      className={`flex items-center gap-2.5 w-full text-left text-sm py-2.5 px-3 rounded-xl transition-all duration-200 ${
+                        isActive
+                          ? isLight
+                            ? 'bg-jasmine-100/80 text-zinc-900 font-medium'
+                            : 'bg-jasmine-400/15 text-jasmine-300 font-medium'
+                          : 'text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      <i className={`ph ${s.icon} text-base flex-shrink-0 ${isActive ? 'text-jasmine-500' : 'opacity-70'}`} />
+                      <span className="truncate">{s.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <DocsChat theme={theme} />
+            </div>
           </nav>
         </aside>
 
         {/* Main content */}
         <main className={`flex-1 min-w-0 ${sectionCl} py-12 pb-24`}>
+          {/* Mobile nav */}
+          <div className="lg:hidden mb-8">
+            <details className={`group rounded-xl ${isLight ? 'bg-white/80 border border-zinc-200/80' : 'bg-white/[0.03] border border-white/[0.06]'}`}>
+              <summary className="px-4 py-3 cursor-pointer font-medium text-text-primary flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center gap-2">
+                  <i className="ph ph-list text-text-muted" />
+                  On this page
+                </span>
+                <i className="ph ph-caret-down transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="px-2 pb-3 pt-1 space-y-0.5 max-h-64 overflow-y-auto">
+                {SECTIONS.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={(e) => {
+                      scrollToSection(s.id);
+                      e.currentTarget.closest('details')?.removeAttribute('open');
+                    }}
+                    className={`flex items-center gap-2 w-full text-left text-sm py-2 px-3 rounded-lg ${activeSection === s.id ? 'bg-jasmine-400/15 text-jasmine-400' : 'text-text-muted hover:text-text-primary'}`}
+                  >
+                    <i className={`ph ${s.icon} text-base`} />
+                    {s.title}
+                  </button>
+                ))}
+              </div>
+            </details>
+          </div>
+
           <div className={`${maxW} space-y-16`}>
             {/* Overview */}
             <section id="overview" className="scroll-mt-24">
@@ -91,6 +165,21 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
               </p>
               <p className="text-text-secondary leading-relaxed">
                 Two output modes: <strong>Vite+React</strong> for full projects (integratable with your backend) and <strong>HTML</strong> for rapid prototyping. Live preview runs in E2B cloud sandboxes — no local build required. Chat-based edits apply changes in real time.
+              </p>
+            </section>
+
+            {/* Quick start */}
+            <section id="quick-start" className="scroll-mt-24">
+              <h2 className={headingCl}>Quick start</h2>
+              <ol className="list-decimal list-inside space-y-3 text-text-secondary leading-relaxed">
+                <li>Enter a prompt (e.g. &quot;A meditation app with a timer and calming colors&quot;) in the designer</li>
+                <li>Choose <strong>Vite+React</strong> or <strong>HTML</strong> mode</li>
+                <li>Click <strong>Generate</strong> — code streams in real time</li>
+                <li>Preview appears in the E2B sandbox; use the chat to refine</li>
+                <li>Deploy to Netlify, push to GitHub, or download as ZIP</li>
+              </ol>
+              <p className="text-text-secondary mt-4">
+                Sign in with Google or email to save projects and enable auto-save.
               </p>
             </section>
 
@@ -142,8 +231,31 @@ function DocsPage({ theme, onStartDesigning, onBackHome }) {
                 Chat messages are sent to the edit API with the current project state. The AI returns a diff (changed files only) in the same <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>---FILE:path---</code> format. The frontend merges edits into the project and pushes to the sandbox.
               </p>
               <p className="text-text-secondary leading-relaxed">
-                Slash commands parsed from AI output: <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/apply</code>, <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/fix-errors</code>, <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/create-and-apply</code>. Each handler in App.jsx calls the relevant API.
+                Use slash commands in chat or let the AI invoke them automatically.
               </p>
+            </section>
+
+            {/* Slash commands */}
+            <section id="slash-commands" className="scroll-mt-24">
+              <h2 className={headingCl}>Slash commands</h2>
+              <p className="text-text-secondary leading-relaxed mb-4">
+                Parsed from AI output in <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>runSlashCommands()</code>. Each handler in App.jsx calls the relevant API.
+              </p>
+              <div className={`${cardCl} overflow-hidden rounded-xl`}>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={isLight ? 'bg-zinc-50 border-b border-zinc-200' : 'bg-white/[0.04] border-b border-white/10'}>
+                      <th className="text-left py-3 px-4 font-semibold text-text-primary">Command</th>
+                      <th className="text-left py-3 px-4 font-semibold text-text-primary">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/apply</td><td className="py-2.5 px-4 text-text-secondary">Apply pending edits to the project</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/fix-errors</td><td className="py-2.5 px-4 text-text-secondary">Run AI fix pass (imports, Tailwind, Phosphor)</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/create-and-apply</td><td className="py-2.5 px-4 text-text-secondary">Create new project from scratch and apply</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </section>
 
             {/* Preview & E2B */}
@@ -214,11 +326,39 @@ import Home from './pages/Home';
               </div>
             </section>
 
+            {/* API reference */}
+            <section id="api-reference" className="scroll-mt-24">
+              <h2 className={headingCl}>API reference</h2>
+              <p className="text-text-secondary leading-relaxed mb-4">
+                Serverless routes (Vercel). All require <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>POST</code> unless noted.
+              </p>
+              <div className={`${cardCl} overflow-hidden rounded-xl`}>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={isLight ? 'bg-zinc-50 border-b border-zinc-200' : 'bg-white/[0.04] border-b border-white/10'}>
+                      <th className="text-left py-3 px-4 font-semibold text-text-primary">Endpoint</th>
+                      <th className="text-left py-3 px-4 font-semibold text-text-primary">Purpose</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/ai</td><td className="py-2.5 px-4 text-text-secondary">Generate & edit (streaming)</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/fix-errors</td><td className="py-2.5 px-4 text-text-secondary">Post-generation fix pass</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/sandbox/start</td><td className="py-2.5 px-4 text-text-secondary">Create E2B sandbox</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/sandbox/update</td><td className="py-2.5 px-4 text-text-secondary">Push files, npm install, vite</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/deploy</td><td className="py-2.5 px-4 text-text-secondary">Netlify deploy</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/github/push</td><td className="py-2.5 px-4 text-text-secondary">Create repo and push</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/generate-image</td><td className="py-2.5 px-4 text-text-secondary">Replace {`{{IMAGE:prompt}}`} placeholders</td></tr>
+                    <tr><td className="py-2.5 px-4 font-mono text-jasmine-400">/api/health</td><td className="py-2.5 px-4 text-text-secondary">Health check (GET)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
             {/* Auth & projects */}
             <section id="auth" className="scroll-mt-24">
               <h2 className={headingCl}>Auth & projects</h2>
               <p className="text-text-secondary leading-relaxed mb-4">
-                Firebase Auth: email/password + Google sign-in. Firestore stores projects (userId, name, prompt, files, chatMessages). Projects are private; sharing uses <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>sharedWith</code> email list. Auto-save when signed in.
+                Firebase Auth: email/password + Google sign-in. Firestore stores projects: metadata (userId, name, prompt, chatMessages) in the main doc; files in <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>projects/{'{id}'}/files</code> subcollection to avoid the 1MB doc limit. Projects are private; sharing uses <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>sharedWith</code> email list. Auto-save when signed in.
               </p>
             </section>
 
@@ -228,6 +368,29 @@ import Home from './pages/Home';
               <p className="text-text-secondary leading-relaxed mb-4">
                 <strong>Netlify</strong> — one-click from the app. <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/api/netlify/deploy</code> creates a site from the project ZIP. <strong>GitHub</strong> — <code className={codeCl + ' px-1.5 py-0.5 rounded text-xs'}>/api/github/push</code> creates a repo and pushes. <strong>ZIP</strong> — client-side JSZip export.
               </p>
+            </section>
+
+            {/* Troubleshooting */}
+            <section id="troubleshooting" className="scroll-mt-24">
+              <h2 className={headingCl}>Troubleshooting</h2>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-text-primary mb-1">Preview not loading</h4>
+                  <p className="text-text-secondary text-sm">Check <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>/api/health</code>. Ensure <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>E2B_API_KEY</code> is set. Sandbox startup can take 30–60s.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-text-primary mb-1">Phantom imports / build errors</h4>
+                  <p className="text-text-secondary text-sm">Use <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>/fix-errors</code> in chat. The fix pass uses an alternate model to repair imports, Tailwind, and Phosphor.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-text-primary mb-1">Project too large to save</h4>
+                  <p className="text-text-secondary text-sm">Files are stored in a Firestore subcollection per file — no truncation. If you see this on old projects, re-save to migrate.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-text-primary mb-1">AI not responding</h4>
+                  <p className="text-text-secondary text-sm">Verify <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>AI_GATEWAY_API_KEY</code> (Gateway) or <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>VITE_GROQ_API_KEY</code> / <code className={codeCl + ' px-1 py-0.5 rounded text-xs'}>VITE_GEMINI_API_KEY</code> for client-side providers.</p>
+                </div>
+              </div>
             </section>
           </div>
         </main>
