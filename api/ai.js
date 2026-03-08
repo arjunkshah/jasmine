@@ -9,6 +9,7 @@ const GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1';
 const MODEL_MAP = {
   'kimi-k2.5': 'moonshotai/kimi-k2.5',
   'gpt-5.4': 'openai/gpt-5.4',
+  'gemini-3-flash': 'google/gemini-3-flash',
 };
 
 function getModel(modelId) {
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing prompt' });
   }
 
-  const model = getModel(modelId || 'kimi-k2.5');
+  const model = getModel(modelId || 'gemini-3-flash');
 
   let userContent = prompt;
   if (contextFiles?.length) {

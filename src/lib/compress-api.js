@@ -2,19 +2,22 @@
  * Compress large API payloads to avoid Vercel's 4.5MB body limit (413).
  * Uses gzip; JSON typically compresses to ~10-20% of original size.
  */
+import { fixUnterminatedStringsInContent } from './fix-unterminated.js';
+
 const COMPRESS_THRESHOLD = 512 * 1024; // 512KB — compress early; code compresses well
 const MAX_PAYLOAD_BYTES = 3.5 * 1024 * 1024; // 3.5MB — truncate files if larger (compress → ~700KB)
 
 /** Max chars per file when truncating. Ensures total payload stays under limit. */
 const MAX_CHARS_PER_FILE = 80 * 1024; // 80KB per file
 
-/** Truncate large file contents so total payload fits under limit. Mutates in place. */
+/** Truncate large file contents so total payload fits under limit. Mutates in place. Repairs unterminated literals after truncation. */
 function truncateFiles(files) {
   if (!files || typeof files !== 'object') return;
   for (const [path, content] of Object.entries(files)) {
     const str = typeof content === 'string' ? content : String(content);
     if (str.length > MAX_CHARS_PER_FILE) {
-      files[path] = str.slice(0, MAX_CHARS_PER_FILE) + '\n\n// ... truncated for request size limit';
+      const truncated = str.slice(0, MAX_CHARS_PER_FILE) + '\n\n// ... truncated for request size limit';
+      files[path] = fixUnterminatedStringsInContent(truncated);
     }
   }
 }

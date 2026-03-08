@@ -79,7 +79,7 @@ function buildMetadata(data) {
     name: data.name || 'Untitled',
     prompt: data.prompt || '',
     provider: data.provider || 'groq',
-    gatewayModel: data.gatewayModel || 'kimi-k2.5',
+    gatewayModel: data.gatewayModel || 'gemini-3-flash',
     chatMessages: data.chatMessages || [],
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,

@@ -6,6 +6,7 @@
 import { getBoilerplate, checkE2B } from '../lib/sandbox/e2b.js';
 import { sandboxConfig } from '../lib/sandbox/sandbox-config.js';
 import { parseBody } from '../lib/parse-body.js';
+import { fixUnterminatedStringsInContent } from '../src/lib/fix-unterminated.js';
 import JSZip from 'jszip';
 
 export const config = { maxDuration: 120 };
@@ -71,7 +72,8 @@ export default async function handler(req, res) {
     log('Sandbox created:', sandbox.sandboxId);
     log('Writing files...');
     for (const [filePath, content] of Object.entries(files)) {
-      await sandbox.files.write(filePath, typeof content === 'string' ? content : String(content));
+      const raw = typeof content === 'string' ? content : String(content);
+      await sandbox.files.write(filePath, fixUnterminatedStringsInContent(raw));
     }
     if (!files['package.json']) {
       const BOILERPLATE = getBoilerplate('dark');
@@ -178,7 +180,8 @@ async function handleNetlify(req, res, body, log, logErr) {
           timeoutMs: sandboxConfig.e2b.timeoutMs,
         });
         for (const [path, content] of Object.entries(files)) {
-          await sandbox.files.write(path, typeof content === 'string' ? content : String(content));
+          const raw = typeof content === 'string' ? content : String(content);
+          await sandbox.files.write(path, fixUnterminatedStringsInContent(raw));
         }
       }
 

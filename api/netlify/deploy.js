@@ -5,6 +5,7 @@
 import { checkE2B } from '../../lib/sandbox/e2b.js';
 import { sandboxConfig } from '../../lib/sandbox/sandbox-config.js';
 import { parseBody } from '../../lib/parse-body.js';
+import { fixUnterminatedStringsInContent } from '../../src/lib/fix-unterminated.js';
 import JSZip from 'jszip';
 import FormData from 'form-data';
 
@@ -63,7 +64,8 @@ export default async function handler(req, res) {
         timeoutMs: sandboxConfig.e2b.timeoutMs,
       });
       for (const [path, content] of Object.entries(files)) {
-        await sandbox.files.write(path, typeof content === 'string' ? content : String(content));
+        const raw = typeof content === 'string' ? content : String(content);
+        await sandbox.files.write(path, fixUnterminatedStringsInContent(raw));
       }
     }
 

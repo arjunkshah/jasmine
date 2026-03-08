@@ -7,6 +7,7 @@ import { getBoilerplate, checkE2B } from '../../lib/sandbox/e2b.js';
 import { sandboxConfig } from '../../lib/sandbox/sandbox-config.js';
 import { parseBody } from '../../lib/parse-body.js';
 import { applyPackageFixes } from '../../src/lib/package-fixes.js';
+import { fixUnterminatedStringsInContent } from '../../src/lib/fix-unterminated.js';
 
 export const config = { maxDuration: 120 };
 
@@ -122,7 +123,9 @@ export default async function handler(req, res) {
 
     log('Writing', fileCount, 'files...');
     for (const [path, content] of Object.entries(files)) {
-      await sandbox.files.write(path, typeof content === 'string' ? content : String(content));
+      const raw = typeof content === 'string' ? content : String(content);
+      const fixed = fixUnterminatedStringsInContent(raw);
+      await sandbox.files.write(path, fixed);
     }
 
     if (!files['package.json']) {
