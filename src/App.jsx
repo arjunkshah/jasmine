@@ -443,9 +443,6 @@ function AppBody({
   githubUrl,
   htmlMode,
   setHtmlMode,
-  htmlEditMode,
-  setHtmlEditMode,
-  onSaveHtmlVisualEdit,
   onThemeToggle,
   themeForToggle,
   onOpenCommandPalette,
@@ -966,9 +963,6 @@ function AppBody({
                       {htmlMode && getHtmlPreviewContent(generatedProject) ? (
                         <EditableHtmlPreview
                           html={getHtmlPreviewContent(generatedProject)}
-                          onSave={onSaveHtmlVisualEdit}
-                          editMode={htmlEditMode}
-                          onEditModeChange={setHtmlEditMode}
                           theme={theme}
                         />
                       ) : deployUrl ? (
@@ -1261,7 +1255,7 @@ function App() {
   const sandboxIdRef = useRef(null);
   const pendingSandboxApplyRef = useRef(null);
   const [contextFiles, setContextFiles] = useState([]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('jasmine_sidebar_open') !== 'false');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authClosing, setAuthClosing] = useState(false);
   const [pendingAfterAuth, setPendingAfterAuth] = useState(null);
@@ -1270,7 +1264,6 @@ function App() {
   const [currentProjectId, setCurrentProjectId] = useState(null);
   const [e2bBadgeDismissed, setE2bBadgeDismissed] = useState(false);
   const [htmlMode, setHtmlMode] = useState(() => localStorage.getItem('jasmine_html_mode') === 'true');
-  const [htmlEditMode, setHtmlEditMode] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [shareModalProject, setShareModalProject] = useState(null);
   const saveTimeoutRef = useRef(null);
@@ -2199,15 +2192,6 @@ function App() {
     if (hasProject) {
       base.push({ id: 'download', label: 'Download project', icon: 'ph-download-simple', keywords: ['download', 'zip'], onSelect: downloadProject });
       base.push({ id: 'deploy', label: 'Deploy to Netlify', icon: 'ph-rocket-launch', keywords: ['deploy', 'netlify'], onSelect: deployToNetlify, disabled: netlifyDeploying });
-      if (htmlMode && getHtmlPreviewContent(generatedProject)) {
-        base.push({
-          id: 'edit-visually',
-          label: htmlEditMode ? 'Done editing' : 'Edit visually',
-          icon: 'ph-pencil-simple',
-          keywords: ['edit', 'visual'],
-          onSelect: () => setHtmlEditMode((v) => !v),
-        });
-      }
     }
     if (activePage === 'designer') {
       base.push({ id: 'new', label: 'New project', icon: 'ph-plus', keywords: ['new'], onSelect: handleNewProject });
@@ -2219,7 +2203,6 @@ function App() {
     prompt,
     generatedProject,
     htmlMode,
-    htmlEditMode,
     firebaseConfigured,
     user,
     netlifyDeploying,
@@ -2279,7 +2262,12 @@ function App() {
     retrySandbox,
     retryPreviewUpdate,
     sidebarOpen,
-    onToggleSidebar: () => setSidebarOpen((o) => !o),
+    onToggleSidebar: () =>
+      setSidebarOpen((o) => {
+        const next = !o;
+        localStorage.setItem('jasmine_sidebar_open', String(next));
+        return next;
+      }),
     user,
     onSignInClick: () => setShowAuthModal(true),
     onSignOut: signOut,
@@ -2292,15 +2280,6 @@ function App() {
     blogSlug,
     htmlMode,
     setHtmlMode,
-    htmlEditMode,
-    setHtmlEditMode,
-    onSaveHtmlVisualEdit: (newHtml) => {
-      setGeneratedProject((prev) => {
-        if (!prev?.files) return prev;
-        const files = { ...prev.files, 'index.html': newHtml };
-        return { ...prev, files };
-      });
-    },
   };
 
   if (WAITLIST_ENABLED && isRoot) {
@@ -2339,8 +2318,14 @@ function App() {
         {firebaseConfigured && (
           <ProjectSidebar
             isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            onToggle={() => setSidebarOpen(false)}
+            onClose={() => {
+              setSidebarOpen(false);
+              localStorage.setItem('jasmine_sidebar_open', 'false');
+            }}
+            onToggle={() => {
+              setSidebarOpen(false);
+              localStorage.setItem('jasmine_sidebar_open', 'false');
+            }}
             user={user}
             projects={projects}
             onLoadProject={loadProject}
