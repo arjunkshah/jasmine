@@ -59,6 +59,7 @@ export default async function handler(req, res) {
         'vite': '^4.3.9',
         '@vitejs/plugin-react': '^4.0.0',
         'react-router-dom': '^6.20.0',
+        'lucide-react': '^0.460.0',
         '@phosphor-icons/react': '^2.1.6',
         'react-intersection-observer': '^9.5.3',
         'framer-motion': '^11.0.0',

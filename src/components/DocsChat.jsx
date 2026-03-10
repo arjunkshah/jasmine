@@ -49,7 +49,7 @@ function DocsChat({ theme, className = '' }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: text,
-          model: 'kimi-k2.5',
+          model: 'gemini-3.1-pro',
           systemPrompt: DOCS_SYSTEM_PROMPT,
         }),
       });

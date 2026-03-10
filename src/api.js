@@ -92,7 +92,7 @@ export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '', 
       return m ? m[1].trim().slice(0, 100) : null;
     }
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -146,7 +146,7 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
         { role: 'user', content: userContent },
       ],
       stream: true,
-      temperature: 0.5,
+      temperature: 0.7,
       max_tokens: 16384,
     }),
   });
@@ -173,7 +173,7 @@ export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, co
         { role: 'user', content: prompt },
       ],
       stream: true,
-      temperature: 0.5,
+      temperature: 0.7,
       max_tokens: 16384,
     }),
   });
@@ -189,14 +189,14 @@ export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, 
   const msg = maybePrependErrorFixInstruction(userMessage);
   const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.5, maxOutputTokens: 16384 },
+        generationConfig: { temperature: 0.7, maxOutputTokens: 16384 },
       }),
     }
   );
@@ -212,7 +212,7 @@ export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles =
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -220,7 +220,7 @@ export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles =
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: userContent }] }],
         generationConfig: {
-          temperature: 0.5,
+          temperature: 0.7,
           maxOutputTokens: 32000,
         },
       }),
@@ -235,7 +235,7 @@ export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles =
   return streamGeminiResponse(response, onChunk);
 }
 
-/** Generate via Vercel AI Gateway (kimi-k2.5, gpt-5.4). No client API key — uses server AI_GATEWAY_API_KEY. */
+/** Generate via Vercel AI Gateway (gemini-3-pro, gpt-5.4). No client API key — uses server AI_GATEWAY_API_KEY. */
 export async function generateWithGateway(apiBase, modelId, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
@@ -245,7 +245,7 @@ export async function generateWithGateway(apiBase, modelId, prompt, onChunk, con
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt: userContent,
-      model: modelId || 'kimi-k2.5',
+      model: modelId || 'gemini-3.1-pro',
       systemPrompt,
       contextFiles: contextFiles || [],
       searchContext: searchContext || [],
@@ -278,7 +278,7 @@ export async function generateWithOpenAI(apiKey, prompt, onChunk, contextFiles =
         { role: 'user', content: userContent },
       ],
       stream: true,
-      temperature: 0.5,
+      temperature: 0.7,
       max_tokens: 16384,
     }),
   });
@@ -310,7 +310,7 @@ export async function editWithOpenAI(apiKey, currentCode, userMessage, onChunk, 
         { role: 'user', content: prompt },
       ],
       stream: true,
-      temperature: 0.5,
+      temperature: 0.7,
       max_tokens: 16384,
     }),
   });
@@ -334,7 +334,7 @@ export async function editWithGateway(apiBase, modelId, currentCode, userMessage
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt,
-      model: modelId || 'kimi-k2.5',
+      model: modelId || 'gemini-3.1-pro',
       systemPrompt,
       contextFiles,
     }),
@@ -437,6 +437,7 @@ export function extractHTML(text) {
 /** Known package versions — used when adding deps from imports. */
 const KNOWN_PACKAGE_VERSIONS = {
   'react-router-dom': '^6.20.0',
+  'lucide-react': '^0.460.0',
   '@phosphor-icons/react': '^2.1.6',
   'react-intersection-observer': '^9.5.3',
   'framer-motion': '^11.0.0',
@@ -676,7 +677,7 @@ const FIX_ERRORS_PROMPT = `You are a code reviewer. Review this Vite + React pro
 ## DEPENDENCIES (CRITICAL)
 Scan EVERY file for import/require statements. For each npm package (not relative paths like ./ or ../):
 - If package.json dependencies does NOT include it, ADD it with a sensible version.
-- Use common versions: vite ^4.3.9, @vitejs/plugin-react ^4.0.0, react-router-dom ^6.20.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, @radix-ui/* ^1.0.0. NEVER use lucide-react — use @phosphor-icons/react only. NEVER use vite ^5 or ^6 — use vite ^4.3.9 only. For unknown packages use * (accept any version).
+- Use common versions: vite ^4.3.9, @vitejs/plugin-react ^4.0.0, react-router-dom ^6.20.0, lucide-react ^0.460.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, @radix-ui/* ^1.0.0. Prefer lucide-react for icons. NEVER use vite ^5 or ^6 — use vite ^4.3.9 only. For unknown packages use * (accept any version).
 - NEVER remove a dependency that is imported. ALWAYS add missing ones. Add ANY package — we install everything (unknown packages get *).
 
 ## OTHER FIXES
@@ -693,14 +694,14 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 11. **Tailwind v3 ONLY** — Use tailwindcss ^3.3.0 with postcss + autoprefixer. NEVER use tailwindcss ^4 or @tailwindcss/vite. index.css must use @tailwind base/components/utilities, NOT @import "tailwindcss". Remove @tailwindcss/vite from vite.config.
 12. **Vite v4 ONLY** — Use vite ^4.3.9 and @vitejs/plugin-react ^4.0.0 in devDependencies. NEVER use vite ^5, ^6, or ^7 — causes "Cannot find module dep-*.js" in preview.
 
-Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. If nothing to fix, output: NO_CHANGES_NEEDED.`;
+Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. NEVER output conversational text like "Looking at the error", "Let me check", "Let me fix this" — output ONLY ---FILE:path--- blocks (or NO_CHANGES_NEEDED). If nothing to fix, output: NO_CHANGES_NEEDED.`;
 
 /** Post-generation: use the OTHER model to review and fix errors. Runs up to 2 passes. Returns merged files or null. */
-export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey, apiBase = '', gatewayModel = 'kimi-k2.5') {
+export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey, apiBase = '', gatewayModel = 'gemini-3.1-pro') {
   if (!project?.files || Object.keys(project.files).length === 0) return null;
 
   if (primaryProvider === 'ai-gateway') {
-    const otherModel = gatewayModel === 'kimi-k2.5' ? 'gpt-5.4' : 'kimi-k2.5';
+    const otherModel = gatewayModel === 'gemini-3.1-pro' ? 'gpt-5.4' : 'gemini-3.1-pro';
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000);
@@ -719,12 +720,12 @@ export async function fixProjectErrors(project, primaryProvider, groqKey, gemini
     }
   }
 
-  // When primary is openai or gemini, use ai-gateway for fix (kimi).
+  // When primary is openai or gemini, use ai-gateway for fix (gpt-5.4 or gemini-3-pro).
   if (primaryProvider === 'openai' || primaryProvider === 'gemini') {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000);
-      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: 'kimi-k2.5' }, { signal: controller.signal });
+      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: 'gpt-5.4' }, { signal: controller.signal });
       clearTimeout(timeout);
       if (!res.ok) return null;
       const data = await res.json().catch(() => ({}));

@@ -79,7 +79,7 @@ function buildMetadata(data) {
     name: data.name || 'Untitled',
     prompt: data.prompt || '',
     provider: data.provider || 'gemini',
-    gatewayModel: data.gatewayModel || 'gemini-3-flash',
+    gatewayModel: data.gatewayModel || 'gemini-3.1-pro',
     chatMessages: data.chatMessages || [],
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,

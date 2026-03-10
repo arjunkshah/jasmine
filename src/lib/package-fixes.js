@@ -392,7 +392,7 @@ export function applyPackageFixes(files) {
   fixViteConfigTailwind(files);
   deduplicatePhosphorImports(files);
   fixPhosphorIcons(files);
-  fixLucideToPhosphor(files);
+  /* fixLucideToPhosphor removed — we use lucide-react (jasmine-studio style) */
   return files;
 }
 

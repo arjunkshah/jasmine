@@ -11,7 +11,7 @@ const FIX_PROMPT = `You are a code reviewer. Review this Vite + React project an
 ## DEPENDENCIES (CRITICAL)
 Scan EVERY file for import/require statements. For each npm package (not relative paths like ./ or ../):
 - If package.json dependencies does NOT include it, ADD it with a sensible version.
-- Use common versions: react-router-dom ^6.20.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, @radix-ui/* ^1.0.0. NEVER use lucide-react — use @phosphor-icons/react only. For unknown packages use * (accept any version).
+- Use common versions: react-router-dom ^6.20.0, lucide-react ^0.460.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, @radix-ui/* ^1.0.0. Prefer lucide-react for icons. For unknown packages use * (accept any version).
 - NEVER remove a dependency that is imported. ALWAYS add missing ones.
 
 ## OTHER FIXES
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing project.files' });
   }
 
-  const model = modelId || 'gpt-5.4';
+  const model = modelId || 'gemini-3-pro';
   const raw = projectToRaw({ files: project.files });
   const prompt = `${FIX_PROMPT}\n\nCURRENT PROJECT:\n${raw.slice(0, 25000)}`;
 

@@ -7,8 +7,9 @@ export const config = { maxDuration: 120 };
 const GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1';
 
 const MODEL_MAP = {
-  'kimi-k2.5': 'moonshotai/kimi-k2.5',
   'gpt-5.4': 'openai/gpt-5.4',
+  'gemini-3.1-pro': 'google/gemini-3.1-pro-preview',
+  'gemini-3-pro': 'google/gemini-3-pro-preview',
   'gemini-3-flash': 'google/gemini-3-flash',
 };
 
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing prompt' });
   }
 
-  const model = getModel(modelId || 'gemini-3-flash');
+  const model = getModel(modelId || 'gemini-3.1-pro');
 
   let userContent = prompt;
   if (contextFiles?.length) {
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
         model,
         messages,
         stream: true,
-        temperature: 0.5,
+        temperature: 0.7,
         max_tokens: 16384,
       }),
     });

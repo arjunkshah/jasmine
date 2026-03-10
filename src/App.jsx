@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { generateWithGroq, generateWithGemini, generateWithGateway, generateWithOpenAI, editWithGroq, editWithGemini, editWithGateway, editWithOpenAI, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery, getHtmlPreviewContent, projectToRaw, GROQ_MODEL_KIMI } from './api';
+import { generateWithGemini, generateWithGateway, generateWithOpenAI, editWithGemini, editWithGateway, editWithOpenAI, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery, getHtmlPreviewContent, projectToRaw } from './api';
 import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT, DESIGN_STYLES, getSystemPromptForGeneration } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
@@ -125,7 +125,7 @@ function ModelSelectDropdown({ provider, setProvider, gatewayModel, setGatewayMo
     ? 'bg-[#fffaf0] text-text-primary border-[rgba(220,211,195,0.9)] hover:bg-[#f6f4ec]'
     : 'bg-white/[0.06] text-text-primary border-white/[0.08] hover:bg-white/[0.08]';
 
-  const displayValue = provider === 'gemini' ? 'gemini' : provider === 'openai' ? 'gpt-5.4' : gatewayModel;
+  const displayValue = provider === 'gemini' ? 'gemini' : provider === 'openai' ? 'openai' : gatewayModel;
 
   return (
     <select
@@ -134,12 +134,11 @@ function ModelSelectDropdown({ provider, setProvider, gatewayModel, setGatewayMo
         const v = e.target.value;
         if (v === 'gemini') {
           setProvider('gemini');
-        } else if (v === 'gpt-5.4') {
+        } else if (v === 'openai') {
           setProvider('openai');
-          setGatewayModel('gpt-5.4');
-        } else if (v === 'gemini-3-flash') {
+        } else if (v === 'gpt-5.4' || v === 'gemini-3.1-pro' || v === 'gemini-3-pro' || v === 'gemini-3-flash') {
           setProvider('ai-gateway');
-          setGatewayModel('gemini-3-flash');
+          setGatewayModel(v);
         } else {
           setProvider('ai-gateway');
           setGatewayModel(v);
@@ -148,10 +147,12 @@ function ModelSelectDropdown({ provider, setProvider, gatewayModel, setGatewayMo
       className={`h-7 min-w-[6.5rem] text-xs font-medium rounded-lg pl-2.5 pr-7 border cursor-pointer appearance-none bg-no-repeat bg-[length:10px] bg-[right_0.4rem_center] ${borderCl} ${selectCl}`}
       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
     >
-      <option value="gemini">Gemini (direct)</option>
+      <option value="gemini">Gemini 3.1 Pro (direct)</option>
+      <option value="openai">GPT (direct)</option>
+      <option value="gemini-3.1-pro">Gemini 3.1 Pro (gateway)</option>
+      <option value="gemini-3-pro">Gemini 3 Pro (gateway)</option>
+      <option value="gpt-5.4">GPT 5.4 (gateway)</option>
       <option value="gemini-3-flash">Gemini 3 Flash (gateway)</option>
-      <option value="kimi-k2.5">Kimi K2.5</option>
-      <option value="gpt-5.4">GPT 5.4</option>
     </select>
   );
 }
@@ -1310,8 +1311,8 @@ function App() {
   const [gatewayModel, setGatewayModel] = useState(() => {
     const p = localStorage.getItem('jasmine_provider');
     const m = localStorage.getItem('jasmine_gateway_model');
-    if (p === 'groq') return 'gemini-3-flash';
-    return m || 'gemini-3-flash';
+    if (p === 'groq') return 'gemini-3.1-pro';
+    return m || 'gemini-3.1-pro';
   });
   const [error, setError] = useState('');
   const [streamingRaw, setStreamingRaw] = useState('');
@@ -1622,7 +1623,7 @@ function App() {
     setStreamingRaw('');
     setChatMessages(full.chatMessages?.length ? full.chatMessages : [{ role: 'user', content: full.prompt || '' }, { role: 'assistant', content: 'Loaded.' }]);
     setProvider(full.provider || 'gemini');
-    setGatewayModel(full.gatewayModel || 'gemini-3-flash');
+    setGatewayModel(full.gatewayModel || 'gemini-3.1-pro');
     setCurrentProjectId(full.id);
     setPage('designer');
     setRightTab('files');
@@ -1822,21 +1823,14 @@ function App() {
       return;
     }
 
-    const useGroq = provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5';
-    const key = useGroq
-      ? import.meta.env.VITE_GROQ_API_KEY
-      : provider === 'openai'
-        ? import.meta.env.VITE_OPENAI_API_KEY
-        : provider === 'ai-gateway'
-          ? ''
-          : import.meta.env.VITE_GEMINI_API_KEY;
-    if (!useGroq && provider !== 'ai-gateway' && !key) {
+    const key = provider === 'openai'
+      ? import.meta.env.VITE_OPENAI_API_KEY
+      : provider === 'ai-gateway'
+        ? ''
+        : import.meta.env.VITE_GEMINI_API_KEY;
+    if (provider !== 'ai-gateway' && !key) {
       const keyName = provider === 'openai' ? 'OPENAI' : 'GEMINI';
       setError(`Add VITE_${keyName}_API_KEY to your .env file`);
-      return;
-    }
-    if (useGroq && !key) {
-      setError('Add VITE_GROQ_API_KEY for Kimi');
       return;
     }
 
@@ -1890,7 +1884,7 @@ function App() {
       const onChunk = (chunk) => setStreamingRaw(chunk);
 
       let searchContext = [];
-      const decideProvider = useGroq ? 'groq' : provider;
+      const decideProvider = provider;
       const searchQuery = await decideSearchQuery(prompt, decideProvider, key, apiBase, gatewayModel);
       if (searchQuery) {
         try {
@@ -1904,18 +1898,15 @@ function App() {
       }
 
       const sysPrompt = getSystemPromptForGeneration(designStyle || null, htmlMode);
-      const groqModel = GROQ_MODEL_KIMI;
       const generateFn =
         provider === 'gemini'
           ? (k, p, onC, cf, sc) => generateWithGemini(k, p, onC, cf, sc, sysPrompt)
-          : useGroq
-            ? (k, p, onC, cf, sc) => generateWithGroq(k, p, onC, cf, sc, sysPrompt, groqModel)
-            : provider === 'ai-gateway'
-              ? (_, p, onC, cf, sc) => generateWithGateway(apiBase, gatewayModel, p, onC, cf, sc, sysPrompt)
-              : provider === 'openai'
-                ? (k, p, onC, cf, sc) => generateWithOpenAI(k, p, onC, cf, sc, sysPrompt)
-                : (k, p, onC, cf, sc) => generateWithGemini(k, p, onC, cf, sc, sysPrompt);
-      const genKey = (useGroq || provider === 'openai' || provider === 'gemini') ? key : '';
+          : provider === 'ai-gateway'
+            ? (_, p, onC, cf, sc) => generateWithGateway(apiBase, gatewayModel, p, onC, cf, sc, sysPrompt)
+            : provider === 'openai'
+              ? (k, p, onC, cf, sc) => generateWithOpenAI(k, p, onC, cf, sc, sysPrompt)
+              : (k, p, onC, cf, sc) => generateWithGemini(k, p, onC, cf, sc, sysPrompt);
+      const genKey = (provider === 'openai' || provider === 'gemini') ? key : '';
       let result = await generateFn(genKey, prompt, onChunk, contextFiles, searchContext);
 
       const project = extractNextProject(result);
@@ -2115,10 +2106,8 @@ function App() {
   const sendChatMessage = async () => {
     const msg = chatInput.trim();
     if (!msg || isEditing) return;
-    const useGroqEdit = provider === 'ai-gateway' && gatewayModel === 'kimi-k2.5';
-    const editKey = useGroqEdit ? import.meta.env.VITE_GROQ_API_KEY : provider === 'openai' ? import.meta.env.VITE_OPENAI_API_KEY : provider === 'ai-gateway' ? '' : import.meta.env.VITE_GEMINI_API_KEY;
-    if (!useGroqEdit && provider !== 'ai-gateway' && !editKey) { setError('API key required'); return; }
-    if (useGroqEdit && !editKey) { setError('Add VITE_GROQ_API_KEY for Kimi'); return; }
+    const editKey = provider === 'openai' ? import.meta.env.VITE_OPENAI_API_KEY : provider === 'ai-gateway' ? '' : import.meta.env.VITE_GEMINI_API_KEY;
+    if (provider !== 'ai-gateway' && !editKey) { setError('API key required'); return; }
 
     setChatMessages((prev) => [...prev, { role: 'user', content: msg }]);
     setChatInput('');
@@ -2137,18 +2126,15 @@ function App() {
     try {
       const apiBase = import.meta.env.VITE_API_URL || '';
       const editSysPrompt = htmlMode ? HTML_EDIT_SYSTEM_PROMPT : undefined;
-      const groqModelEdit = GROQ_MODEL_KIMI;
       const editFn =
         provider === 'gemini'
           ? (k, c, m, onC, cf) => editWithGemini(k, c, m, onC, cf, editSysPrompt)
-          : useGroqEdit
-            ? (k, c, m, onC, cf) => editWithGroq(k, c, m, onC, cf, editSysPrompt, groqModelEdit)
-            : provider === 'ai-gateway'
-              ? (_, c, m, onC, cf) => editWithGateway(apiBase, gatewayModel, c, m, onC, cf, editSysPrompt)
-              : provider === 'openai'
-                ? (k, c, m, onC, cf) => editWithOpenAI(k, c, m, onC, cf, editSysPrompt)
-                : (k, c, m, onC, cf) => editWithGemini(k, c, m, onC, cf, editSysPrompt);
-      const keyForEdit = (useGroqEdit || provider === 'openai' || provider === 'gemini') ? editKey : '';
+          : provider === 'ai-gateway'
+            ? (_, c, m, onC, cf) => editWithGateway(apiBase, gatewayModel, c, m, onC, cf, editSysPrompt)
+            : provider === 'openai'
+              ? (k, c, m, onC, cf) => editWithOpenAI(k, c, m, onC, cf, editSysPrompt)
+              : (k, c, m, onC, cf) => editWithGemini(k, c, m, onC, cf, editSysPrompt);
+      const keyForEdit = (provider === 'openai' || provider === 'gemini') ? editKey : '';
       const result = await editFn(keyForEdit, currentCode, msg, (chunk) => setStreamingRaw(chunk), contextFiles);
       const project = extractNextProject(result, generatedProject?.files || null);
       if (project?.files) {
