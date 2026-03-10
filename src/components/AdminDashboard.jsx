@@ -59,36 +59,16 @@ export default function AdminDashboard({ theme, onBack, fullScreen = false, onTh
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
-    setError('');
-    try {
-      const r = await fetch(`${API_BASE}/api/tasks`);
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Failed');
-      setTasks(j.tasks || []);
-    } catch (e) {
-      setError(e.message);
-      setTasks([]);
-    } finally {
-      setLoading(false);
-    }
+    setError('Admin tasks backend removed.');
+    setTasks([]);
+    setLoading(false);
   }, []);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
-    setError('');
-    try {
-      const r = await fetch(`${API_BASE}/api/admin/projects`, {
-        headers: apiHeaders(adminKey),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Failed');
-      setProjects(j.projects || []);
-    } catch (e) {
-      setError(e.message);
-      setProjects([]);
-    } finally {
-      setLoading(false);
-    }
+    setError('Admin projects backend removed.');
+    setProjects([]);
+    setLoading(false);
   }, [adminKey]);
 
   useEffect(() => {
@@ -97,54 +77,15 @@ export default function AdminDashboard({ theme, onBack, fullScreen = false, onTh
   }, [tab, fetchTasks, fetchProjects]);
 
   const createTask = async () => {
-    if (!newTask.title.trim()) return;
-    setError('');
-    try {
-      const r = await fetch(`${API_BASE}/api/tasks`, {
-        method: 'POST',
-        headers: apiHeaders(adminKey),
-        body: JSON.stringify(newTask),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Create failed');
-      setNewTask({ title: '', description: '', status: 'todo', priority: 'medium' });
-      fetchTasks();
-    } catch (e) {
-      setError(e.message);
-    }
+    setError('Admin tasks backend removed.');
   };
 
-  const updateTask = async (id, updates) => {
-    setError('');
-    try {
-      const r = await fetch(`${API_BASE}/api/tasks?id=${id}`, {
-        method: 'PATCH',
-        headers: apiHeaders(adminKey),
-        body: JSON.stringify(updates),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Update failed');
-      setEditingTask(null);
-      fetchTasks();
-    } catch (e) {
-      setError(e.message);
-    }
+  const updateTask = async (_id, _updates) => {
+    setError('Admin tasks backend removed.');
   };
 
-  const deleteTask = async (id) => {
-    if (!confirm('Delete this task?')) return;
-    setError('');
-    try {
-      const r = await fetch(`${API_BASE}/api/tasks?id=${id}`, {
-        method: 'DELETE',
-        headers: apiHeaders(adminKey),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Delete failed');
-      fetchTasks();
-    } catch (e) {
-      setError(e.message);
-    }
+  const deleteTask = async (_id) => {
+    setError('Admin tasks backend removed.');
   };
 
   const toggleTaskDone = (t) => {

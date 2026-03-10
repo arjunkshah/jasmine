@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { generateWithGemini, generateWithGateway, generateWithOpenAI, editWithGemini, editWithGateway, editWithOpenAI, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, fixProjectErrors, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery, getHtmlPreviewContent, projectToRaw } from './api';
+import { generateWithGemini, generateWithOpenAI, editWithGemini, editWithOpenAI, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery, getHtmlPreviewContent, projectToRaw } from './api';
 import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT, DESIGN_STYLES, getSystemPromptForGeneration } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
@@ -22,7 +22,6 @@ import ShareModal from './components/ShareModal';
 import { useAuth } from './contexts/AuthContext';
 import { createProject, updateProject, listProjects, listSharedWithMe, getProject, deleteProject } from './lib/projects';
 import { trackGeneration, trackEdit, trackDeploy } from './lib/analytics';
-import { fetchApiCompressed } from './lib/compress-api';
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -120,39 +119,20 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
   );
 }
 
-function ModelSelectDropdown({ provider, setProvider, gatewayModel, setGatewayModel, isLight, borderCl }) {
+function ModelSelectDropdown({ provider, setProvider, isLight, borderCl }) {
   const selectCl = isLight
     ? 'bg-[#fffaf0] text-text-primary border-[rgba(220,211,195,0.9)] hover:bg-[#f6f4ec]'
     : 'bg-white/[0.06] text-text-primary border-white/[0.08] hover:bg-white/[0.08]';
 
-  const displayValue = provider === 'gemini' ? 'gemini' : provider === 'openai' ? 'openai' : gatewayModel;
-
   return (
     <select
-      value={displayValue}
-      onChange={(e) => {
-        const v = e.target.value;
-        if (v === 'gemini') {
-          setProvider('gemini');
-        } else if (v === 'openai') {
-          setProvider('openai');
-        } else if (v === 'gpt-5.4' || v === 'gemini-3.1-pro' || v === 'gemini-3-pro' || v === 'gemini-3-flash') {
-          setProvider('ai-gateway');
-          setGatewayModel(v);
-        } else {
-          setProvider('ai-gateway');
-          setGatewayModel(v);
-        }
-      }}
+      value={provider}
+      onChange={(e) => setProvider(e.target.value)}
       className={`h-7 min-w-[6.5rem] text-xs font-medium rounded-lg pl-2.5 pr-7 border cursor-pointer appearance-none bg-no-repeat bg-[length:10px] bg-[right_0.4rem_center] ${borderCl} ${selectCl}`}
       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
     >
-      <option value="gemini">Gemini 3 Flash (direct)</option>
+      <option value="gemini">Gemini 3 Flash</option>
       <option value="openai">GPT (direct)</option>
-      <option value="gemini-3-flash">Gemini 3 Flash (gateway)</option>
-      <option value="gemini-3.1-pro">Gemini 3.1 Pro (gateway)</option>
-      <option value="gemini-3-pro">Gemini 3 Pro (gateway)</option>
-      <option value="gpt-5.4">GPT 5.4 (OpenAI)</option>
     </select>
   );
 }
@@ -190,62 +170,16 @@ async function parseJsonResponse(res) {
 
 /** Execute slash commands parsed from AI output. */
 async function runSlashCommands(commands, ctx) {
-  const { apiBase, sandboxId, deployUrl, netlifyUrl, generatedProject, setDeployUrl, setSandboxId, setSandboxStarting, setChatMessages, setError, setRightTab, setPreviewRetryKey, applyPackageFixes, ensurePackageDependencies, downloadProject, fixProjectErrors, provider, groqKey, geminiKey, gatewayModel, setGeneratedProject, setNetlifyUrl, retryPreviewUpdate } = ctx;
+  const { deployUrl, netlifyUrl, generatedProject, setChatMessages, setError, downloadProject } = ctx;
+  const BACKEND_UNAVAILABLE = 'Preview/sandbox backend removed. Use /download to get your project.';
   for (const { cmd, arg } of commands) {
     try {
-      if (cmd === 'sandbox-state') {
-        setChatMessages((prev) => [...prev, {
-          role: 'status',
-          message: sandboxId ? `Preview: ${deployUrl || 'loading...'} (sandbox: ${sandboxId})` : 'No sandbox running',
-          details: sandboxId ? [deployUrl] : [],
-          icon: 'ph-browser',
-        }]);
-      } else if (cmd === 'create') {
-        setSandboxStarting(true);
-        const res = await fetch(`${apiBase}/api/sandbox/start`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ theme: 'dark' }),
-        });
-        const data = await parseJsonResponse(res);
-        if (data.success && data.sandboxId && data.url) {
-          setDeployUrl(data.url);
-          setSandboxId(data.sandboxId);
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'Sandbox created', details: [data.url], icon: 'ph-rocket-launch' }]);
-          setRightTab('preview');
-        } else {
-          setError(data?.error || 'Sandbox start failed');
-        }
-        setSandboxStarting(false);
-      } else if (cmd === 'apply' && sandboxId && generatedProject?.files) {
-        const files = { ...generatedProject.files };
-        applyPackageFixes(files);
-        ensurePackageDependencies(files);
-        const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files });
-        if (res.ok) {
-          setPreviewRetryKey((k) => k + 1);
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'Applied to preview', details: [`${Object.keys(files).length} files`], icon: 'ph-upload-simple' }]);
-          setRightTab('preview');
-        } else {
-          const data = await res.json().catch(() => ({}));
-          setError(data?.error || 'Apply failed');
-        }
-      } else if (cmd === 'deploy' && generatedProject?.files) {
-        const files = { ...generatedProject.files };
-        applyPackageFixes(files);
-        ensurePackageDependencies(files);
-        const res = await fetchApiCompressed(`${apiBase}/api/deploy`, { files });
-        const data = await parseJsonResponse(res);
-        if (data.success && data.url) {
-          setDeployUrl(data.url);
-          if (data.sandboxId) setSandboxId(data.sandboxId);
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'Deployed', details: [data.url], icon: 'ph-rocket-launch' }]);
-          setRightTab('preview');
-        } else {
-          setError(data?.error || 'Deploy failed');
-        }
+      if (['sandbox-state', 'create', 'apply', 'deploy', 'fix-errors', 'netlify-deploy', 'generate-image', 'health', 'create-and-apply'].includes(cmd)) {
+        setChatMessages((prev) => [...prev, { role: 'status', message: BACKEND_UNAVAILABLE, details: [], icon: 'ph-warning' }]);
+      } else if (cmd === 'retry') {
+        setChatMessages((prev) => [...prev, { role: 'status', message: BACKEND_UNAVAILABLE, details: [], icon: 'ph-warning' }]);
       } else if (cmd === 'web-search' && arg) {
-        const results = await webSearch(arg, apiBase);
+        const results = await webSearch(arg);
         setChatMessages((prev) => [...prev, {
           role: 'status',
           message: `Web search: ${arg}`,
@@ -255,85 +189,13 @@ async function runSlashCommands(commands, ctx) {
       } else if (cmd === 'download' && downloadProject) {
         await downloadProject();
         setChatMessages((prev) => [...prev, { role: 'status', message: 'Download started', details: [], icon: 'ph-download-simple' }]);
-      } else if (cmd === 'fix-errors' && fixProjectErrors && generatedProject?.files && setGeneratedProject) {
-        setChatMessages((prev) => [...prev, { role: 'status', message: 'Fixing errors...', details: [], icon: 'ph-wrench' }]);
-        const fixed = await fixProjectErrors(generatedProject, provider, groqKey, geminiKey, apiBase, gatewayModel);
-        if (fixed) {
-          setGeneratedProject({ files: fixed });
-          ctx.generatedProject = { files: fixed };
-          const filesToApply = { ...fixed };
-          applyPackageFixes(filesToApply);
-          ensurePackageDependencies(filesToApply);
-          if (sandboxId) {
-            let applied = false;
-            for (let attempt = 0; attempt < 3 && !applied; attempt++) {
-              try {
-                const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files: filesToApply });
-                if (res.ok) {
-                  applied = true;
-                  setPreviewRetryKey((k) => k + 1);
-                  setRightTab('preview');
-                  setChatMessages((prev) => [...prev, { role: 'status', message: 'Errors fixed and applied to preview', details: [`${Object.keys(fixed).length} files`], icon: 'ph-check-circle' }]);
-                } else if ((res.status === 504 || res.status === 413) && attempt < 2) {
-                  await new Promise((r) => setTimeout(r, 3000));
-                } else {
-                  const data = await res.json().catch(() => ({}));
-                  setError(data?.error || 'Apply to preview failed. Click Retry.');
-                  setChatMessages((prev) => [...prev, { role: 'status', message: 'Errors fixed', details: [`${Object.keys(fixed).length} files updated`], icon: 'ph-check-circle' }]);
-                  break;
-                }
-              } catch (e) {
-                if (attempt < 2) await new Promise((r) => setTimeout(r, 3000));
-                else {
-                  setError(e?.message || 'Apply to preview failed. Click Retry.');
-                  setChatMessages((prev) => [...prev, { role: 'status', message: 'Errors fixed', details: [`${Object.keys(fixed).length} files updated`], icon: 'ph-check-circle' }]);
-                }
-              }
-            }
-          } else {
-            setChatMessages((prev) => [...prev, { role: 'status', message: 'Errors fixed', details: [`${Object.keys(fixed).length} files updated`], icon: 'ph-check-circle' }]);
-          }
-        } else {
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'No changes needed', details: [], icon: 'ph-check' }]);
-        }
-      } else if (cmd === 'netlify-deploy' && generatedProject?.files) {
-        const files = { ...generatedProject.files };
-        applyPackageFixes(files);
-        ensurePackageDependencies(files);
-        const res = await fetchApiCompressed(`${apiBase}/api/deploy`, { target: 'netlify', sandboxId, files });
-        const data = await parseJsonResponse(res);
-        if (data.success && data.url) {
-          setNetlifyUrl?.(data.url);
-          trackDeploy({ platform: 'netlify' });
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'Deployed to Netlify', details: [data.url], icon: 'ph-rocket-launch' }]);
-          setRightTab('preview');
-        } else {
-          setError(data?.error || 'Netlify deploy failed');
-        }
-      } else if (cmd === 'generate-image' && arg) {
-        const res = await fetch(`${apiBase}/api/generate-image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: arg }),
-        });
-        const data = await parseJsonResponse(res);
-        if (data.image) {
-          setChatMessages((prev) => [...prev, {
-            role: 'status',
-            message: `Generated image: ${arg.slice(0, 40)}...`,
-            details: [data.image],
-            icon: 'ph-image',
-          }]);
-        } else {
-          setError(data?.error || 'Image generation failed');
-        }
       } else if (cmd === 'open-preview') {
         const url = deployUrl || netlifyUrl;
         if (url) {
           window.open(url, '_blank', 'noopener');
           setChatMessages((prev) => [...prev, { role: 'status', message: 'Opened preview in new tab', details: [url], icon: 'ph-browser' }]);
         } else {
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'No preview URL yet. Deploy or create a sandbox first.', details: [], icon: 'ph-warning' }]);
+          setChatMessages((prev) => [...prev, { role: 'status', message: 'No preview URL. Use /download to get your project.', details: [], icon: 'ph-warning' }]);
         }
       } else if (cmd === 'copy-url') {
         const url = deployUrl || netlifyUrl;
@@ -345,7 +207,7 @@ async function runSlashCommands(commands, ctx) {
             setError('Clipboard access denied');
           }
         } else {
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'No preview URL yet. Deploy or create a sandbox first.', details: [], icon: 'ph-warning' }]);
+          setChatMessages((prev) => [...prev, { role: 'status', message: 'No preview URL. Use /download to get your project.', details: [], icon: 'ph-warning' }]);
         }
       } else if (cmd === 'list-files' && generatedProject?.files) {
         const paths = Object.keys(generatedProject.files).sort();
@@ -355,71 +217,14 @@ async function runSlashCommands(commands, ctx) {
           details: paths,
           icon: 'ph-file-code',
         }]);
-      } else if (cmd === 'retry' && retryPreviewUpdate) {
-        await retryPreviewUpdate();
-        setChatMessages((prev) => [...prev, { role: 'status', message: 'Retrying preview', details: [], icon: 'ph-arrow-clockwise' }]);
-        setRightTab('preview');
-      } else if (cmd === 'health') {
-        const res = await fetch(`${apiBase}/api/health`);
-        const data = await res.json().catch(() => ({}));
-        const ok = data.e2bConfigured !== false;
-        setChatMessages((prev) => [...prev, {
-          role: 'status',
-          message: ok ? 'API healthy' : 'API issue',
-          details: data.e2bError ? [data.e2bError] : [data.e2bConfigured ? 'E2B configured' : 'E2B not configured'],
-          icon: ok ? 'ph-check-circle' : 'ph-warning',
-        }]);
       } else if (cmd === 'help') {
-        const cmds = ['/sandbox-state', '/deploy', '/create', '/apply', '/create-and-apply', '/web-search <query>', '/download', '/fix-errors', '/netlify-deploy', '/generate-image <prompt>', '/retry', '/open-preview', '/copy-url', '/list-files', '/health', '/help'];
+        const cmds = ['/web-search <query>', '/download', '/list-files', '/open-preview', '/copy-url', '/help'];
         setChatMessages((prev) => [...prev, {
           role: 'status',
           message: 'Available commands',
           details: cmds,
           icon: 'ph-list',
         }]);
-      } else if (cmd === 'create-and-apply' && generatedProject?.files) {
-        const sid = sandboxId;
-        if (sid) {
-          const files = { ...generatedProject.files };
-          applyPackageFixes(files);
-          ensurePackageDependencies(files);
-          const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: sid, files });
-          if (res.ok) {
-            setPreviewRetryKey((k) => k + 1);
-            setChatMessages((prev) => [...prev, { role: 'status', message: 'Applied to preview', details: [`${Object.keys(files).length} files`], icon: 'ph-upload-simple' }]);
-            setRightTab('preview');
-          } else {
-            const data = await res.json().catch(() => ({}));
-            setError(data?.error || 'Apply failed');
-          }
-        } else {
-          setSandboxStarting(true);
-          const startRes = await fetch(`${apiBase}/api/sandbox/start`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ theme: 'dark' }),
-          });
-          const startData = await parseJsonResponse(startRes);
-          if (startData.success && startData.sandboxId && startData.url) {
-            setDeployUrl(startData.url);
-            setSandboxId(startData.sandboxId);
-            const files = { ...generatedProject.files };
-            applyPackageFixes(files);
-            ensurePackageDependencies(files);
-            const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: startData.sandboxId, files });
-            if (updRes.ok) {
-              setPreviewRetryKey((k) => k + 1);
-              setChatMessages((prev) => [...prev, { role: 'status', message: 'Sandbox created and applied', details: [startData.url, `${Object.keys(files).length} files`], icon: 'ph-rocket-launch' }]);
-              setRightTab('preview');
-            } else {
-              const updData = await updRes.json().catch(() => ({}));
-              setError(updData?.error || 'Apply failed');
-            }
-          } else {
-            setError(startData?.error || 'Sandbox start failed');
-          }
-          setSandboxStarting(false);
-        }
       }
     } catch (e) {
       console.warn('[Jasmine] slash command failed:', cmd, e?.message);
@@ -445,8 +250,6 @@ function AppBody({
   setChatInput,
   provider,
   setProvider,
-  gatewayModel,
-  setGatewayModel,
   error,
   deployUrl,
   sandboxStarting,
@@ -886,8 +689,6 @@ function AppBody({
                         <ModelSelectDropdown
                           provider={provider}
                           setProvider={setProvider}
-                          gatewayModel={gatewayModel}
-                          setGatewayModel={setGatewayModel}
                           isLight={isLight}
                           borderCl={borderCl}
                         />
@@ -1170,8 +971,6 @@ function AppBody({
                     <ModelSelectDropdown
                       provider={provider}
                       setProvider={setProvider}
-                      gatewayModel={gatewayModel}
-                      setGatewayModel={setGatewayModel}
                       isLight={isLight}
                       borderCl={borderCl}
                     />
@@ -1304,15 +1103,9 @@ function App() {
 
   const [provider, setProvider] = useState(() => {
     const p = localStorage.getItem('jasmine_provider');
-    if (p === 'groq') return 'gemini';
-    if (p === 'openai' || p === 'gemini' || p === 'ai-gateway') return p;
+    if (p === 'groq' || p === 'ai-gateway') return 'gemini';
+    if (p === 'openai' || p === 'gemini') return p;
     return p || 'gemini';
-  });
-  const [gatewayModel, setGatewayModel] = useState(() => {
-    const p = localStorage.getItem('jasmine_provider');
-    const m = localStorage.getItem('jasmine_gateway_model');
-    if (p === 'groq') return 'gemini-3-flash';
-    return m || 'gemini-3-flash';
   });
   const [error, setError] = useState('');
   const [streamingRaw, setStreamingRaw] = useState('');
@@ -1323,12 +1116,9 @@ function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('jasmine_theme') || 'light');
   const [generatedProject, setGeneratedProject] = useState(null);
   const [deployUrl, setDeployUrl] = useState(null);
-  const [sandboxId, setSandboxId] = useState(null);
   const [sandboxStarting, setSandboxStarting] = useState(false);
   const [sandboxRetryTrigger, setSandboxRetryTrigger] = useState(0);
   const [previewRetryKey, setPreviewRetryKey] = useState(0);
-  const sandboxIdRef = useRef(null);
-  const pendingSandboxApplyRef = useRef(null);
   const [contextFiles, setContextFiles] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('jasmine_sidebar_open') !== 'false');
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -1385,66 +1175,11 @@ function App() {
     else localStorage.removeItem('jasmine_design_style');
   }, [designStyle]);
 
-  useEffect(() => {
-    sandboxIdRef.current = sandboxId;
-    if (sandboxId && pendingSandboxApplyRef.current) {
-      const files = pendingSandboxApplyRef.current;
-      pendingSandboxApplyRef.current = null;
-      const fixed = { ...files };
-      applyPackageFixes(fixed);
-      ensurePackageDependencies(fixed);
-      (async () => {
-        const apiBase = import.meta.env.VITE_API_URL || '';
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            console.log('[Jasmine] POST /api/sandbox/update (pending apply)', Object.keys(fixed).length, 'files', attempt ? `retry ${attempt}` : '');
-            const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files: fixed });
-            if (res.ok) {
-              console.log('[Jasmine] sandbox/update (pending apply) ok');
-              setPreviewRetryKey((k) => k + 1);
-              setChatMessages((prev) => [...prev, { role: 'status', message: 'Project applied to preview', details: [`${Object.keys(fixed).length} files`], icon: 'ph-upload-simple' }]);
-              return;
-            }
-            if (res.status === 504 || res.status === 413) {
-              await new Promise((r) => setTimeout(r, 3000));
-              continue;
-            }
-            const data = await res.json().catch(() => ({}));
-            setError(data?.error || `Apply failed (${res.status})`);
-            return;
-          } catch (e) {
-            console.warn('[Jasmine] sandbox update (pending apply) failed:', e?.message);
-            if (attempt < 2) await new Promise((r) => setTimeout(r, 3000));
-            else setError(e?.message || 'Apply failed');
-          }
-        }
-      })();
-    }
-  }, [sandboxId]);
 
   const prevGenEditRef = useRef({ isGenerating: false, isEditing: false });
   useEffect(() => {
-    const wasGen = prevGenEditRef.current.isGenerating;
-    const wasEdit = prevGenEditRef.current.isEditing;
     prevGenEditRef.current = { isGenerating, isEditing };
-    const justFinished = (wasGen && !isGenerating) || (wasEdit && !isEditing);
-    if (justFinished && !htmlMode && sandboxId && generatedProject?.files && Object.keys(generatedProject.files).length > 0) {
-      const files = { ...generatedProject.files };
-      applyPackageFixes(files);
-      ensurePackageDependencies(files);
-      (async () => {
-        try {
-          const apiBase = import.meta.env.VITE_API_URL || '';
-          console.log('[Jasmine] POST /api/sandbox/update (post-gen/edit, files-tab source)', Object.keys(files).length, 'files');
-          const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files });
-          if (res.ok) setPreviewRetryKey((k) => k + 1);
-          else console.warn('[Jasmine] sandbox/update (post-gen/edit)', res.status);
-        } catch (e) {
-          console.warn('[Jasmine] sandbox update (post-gen/edit) failed:', e?.message);
-        }
-      })();
-    }
-  }, [isGenerating, isEditing, htmlMode, sandboxId, generatedProject]);
+  }, [isGenerating, isEditing]);
 
   const handleThemeToggle = () => {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
@@ -1453,10 +1188,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('jasmine_provider', provider);
   }, [provider]);
-  useEffect(() => {
-    localStorage.setItem('jasmine_gateway_model', gatewayModel);
-  }, [gatewayModel]);
-
   useEffect(() => {
     localStorage.setItem('jasmine_show_landing', String(showLanding));
   }, [showLanding]);
@@ -1579,7 +1310,6 @@ function App() {
         html: data.html ?? generatedHTML,
         chatMessages: data.chatMessages ?? chatMessages,
         provider: data.provider ?? provider,
-        gatewayModel: data.gatewayModel ?? gatewayModel,
       };
       try {
         if (currentProjectId) {
@@ -1597,7 +1327,7 @@ function App() {
         setError(`Save failed: ${e?.message || 'Unknown error'}. Check Firestore rules and indexes.`);
       }
     },
-    [firebaseConfigured, user, currentProjectId, prompt, generatedProject, generatedHTML, chatMessages, provider, gatewayModel]
+    [firebaseConfigured, user, currentProjectId, prompt, generatedProject, generatedHTML, chatMessages, provider]
   );
 
   const debouncedSave = useCallback(() => {
@@ -1622,8 +1352,7 @@ function App() {
     setGeneratedHTML(full.html || '');
     setStreamingRaw('');
     setChatMessages(full.chatMessages?.length ? full.chatMessages : [{ role: 'user', content: full.prompt || '' }, { role: 'assistant', content: 'Loaded.' }]);
-    setProvider(full.provider || 'gemini');
-    setGatewayModel(full.gatewayModel || 'gemini-3-flash');
+    setProvider(full.provider === 'ai-gateway' || full.provider === 'groq' ? 'gemini' : (full.provider || 'gemini'));
     setCurrentProjectId(full.id);
     setPage('designer');
     setRightTab('files');
@@ -1636,28 +1365,7 @@ function App() {
         setHtmlMode(true);
         setRightTab('preview');
       } else {
-        pendingSandboxApplyRef.current = full.files;
-        setSandboxStarting(true);
-        try {
-          const apiBase = import.meta.env.VITE_API_URL || '';
-          const res = await fetch(`${apiBase}/api/sandbox/start`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ theme }),
-          });
-          const data = await parseJsonResponse(res);
-          if (data.success && data.sandboxId && data.url) {
-            setDeployUrl(data.url);
-            setSandboxId(data.sandboxId);
-            setRightTab('preview');
-          } else {
-            setError(data?.error || 'Sandbox start failed');
-          }
-        } catch (e) {
-          setError(e?.message || 'Sandbox failed');
-        } finally {
-          setSandboxStarting(false);
-        }
+        setRightTab('files');
       }
     } else if (full._truncated) {
       setError('Project was too large to save. Files were truncated. Try generating again with fewer/smaller files.');
@@ -1695,51 +1403,9 @@ function App() {
     setSidebarOpen(false);
   }, [setPage]);
 
-  const spinUpSandbox = useCallback(async (project) => {
-    let files = project.files;
-    if (!files || Object.keys(files).length === 0) return;
-    const isHtmlProject = (files['index.html'] || files['index.htm']) && !files['package.json'];
-    if (isHtmlProject) return;
-    files = { ...files };
-    applyPackageFixes(files);
-    ensurePackageDependencies(files);
-    setSandboxStarting(true);
-    setError('');
-    try {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiBase}/api/sandbox/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme }),
-      });
-      const data = await parseJsonResponse(res);
-      if (data.success && data.sandboxId && data.url) {
-        setDeployUrl(data.url);
-        setSandboxId(data.sandboxId);
-        for (let attempt = 0; attempt < 3; attempt++) {
-          const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: data.sandboxId, files });
-          if (updRes.ok) {
-            setPreviewRetryKey((k) => k + 1);
-            setRightTab('preview');
-            break;
-          }
-          if ((updRes.status === 504 || updRes.status === 413) && attempt < 2) {
-            await new Promise((r) => setTimeout(r, 3000));
-            continue;
-          }
-          const errData = await updRes.json().catch(() => ({}));
-          setError(errData?.error || `Apply failed (${updRes.status})`);
-          break;
-        }
-      } else {
-        setError(data?.error || 'Sandbox start failed');
-      }
-    } catch (e) {
-      setError(e?.message || 'Sandbox failed');
-    } finally {
-      setSandboxStarting(false);
-    }
-  }, [theme]);
+  const spinUpSandbox = useCallback(async () => {
+    // Backend removed - no-op
+  }, []);
 
   const sandboxStartedRef = useRef(false);
 
@@ -1750,66 +1416,9 @@ function App() {
   };
 
   const retryPreviewUpdate = useCallback(async () => {
-    const files = generatedProject?.files;
-    const sid = sandboxId;
-    if (!sid || !files || Object.keys(files).length === 0) return;
-    applyPackageFixes(files);
-    ensurePackageDependencies(files);
-    setError('');
-    try {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: sid, files });
-      if (res.ok) {
-        setPreviewRetryKey((k) => k + 1);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setError(data?.error || 'Preview update failed. Try again.');
-      }
-    } catch (e) {
-      setError(e?.message || 'Preview update failed. Try again.');
-    }
-  }, [generatedProject?.files, sandboxId]);
+    // Backend removed - no-op
+  }, []);
 
-  useEffect(() => {
-    if (showLanding || sandboxStartedRef.current) return;
-    if (localStorage.getItem('jasmine_html_mode') === 'true') return;
-    sandboxStartedRef.current = true;
-    setSandboxStarting(true);
-    (async () => {
-      try {
-        const apiBase = import.meta.env.VITE_API_URL || '';
-        console.log('[Jasmine] POST /api/sandbox/start', apiBase || '(same origin)');
-        const res = await fetch(`${apiBase}/api/sandbox/start`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ theme }),
-        });
-        const data = await parseJsonResponse(res);
-        console.log('[Jasmine] sandbox/start', res.status, data?.success ? `ok sandboxId=${data.sandboxId} url=${data.url}` : `error=${data?.error}`);
-        if (data.success && data.url) {
-          setDeployUrl(data.url);
-          setSandboxId(data.sandboxId);
-          sandboxIdRef.current = data.sandboxId;
-        } else if (data.error) {
-          console.warn('[Jasmine] sandbox/start error:', data.error);
-          const msg = data.error.includes('E2B_API_KEY')
-            ? `Sandbox: ${data.error} Add E2B_API_KEY in Vercel → Project Settings → Environment Variables, then redeploy.`
-            : `Sandbox: ${data.error}`;
-          setError(msg);
-          sandboxStartedRef.current = false;
-        }
-      } catch (e) {
-        console.error('[Jasmine] sandbox/start failed:', e?.message, e);
-        const hint = typeof window !== 'undefined' && !window.location.hostname.includes('localhost')
-          ? ' Check /api/health on your deployment.'
-          : '';
-        setError(`Sandbox start failed: ${e.message}${hint}`);
-        sandboxStartedRef.current = false;
-      } finally {
-        setSandboxStarting(false);
-      }
-    })();
-  }, [showLanding, sandboxRetryTrigger, theme]);
 
   const generate = async () => {
     if (firebaseConfigured && !user) {
@@ -1825,10 +1434,8 @@ function App() {
 
     const key = provider === 'openai'
       ? import.meta.env.VITE_OPENAI_API_KEY
-      : provider === 'ai-gateway'
-        ? ''
-        : import.meta.env.VITE_GEMINI_API_KEY;
-    if (provider !== 'ai-gateway' && !key) {
+      : import.meta.env.VITE_GEMINI_API_KEY;
+    if (!key) {
       const keyName = provider === 'openai' ? 'OPENAI' : 'GEMINI';
       setError(`Add VITE_${keyName}_API_KEY to your .env file`);
       return;
@@ -1846,46 +1453,14 @@ function App() {
 
     try {
       const apiBase = import.meta.env.VITE_API_URL || '';
-      let currentSandboxId = sandboxId;
-      let currentDeployUrl = deployUrl;
 
-      if (!currentSandboxId && sandboxStarting) {
-        for (let i = 0; i < 20; i++) {
-          await new Promise((r) => setTimeout(r, 500));
-          if (sandboxIdRef.current) {
-            currentSandboxId = sandboxIdRef.current;
-            break;
-          }
-        }
-      }
-      if (!htmlMode && !currentSandboxId && !sandboxStarting) {
-        try {
-          console.log('[Jasmine] POST /api/sandbox/start (generate flow)');
-          const startRes = await fetch(`${apiBase}/api/sandbox/start`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ theme }),
-          });
-          const startData = await parseJsonResponse(startRes);
-          console.log('[Jasmine] sandbox/start (generate)', startRes.status, startData?.success ? `ok sandboxId=${startData.sandboxId}` : `error=${startData?.error}`);
-          if (startData.success && startData.url) {
-            currentDeployUrl = startData.url;
-            currentSandboxId = startData.sandboxId;
-            setDeployUrl(startData.url);
-            setSandboxId(currentSandboxId);
-          }
-        } catch (e) {
-          console.warn('[Jasmine] sandbox start skipped:', e?.message);
-        }
-      }
-
-      // Only send sandbox update when generation completes (final update below).
+      // Backend removed - no sandbox/preview.
       // Streaming updates caused 20+ rebuilds per project, 504 timeouts, and port errors.
       const onChunk = (chunk) => setStreamingRaw(chunk);
 
       let searchContext = [];
       const decideProvider = provider;
-      const searchQuery = await decideSearchQuery(prompt, decideProvider, key, apiBase, gatewayModel);
+      const searchQuery = await decideSearchQuery(prompt, decideProvider, key, apiBase);
       if (searchQuery) {
         try {
           searchContext = await webSearch(searchQuery, apiBase);
@@ -1899,14 +1474,10 @@ function App() {
 
       const sysPrompt = getSystemPromptForGeneration(designStyle || null, htmlMode);
       const generateFn =
-        provider === 'gemini'
-          ? (k, p, onC, cf, sc) => generateWithGemini(k, p, onC, cf, sc, sysPrompt)
-          : provider === 'ai-gateway'
-            ? (_, p, onC, cf, sc) => generateWithGateway(apiBase, gatewayModel, p, onC, cf, sc, sysPrompt)
-            : provider === 'openai'
-              ? (k, p, onC, cf, sc) => generateWithOpenAI(k, p, onC, cf, sc, sysPrompt)
-              : (k, p, onC, cf, sc) => generateWithGemini(k, p, onC, cf, sc, sysPrompt);
-      const genKey = (provider === 'openai' || provider === 'gemini') ? key : '';
+        provider === 'openai'
+          ? (k, p, onC, cf, sc) => generateWithOpenAI(k, p, onC, cf, sc, sysPrompt)
+          : (k, p, onC, cf, sc) => generateWithGemini(k, p, onC, cf, sc, sysPrompt);
+      const genKey = key;
       let result = await generateFn(genKey, prompt, onChunk, contextFiles, searchContext);
 
       const project = extractNextProject(result);
@@ -1921,55 +1492,9 @@ function App() {
       if (project) setGeneratedProject(project);
       setGeneratedHTML(result);
 
-      // Post-generation: fix errors (React only; HTML skip)
       if (project?.files && !htmlMode) {
-        const groqKey = import.meta.env.VITE_GROQ_API_KEY || '';
-        const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-        const fixedFiles = await fixProjectErrors(project, provider, groqKey, geminiKey, apiBase, gatewayModel);
-        if (fixedFiles && Object.keys(fixedFiles).length > 0) {
-          project.files = fixedFiles;
-          setGeneratedProject({ ...project, files: fixedFiles });
-        }
         applyPackageFixes(project.files);
         ensurePackageDependencies(project.files);
-      }
-
-      const filesToApply = project?.files || {};
-      if (Object.keys(filesToApply).length > 0 && !htmlMode) {
-        if (currentSandboxId) {
-          const deps = (() => {
-            try {
-              const pkg = JSON.parse(filesToApply['package.json'] || '{}');
-              return Object.keys(pkg.dependencies || {});
-            } catch { return []; }
-          })();
-          if (deps.length > 0) {
-            setChatMessages((prev) => [...prev, { role: 'status', message: 'Installing dependencies', details: deps, icon: 'ph-package', detailLabel: 'packages' }]);
-          }
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'Applying to preview', details: [`${Object.keys(filesToApply).length} files`], icon: 'ph-upload-simple', detailLabel: 'files' }]);
-          let updated = false;
-          for (let attempt = 0; attempt < 3 && !updated; attempt++) {
-            try {
-              const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId: currentSandboxId, files: filesToApply });
-              if (updRes.ok) {
-                updated = true;
-                setPreviewRetryKey((k) => k + 1);
-              } else if ((updRes.status === 504 || updRes.status === 413) && attempt < 2) {
-                console.warn('[Jasmine] sandbox/update', updRes.status, 'retrying...');
-                await new Promise((r) => setTimeout(r, 3000));
-              } else {
-                const data = await updRes.json().catch(() => ({}));
-                setError(data?.error || 'Preview update failed. Click Retry to apply your code.');
-              }
-            } catch (e) {
-              console.warn('[Jasmine] sandbox update failed:', e?.message);
-              if (attempt < 2) await new Promise((r) => setTimeout(r, 3000));
-              else setError(e?.message || 'Preview update failed. Click Retry to apply your code.');
-            }
-          }
-        } else {
-          pendingSandboxApplyRef.current = { ...filesToApply };
-        }
       }
 
       console.log('[Jasmine] generate complete', project ? Object.keys(project.files).length + ' files' : 'no project');
@@ -1978,23 +1503,12 @@ function App() {
       setChatMessages((prev) => [...prev, { role: 'assistant', content: msg }]);
       const commands = extractSlashCommands(result);
       if (commands.length > 0) {
-        const groqKey = import.meta.env.VITE_GROQ_API_KEY || '';
-        const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
         runSlashCommands(commands, {
-          apiBase,
-          sandboxId: currentSandboxId,
-          deployUrl: currentDeployUrl,
+          deployUrl,
           netlifyUrl,
           generatedProject: project,
-          setDeployUrl,
-          setSandboxId,
-          setSandboxStarting,
           setChatMessages,
           setError,
-          setRightTab,
-          setPreviewRetryKey,
-          applyPackageFixes,
-          ensurePackageDependencies,
           downloadProject: async () => {
             try {
               await downloadProjectAsZip(project, result);
@@ -2002,14 +1516,6 @@ function App() {
               setError(e?.message || 'Download failed');
             }
           },
-          fixProjectErrors,
-          provider,
-          groqKey,
-          geminiKey,
-          gatewayModel,
-          setGeneratedProject,
-          setNetlifyUrl,
-          retryPreviewUpdate,
         });
       }
       if (firebaseConfigured && user && project?.files) {
@@ -2039,59 +1545,11 @@ function App() {
   };
 
   const deployToNetlify = async () => {
-    const files = generatedProject?.files;
-    const sid = sandboxId;
-    if (!files || Object.keys(files).length === 0) {
-      setError('Generate a project first');
-      return;
-    }
-    setNetlifyDeploying(true);
-    setError('');
-    try {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetchApiCompressed(`${apiBase}/api/deploy`, { target: 'netlify', sandboxId: sid, files });
-      const data = await parseJsonResponse(res);
-      if (data.success && data.url) {
-        setNetlifyUrl(data.url);
-        trackDeploy({ platform: 'netlify' });
-      } else {
-        setError(data?.error || 'Deploy failed');
-      }
-    } catch (e) {
-      setError(e?.message || 'Deploy failed');
-    } finally {
-      setNetlifyDeploying(false);
-    }
+    setError('Deploy backend removed. Use /download to get your project.');
   };
 
   const pushToGitHub = async () => {
-    const files = generatedProject?.files;
-    if (!files || Object.keys(files).length === 0) {
-      setError('Generate a project first');
-      return;
-    }
-    setGithubPushing(true);
-    setError('');
-    try {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      const repoName = (prompt?.slice(0, 50) || 'jasmine-project').replace(/[^a-zA-Z0-9._-]/g, '-');
-      const res = await fetch(`${apiBase}/api/github/push`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files, repoName, description: prompt?.slice(0, 200) || 'Generated with Jasmine', isPrivate: true }),
-      });
-      const data = await parseJsonResponse(res);
-      if (data.success && data.url) {
-        setGithubUrl(data.url);
-        trackDeploy({ platform: 'github' });
-      } else {
-        setError(data?.error || 'GitHub push failed');
-      }
-    } catch (e) {
-      setError(e?.message || 'GitHub push failed');
-    } finally {
-      setGithubPushing(false);
-    }
+    setError('GitHub push backend removed. Use /download to get your project.');
   };
 
   const downloadProject = async () => {
@@ -2106,8 +1564,8 @@ function App() {
   const sendChatMessage = async () => {
     const msg = chatInput.trim();
     if (!msg || isEditing) return;
-    const editKey = provider === 'openai' ? import.meta.env.VITE_OPENAI_API_KEY : provider === 'ai-gateway' ? '' : import.meta.env.VITE_GEMINI_API_KEY;
-    if (provider !== 'ai-gateway' && !editKey) { setError('API key required'); return; }
+    const editKey = provider === 'openai' ? import.meta.env.VITE_OPENAI_API_KEY : import.meta.env.VITE_GEMINI_API_KEY;
+    if (!editKey) { setError('API key required'); return; }
 
     setChatMessages((prev) => [...prev, { role: 'user', content: msg }]);
     setChatInput('');
@@ -2127,14 +1585,10 @@ function App() {
       const apiBase = import.meta.env.VITE_API_URL || '';
       const editSysPrompt = htmlMode ? HTML_EDIT_SYSTEM_PROMPT : undefined;
       const editFn =
-        provider === 'gemini'
-          ? (k, c, m, onC, cf) => editWithGemini(k, c, m, onC, cf, editSysPrompt)
-          : provider === 'ai-gateway'
-            ? (_, c, m, onC, cf) => editWithGateway(apiBase, gatewayModel, c, m, onC, cf, editSysPrompt)
-            : provider === 'openai'
-              ? (k, c, m, onC, cf) => editWithOpenAI(k, c, m, onC, cf, editSysPrompt)
-              : (k, c, m, onC, cf) => editWithGemini(k, c, m, onC, cf, editSysPrompt);
-      const keyForEdit = (provider === 'openai' || provider === 'gemini') ? editKey : '';
+        provider === 'openai'
+          ? (k, c, m, onC, cf) => editWithOpenAI(k, c, m, onC, cf, editSysPrompt)
+          : (k, c, m, onC, cf) => editWithGemini(k, c, m, onC, cf, editSysPrompt);
+      const keyForEdit = editKey;
       const result = await editFn(keyForEdit, currentCode, msg, (chunk) => setStreamingRaw(chunk), contextFiles);
       const project = extractNextProject(result, generatedProject?.files || null);
       if (project?.files) {
@@ -2150,28 +1604,6 @@ function App() {
           ensurePackageDependencies(mergedFiles);
         }
         setGeneratedProject({ files: mergedFiles });
-        if (Object.keys(mergedFiles).length > 0 && !htmlMode) {
-          if (sandboxId) {
-            try {
-              const deps = (() => {
-                try {
-                  const pkg = JSON.parse(mergedFiles['package.json'] || '{}');
-                  return Object.keys(pkg.dependencies || {});
-                } catch { return []; }
-              })();
-              if (deps.length > 0) {
-                setChatMessages((prev) => [...prev, { role: 'status', message: 'Installing dependencies', details: deps, icon: 'ph-package', detailLabel: 'packages' }]);
-              }
-              setChatMessages((prev) => [...prev, { role: 'status', message: 'Applying to preview', details: [`${Object.keys(mergedFiles).length} files`], icon: 'ph-upload-simple', detailLabel: 'files' }]);
-              const updRes = await fetchApiCompressed(`${apiBase}/api/sandbox/update`, { sandboxId, files: mergedFiles });
-              if (updRes.ok) setPreviewRetryKey((k) => k + 1);
-            } catch (e) {
-              console.warn('[Jasmine] sandbox update (edit) failed:', e?.message);
-            }
-          } else {
-            pendingSandboxApplyRef.current = { ...mergedFiles };
-          }
-        }
       }
       setGeneratedHTML(result);
       console.log('[Jasmine] edit complete', project?.files ? Object.keys(project.files).length + ' files' : '');
@@ -2182,23 +1614,12 @@ function App() {
       const commands = extractSlashCommands(result);
       if (commands.length > 0) {
         const proj = project?.files ? { files: project.files } : generatedProject;
-        const groqKey = import.meta.env.VITE_GROQ_API_KEY || '';
-        const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
         runSlashCommands(commands, {
-          apiBase,
-          sandboxId,
           deployUrl,
           netlifyUrl,
           generatedProject: proj,
-          setDeployUrl,
-          setSandboxId,
-          setSandboxStarting,
           setChatMessages,
           setError,
-          setRightTab,
-          setPreviewRetryKey,
-          applyPackageFixes,
-          ensurePackageDependencies,
           downloadProject: async () => {
             try {
               await downloadProjectAsZip(proj, result || generatedHTML || streamingRaw);
@@ -2206,14 +1627,6 @@ function App() {
               setError(e?.message || 'Download failed');
             }
           },
-          fixProjectErrors,
-          provider,
-          groqKey,
-          geminiKey,
-          gatewayModel,
-          setGeneratedProject,
-          setNetlifyUrl,
-          retryPreviewUpdate,
         });
       }
       if (firebaseConfigured && user) debouncedSave();
@@ -2342,8 +1755,6 @@ function App() {
     setChatInput,
     provider,
     setProvider,
-    gatewayModel,
-    setGatewayModel,
     error,
     deployUrl,
     sandboxStarting,

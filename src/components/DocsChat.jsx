@@ -43,61 +43,7 @@ function DocsChat({ theme, className = '' }) {
     setError(null);
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiBase}/api/ai`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: text,
-          model: 'gemini-3-flash',
-          systemPrompt: DOCS_SYSTEM_PROMPT,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `API error: ${res.status}`);
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let full = '';
-      let buffer = '';
-
-      setMessages((prev) => [...prev, { role: 'assistant', content: '', streaming: true }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6).trim();
-          if (!data || data === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              full += delta;
-              setMessages((prev) => {
-                const next = [...prev];
-                const last = next[next.length - 1];
-                if (last?.role === 'assistant') next[next.length - 1] = { ...last, content: full, streaming: true };
-                return next;
-              });
-            }
-          } catch (_) {}
-        }
-      }
-
-      setMessages((prev) => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last?.role === 'assistant') next[next.length - 1] = { ...last, content: full, streaming: false };
-        return next;
-      });
+      setError('Docs chat backend removed.');
     } catch (e) {
       const errMsg = e.message || 'Failed to get response';
       setError(errMsg);

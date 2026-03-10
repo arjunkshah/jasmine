@@ -16,18 +16,7 @@ export default function ImageGeneratorModal({ onClose, theme, initialPrompt = ''
     setImage(null);
     setLoading(true);
     try {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiBase}/api/generate-image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Generation failed');
-      if (data.image) setImage(data.image);
-      else throw new Error('No image in response');
-    } catch (e) {
-      setError(e?.message || 'Image generation failed');
+      setError('Image generation backend removed.');
     } finally {
       setLoading(false);
     }

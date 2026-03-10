@@ -1,8 +1,6 @@
 import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt.js';
 import { fixPhosphorIcons, applyPackageFixes } from './lib/package-fixes.js';
 import { fixUnterminatedStringsInContent } from './lib/fix-unterminated.js';
-import { fetchApiCompressed } from './lib/compress-api.js';
-
 export { fixPhosphorIcons, applyPackageFixes };
 
 /** Detect if user pasted a build/syntax error — if so, prepend instruction to use ---EDIT:--- only. */
@@ -29,25 +27,11 @@ function buildContextBlock(files, searchContext = null) {
   return parts.join('');
 }
 
-/** Ask the AI if it needs to search the web for this prompt. Returns search query or null. */
+/** Ask the AI if it needs to search the web for this prompt. Returns search query or null. (No backend: always returns null.) */
 export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '', gatewayModel = 'kimi-k2.5') {
   if (!prompt?.trim()) return null;
+  if (provider === 'ai-gateway') return null;
   const msg = `User wants to build: "${prompt.slice(0, 200)}". Do you need to search the web for current info (trends, references, examples)? Reply with exactly SEARCH:query (one short query, e.g. "2024 web design trends") or NO_SEARCH.`;
-  if (provider === 'ai-gateway') {
-    try {
-      const res = await fetch(`${apiBase}/api/decide-search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model: gatewayModel }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json().catch(() => ({}));
-      return data.query || null;
-    } catch (e) {
-      console.warn('[Jasmine] decideSearchQuery (gateway) failed:', e?.message);
-      return null;
-    }
-  }
   if (provider === 'openai' && apiKey) {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -113,16 +97,9 @@ export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '', 
   }
 }
 
-/** Web search — Serper or Tavily. Requires SERPER_API_KEY or TAVILY_API_KEY in Vercel env. */
+/** Web search — no backend. Returns empty array. */
 export async function webSearch(query, apiBase = '') {
-  const res = await fetch(`${apiBase}/api/web-search`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ q: query }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (res.ok && data.results) return data.results;
-  throw new Error(data?.error || 'Web search failed');
+  return [];
 }
 
 /** Groq model IDs: Kimi = moonshotai/kimi-k2-instruct-0905, Gemini (stand-in) = llama-3.3-70b-versatile */
@@ -262,31 +239,6 @@ export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles =
   });
 }
 
-/** Generate via Vercel AI Gateway (gemini-3-pro, gpt-5.4). No client API key — uses server AI_GATEWAY_API_KEY. */
-export async function generateWithGateway(apiBase, modelId, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
-  const contextBlock = buildContextBlock(contextFiles, searchContext);
-  const userContent = enhanceUserPrompt(prompt) + contextBlock;
-
-  const response = await fetch(`${apiBase}/api/ai`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: userContent,
-      model: modelId || 'gemini-3-flash',
-      systemPrompt,
-      contextFiles: contextFiles || [],
-      searchContext: searchContext || [],
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || `AI Gateway error: ${response.status}`);
-  }
-
-  return streamResponse(response, onChunk);
-}
-
 /** Generate via OpenAI API (gpt-4o, etc.). Uses VITE_OPENAI_API_KEY. Multi-key: key1,key2 */
 export async function generateWithOpenAI(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles, searchContext);
@@ -347,31 +299,6 @@ export async function editWithOpenAI(apiKey, currentCode, userMessage, onChunk, 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error?.message || `OpenAI API error: ${response.status}`);
-  }
-
-  return streamResponse(response, onChunk);
-}
-
-/** Edit via Vercel AI Gateway. */
-export async function editWithGateway(apiBase, modelId, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
-  const contextBlock = buildContextBlock(contextFiles);
-  const msg = maybePrependErrorFixInstruction(userMessage);
-  const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
-
-  const response = await fetch(`${apiBase}/api/ai`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt,
-      model: modelId || 'gemini-3-flash',
-      systemPrompt,
-      contextFiles,
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || `AI Gateway error: ${response.status}`);
   }
 
   return streamResponse(response, onChunk);
@@ -725,101 +652,22 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 
 Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. NEVER output conversational text like "Looking at the error", "Let me check", "Let me fix this" — output ONLY ---FILE:path--- blocks (or NO_CHANGES_NEEDED). If nothing to fix, output: NO_CHANGES_NEEDED.`;
 
-/** Post-generation: use the OTHER model to review and fix errors. Runs up to 2 passes. Returns merged files or null. */
+/** Post-generation fix. No backend — returns null. */
 export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey, apiBase = '', gatewayModel = 'gemini-3-flash') {
-  if (!project?.files || Object.keys(project.files).length === 0) return null;
-
-  if (primaryProvider === 'ai-gateway') {
-    const otherModel = gatewayModel === 'gemini-3-flash' ? 'gpt-5.4' : 'gemini-3-flash';
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000);
-      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: otherModel }, { signal: controller.signal });
-      clearTimeout(timeout);
-      if (!res.ok) return null;
-      const data = await res.json().catch(() => ({}));
-      if (!data.fixed || !data.files) return null;
-      let current = { ...data.files };
-      applyPackageFixes(current);
-      ensurePackageDependencies(current);
-      return current;
-    } catch (e) {
-      console.warn('[Jasmine] fixProjectErrors (gateway) failed:', e?.message);
-      return null;
-    }
-  }
-
-  // When primary is openai or gemini, use ai-gateway for fix (gpt-5.4 or gemini-3-pro).
-  if (primaryProvider === 'openai' || primaryProvider === 'gemini') {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000);
-      const res = await fetchApiCompressed(`${apiBase}/api/fix-errors`, { project, modelId: 'gpt-5.4' }, { signal: controller.signal });
-      clearTimeout(timeout);
-      if (!res.ok) return null;
-      const data = await res.json().catch(() => ({}));
-      if (!data.fixed || !data.files) return null;
-      let current = { ...data.files };
-      applyPackageFixes(current);
-      ensurePackageDependencies(current);
-      return current;
-    } catch (e) {
-      console.warn('[Jasmine] fixProjectErrors (gateway fallback) failed:', e?.message);
-      return null;
-    }
-  }
-
   return null;
 }
 
-/** Replace {{IMAGE:prompt}} placeholders with AI-generated images. Uses Nano Banana Pro (Replicate) — server needs REPLICATE_API_TOKEN. */
+/** Replace {{IMAGE:prompt}} placeholders with placeholder URLs. No backend. */
 export async function replaceImagePlaceholders(text, apiBase = '', _unused = '') {
   if (!text || typeof text !== 'string') return text;
   const matches = [...text.matchAll(IMAGE_PLACEHOLDER_REGEX)];
   if (matches.length === 0) return text;
-
   const placeholder = (prompt) => `https://placehold.co/800x600?text=${encodeURIComponent(prompt.slice(0, 30))}`;
-
   let result = text;
-  const seen = new Set();
-  let skipApi = false;
-
   for (const match of matches) {
     const full = match[0];
     const prompt = match[1].trim();
-    if (seen.has(full)) continue;
-    seen.add(full);
-
-    if (skipApi) {
-      result = result.split(full).join(placeholder(prompt));
-      continue;
-    }
-
-    try {
-      const res = await fetch(`${apiBase}/api/generate-image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.image) {
-        result = result.split(full).join(data.image);
-        if (data.placeholder) skipApi = true; // All providers failed; use placeholders for rest
-      } else {
-        result = result.split(full).join(placeholder(prompt));
-        const errMsg = (data?.error || '').toLowerCase();
-        if (!res.ok) {
-          if (errMsg.includes('token') || errMsg.includes('replicate') || errMsg.includes('required')) {
-            skipApi = true;
-            console.warn('[Jasmine] Image gen disabled. Add API key (OpenAI, Replicate, Gemini, or AI Gateway). Using placeholders.');
-          } else if (data?.error) console.warn('[Jasmine] image gen:', data.error);
-        }
-      }
-    } catch (e) {
-      console.warn('[Jasmine] image gen failed:', prompt?.slice(0, 50), e?.message);
-      result = result.split(full).join(placeholder(prompt));
-      skipApi = true;
-    }
+    result = result.split(full).join(placeholder(prompt));
   }
   return result;
 }

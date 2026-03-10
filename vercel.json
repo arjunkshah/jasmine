@@ -1,19 +1,5 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "rewrites": [{ "source": "/((?!api).*)", "destination": "/index.html" }],
-  "functions": {
-    "api/ai.js": { "maxDuration": 120 },
-    "api/deploy.js": { "maxDuration": 120 },
-    "api/sandbox/start.js": { "maxDuration": 120 },
-    "api/sandbox/update.js": { "maxDuration": 120 },
-    "api/fix-errors.js": { "maxDuration": 120 },
-    "api/generate-image.js": { "maxDuration": 60 },
-    "api/web-search.js": { "maxDuration": 30 },
-    "api/tasks.js": { "maxDuration": 30 },
-    "api/admin/projects.js": { "maxDuration": 30 },
-    "api/github/push.js": { "maxDuration": 60 },
-    "api/share-invite.js": { "maxDuration": 30 }
-  }
+  "framework": "vite"
 }

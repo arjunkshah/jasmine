@@ -38,34 +38,8 @@ export default function ShareModal({ project, onClose, onSuccess, theme, getIdTo
         return;
       }
 
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiBase}/api/share-invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ projectId: project?.id, emails: list }),
-      });
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data?.error || 'Failed to send invite');
-        setSending(false);
-        return;
-      }
-
-      if (data?.emailErrors?.length > 0) {
-        const failed = data.emailErrors.map((e) => `${e.email}: ${e.error}`).join('; ');
-        setError(`Some invites failed: ${failed}. Add and verify your domain at resend.com/domains, then set RESEND_FROM.`);
-        setSending(false);
-        return;
-      }
-
-      setDeliveryWarning(!!data?.deliveryWarning);
-      setSent(true);
-      onSuccess?.();
-    } catch (e) {
+      setError('Share invite backend removed.');
+    } catch (_e) {
       setError(e?.message || 'Failed to send');
     } finally {
       setSending(false);
