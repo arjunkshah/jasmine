@@ -710,7 +710,7 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 - NEVER remove a dependency that is imported. ALWAYS add missing ones. Add ANY package — we install everything (unknown packages get *).
 
 ## OTHER FIXES
-1. **Unterminated literals** — Unclosed strings, template literals, JSX tags, brackets.
+1. **Unterminated literals** — Unclosed strings, template literals, JSX tags, brackets. Self-closing JSX: always use /> never / (e.g. <X prop /> not <X prop /).
 2. **File not found / phantom imports** — Every import must have a corresponding file. Create the file or remove the import. Check path casing.
 3. **main.jsx casing** — React, ReactDOM, createRoot, getElementById, App — exact casing. Import from './App.jsx'.
 4. **Styling** — Invalid Tailwind (dark-950 → zinc-950). Phosphor: HomeIcon → HouseIcon.

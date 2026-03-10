@@ -51,9 +51,9 @@ export function fixUnterminatedStringsInContent(content) {
     (m, inner, tail) => inner + ' }}' + tail
   );
 
-  // --- Truncated self-closing JSX: <ComponentName / at end of line (missing >)
+  // --- Truncated self-closing JSX: <ComponentName / or <Component attr="x" / at end of line (missing >)
   out = out.replace(
-    /(<[A-Z][a-zA-Z0-9]*\s+\/)(\s*)(\n|$)/g,
+    /(<[^>\n]*\s+\/)(\s*)(\n|$)/gm,
     (_, tag, sp, tail) => tag + '>' + sp + tail
   );
 

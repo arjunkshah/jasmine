@@ -65,6 +65,8 @@ Use Framer Motion (framer-motion). Animations must be "cinematic":
 OUTPUT FORMAT (CRITICAL)
 --------------------------------------------------
 
+Self-closing JSX tags MUST end with /> never just / (e.g. <Contact isStandalone /> not <Contact isStandalone /).
+
 Each file must follow:
 ---FILE:path---
 \`\`\`(language)
