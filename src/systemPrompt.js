@@ -5,7 +5,7 @@
 /** Predefined design styles with exact AI instructions. Keys match UI selector. */
 export const DESIGN_STYLES = {
   elegant: {
-    label: 'Elegant',
+    label: "Elegant",
     instructions: `DESIGN STYLE: ELEGANT — Apply these exact visual rules:
 - Typography: Use a refined serif for headings (Playfair Display, Cormorant Garamond, or similar) paired with a clean sans-serif for body (Lora, Source Serif Pro). Large, graceful headline sizes (text-5xl to text-7xl). Generous letter-spacing (tracking-wide, tracking-wider on headings).
 - Colors: Sophisticated palette — cream/ivory backgrounds (#faf9f6, #f5f3ef), charcoal text (#2c2c2c, #1a1a1a), gold or bronze accents (#b8860b, #8b7355, #c9a227). No bright primaries. Subtle warm grays.
@@ -16,7 +16,7 @@ export const DESIGN_STYLES = {
 - Overall: Luxury editorial feel. Think high-end brands, premium products. Calm, confident, timeless.`,
   },
   minimalist: {
-    label: 'Minimalist',
+    label: "Minimalist",
     instructions: `DESIGN STYLE: MINIMALIST — Apply these exact visual rules:
 - Typography: One clean sans-serif (Inter, Geist, SF Pro). Large, bold headlines (text-4xl to text-6xl). Tight line-height (leading-tight). Minimal font weight variation (400, 600, 700 only).
 - Colors: Monochromatic or near-monochrome. White/off-white bg (#ffffff, #fafafa). Black/charcoal text (#111, #1a1a1a). Single accent — one color only (e.g. one blue or one green), used sparingly for CTAs and links.
@@ -27,7 +27,7 @@ export const DESIGN_STYLES = {
 - Overall: Apple, Linear, Vercel aesthetic. Less is more. Every element earns its place.`,
   },
   serif: {
-    label: 'Serif',
+    label: "Serif",
     instructions: `DESIGN STYLE: SERIF — Apply these exact visual rules:
 - Typography: Serif-first. Display serif for headlines (Libre Baskerville, Merriweather, EB Garamond) — text-5xl to text-7xl. Body: readable serif (Lora, Source Serif 4) or contrasting sans. Strong hierarchy.
 - Colors: Warm, editorial. Cream/paper backgrounds (#fdfcfb, #f8f6f3). Dark ink (#1a1a1a, #2d2d2d). Warm accent (burgundy #722f37, navy #1e3a5f, or forest #2d5016).
@@ -38,7 +38,7 @@ export const DESIGN_STYLES = {
 - Overall: Magazine, newspaper, book. Authoritative, readable, classic.`,
   },
   neobrutalist: {
-    label: 'Neobrutalist',
+    label: "Neobrutalist",
     instructions: `DESIGN STYLE: NEOBRUTALIST — Apply these exact visual rules:
 - Typography: Bold, chunky. Heavy weights (700, 800, 900). Sans-serif (Space Grotesk, Bebas Neue, Archivo Black). Oversized headlines (text-6xl to text-8xl). Tight tracking. All-caps optional for impact.
 - Colors: High contrast. Pure black (#000) and white (#fff). One or two bold accent colors (bright yellow #facc15, hot pink #ec4899, electric blue #3b82f6, lime #84cc16). No pastels, no grays.
@@ -49,7 +49,7 @@ export const DESIGN_STYLES = {
 - Overall: Raw, bold, unapologetic. Brutalist web design. Stripe's brutalist era. Memorable, striking.`,
   },
   neumorphism: {
-    label: 'Neumorphism',
+    label: "Neumorphism",
     instructions: `DESIGN STYLE: NEUMORPHISM — Apply these exact visual rules:
 - Typography: Clean sans-serif (Poppins, Nunito, Quicksand). Medium weights (500, 600). Rounded feel. text-4xl to text-6xl for headlines.
 - Colors: Soft, muted. Single base (light gray #e0e5ec, #e4e8ec, or #d1d9e6). Same color for bg and "raised" surfaces. Text: dark gray (#2d3748, #4a5568). Accent: soft blue or purple (#6366f1, #8b5cf6).
@@ -60,7 +60,7 @@ export const DESIGN_STYLES = {
 - Overall: Soft UI, tactile. Like physical buttons. Calm, modern, distinctive. Avoid harsh contrasts.`,
   },
   retro: {
-    label: 'Retro',
+    label: "Retro",
     instructions: `DESIGN STYLE: RETRO — Apply these exact visual rules:
 - Typography: Vintage fonts. Display: Bebas Neue, Oswald, or condensed serif. Body: Courier, IBM Plex Mono, or vintage sans. Mix of all-caps and normal. text-5xl to text-7xl headlines.
 - Colors: Warm, faded. Mustard (#eab308, #f59e0b), burnt orange (#ea580c), cream (#fef3c7), brown (#78350f, #92400e). Or: 70s palette — avocado (#4ade80), orange (#fb923c), brown. Slightly desaturated.
@@ -80,7 +80,12 @@ export const DESIGN_STYLES = {
  * @param {Object|null} [opts.editContext=null] - Optional targeted edit context with editIntent and primaryFiles
  * @param {string} [opts.designStyle=null] - Key from DESIGN_STYLES to inject style instructions
  */
-export function buildSystemPrompt({ conversationContext = '', isEdit = false, editContext = null, designStyle = null } = {}) {
+export function buildSystemPrompt({
+  conversationContext = "",
+  isEdit = false,
+  editContext = null,
+  designStyle = null,
+} = {}) {
   return `You are an expert React developer with perfect memory of the conversation. You maintain context across messages and remember scraped websites, generated components, and applied code. Generate clean, modern React code for Vite applications.
 ${conversationContext}
 
@@ -132,7 +137,9 @@ When recreating/cloning a website, you MUST include:
 4. **Footer** - Contact info, links, copyright (Footer.jsx)
 5. **App.jsx** - Main app component that imports and uses all components
 
-${isEdit ? `CRITICAL: THIS IS AN EDIT TO AN EXISTING APPLICATION
+${
+  isEdit
+    ? `CRITICAL: THIS IS AN EDIT TO AN EXISTING APPLICATION
 
 CRITICAL — ACT, DON'T DESCRIBE:
 - NEVER say "I'll create..." or "I'll add..." without OUTPUTTING the actual ---FILE:path--- blocks in the same response.
@@ -190,11 +197,13 @@ If the user says "remove X", you must:
 2. Edit that file to remove X
 3. DO NOT create any new files
 
-${editContext ? `
+${
+  editContext
+    ? `
 TARGETED EDIT MODE ACTIVE
-- Edit Type: ${editContext.editIntent?.type ?? 'unknown'}
-- Confidence: ${editContext.editIntent?.confidence ?? 'unknown'}
-- Files to Edit: ${(editContext.primaryFiles || []).join(', ')}
+- Edit Type: ${editContext.editIntent?.type ?? "unknown"}
+- Confidence: ${editContext.editIntent?.confidence ?? "unknown"}
+- Files to Edit: ${(editContext.primaryFiles || []).join(", ")}
 
 🚨 CRITICAL RULE - VIOLATION WILL RESULT IN FAILURE 🚨
 YOU MUST ***ONLY*** GENERATE THE FILES LISTED ABOVE!
@@ -227,10 +236,14 @@ THE AI INTENT ANALYZER HAS ALREADY DETERMINED THE FILES.
 DO NOT SECOND-GUESS IT.
 DO NOT ADD MORE FILES.
 ONLY OUTPUT THE EXACT FILES LISTED IN "Files to Edit".
-` : ''}
+`
+    : ""
+}
 
 VIOLATION OF THESE RULES WILL RESULT IN FAILURE!
-` : ''}
+`
+    : ""
+}
 
 CRITICAL INCREMENTAL UPDATE RULES:
 - When the user asks for additions or modifications (like "add a videos page", "create a new component", "update the header"):
@@ -263,11 +276,15 @@ When the user references "the app", "the website", or "the site" without specifi
 If you see scraped websites in the context, you're working on a clone/recreation of that site.
 
 - NEVER use emojis in any code, text, console logs, or UI elements
-${designStyle && DESIGN_STYLES[designStyle] ? `
+${
+  designStyle && DESIGN_STYLES[designStyle]
+    ? `
 
 🎨 USER-SELECTED DESIGN STYLE — FOLLOW EXACTLY (OVERRIDES DEFAULT THEME):
 ${DESIGN_STYLES[designStyle].instructions}
-` : ''}
+`
+    : ""
+}
 
 JASMINE DESIGN ENGINE — REFERENCE-FREE PIPELINE:
 Most AI tools do: Prompt → Code → Website. Jasmine does: Prompt → Design System → Assets → Layout → Motion → Conversion → Code. Follow this order.
@@ -572,13 +589,22 @@ Only after outputting these commands should you give your final summary. Never s
 }
 
 /** System prompt for generation (new projects). */
-export const SYSTEM_PROMPT = buildSystemPrompt({ conversationContext: '', isEdit: false });
+export const SYSTEM_PROMPT = buildSystemPrompt({
+  conversationContext: "",
+  isEdit: false,
+});
 
 /** System prompt for edit requests. */
-export const EDIT_SYSTEM_PROMPT = buildSystemPrompt({ conversationContext: '', isEdit: true });
+export const EDIT_SYSTEM_PROMPT = buildSystemPrompt({
+  conversationContext: "",
+  isEdit: true,
+});
 
 /** Get system prompt for generation, with optional design style. Use for React and HTML modes. */
-export function getSystemPromptForGeneration(designStyle = null, htmlMode = false) {
+export function getSystemPromptForGeneration(
+  designStyle = null,
+  htmlMode = false,
+) {
   if (htmlMode) {
     const base = HTML_SYSTEM_PROMPT;
     if (designStyle && DESIGN_STYLES[designStyle]) {
@@ -586,7 +612,11 @@ export function getSystemPromptForGeneration(designStyle = null, htmlMode = fals
     }
     return base;
   }
-  return buildSystemPrompt({ conversationContext: '', isEdit: false, designStyle });
+  return buildSystemPrompt({
+    conversationContext: "",
+    isEdit: false,
+    designStyle,
+  });
 }
 
 /** HTML mode: multi-file HTML/CSS/JS — no build, no sandbox, instant preview. */
@@ -720,12 +750,15 @@ RULES:
 
 /** Wraps user prompt with full-frontend emphasis. */
 export function enhanceUserPrompt(prompt) {
-  return prompt.trim() + `
+  return (
+    prompt.trim() +
+    `
 
 [CRITICAL: Generate ENOUGH code. NEVER truncate — every file 100% complete to the last character. No cutting mid-line or mid-tag.
 - OUTPUT FORMAT: Each file MUST be ---FILE:path--- then newline then \`\`\`lang then newline then content then \`\`\`. No commentary between files.
 - NAV = PAGES: Every header link = a full page.
 - Sections: Home 5+, other pages 4+.
 - Output pages BEFORE App.jsx. No phantom imports.
-- Full, shippable, product-grade.]`;
+- Full, shippable, product-grade.]`
+  );
 }
