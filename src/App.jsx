@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { generateWithGemini, generateWithOpenAI, editWithGemini, editWithOpenAI, extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, ensurePackageDependencies, applyPackageFixes, webSearch, decideSearchQuery, getHtmlPreviewContent, projectToRaw } from './api';
-import { HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT, DESIGN_STYLES, getSystemPromptForGeneration } from './systemPrompt.js';
+import { extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, ensurePackageDependencies, applyPackageFixes, getHtmlPreviewContent, projectToRaw, webSearch } from './api';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
 import BlogPage from './pages/BlogPage';
@@ -13,7 +12,6 @@ import PasswordGate from './components/PasswordGate';
 import FileExplorer from './FileExplorer';
 import BlurPopUpByWord from './components/BlurPopUpByWord';
 import AuthPage from './components/AuthPage';
-import E2BBadge from './components/E2BBadge';
 import StatusBubble from './components/StatusBubble';
 import ProjectSidebar from './components/ProjectSidebar';
 import CommandPalette from './components/CommandPalette';
@@ -119,43 +117,12 @@ function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
   );
 }
 
-function ModelSelectDropdown({ provider, setProvider, isLight, borderCl }) {
-  const selectCl = isLight
-    ? 'bg-[#fffaf0] text-text-primary border-[rgba(220,211,195,0.9)] hover:bg-[#f6f4ec]'
-    : 'bg-white/[0.06] text-text-primary border-white/[0.08] hover:bg-white/[0.08]';
-
+function BackendComingSoon({ isLight, borderCl }) {
+  const cl = isLight ? 'text-text-secondary' : 'text-text-muted';
   return (
-    <select
-      value={provider}
-      onChange={(e) => setProvider(e.target.value)}
-      className={`h-7 min-w-[6.5rem] text-xs font-medium rounded-lg pl-2.5 pr-7 border cursor-pointer appearance-none bg-no-repeat bg-[length:10px] bg-[right_0.4rem_center] ${borderCl} ${selectCl}`}
-      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
-    >
-      <option value="gemini">Gemini 3 Flash</option>
-      <option value="openai">GPT (direct)</option>
-    </select>
-  );
-}
-
-function DesignStyleSelector({ designStyle, setDesignStyle, isLight, borderCl, disabled }) {
-  const selectCl = isLight
-    ? 'bg-[#fffaf0] text-text-primary border-[rgba(220,211,195,0.9)] hover:bg-[#f6f4ec]'
-    : 'bg-white/[0.06] text-text-primary border-white/[0.08] hover:bg-white/[0.08]';
-
-  return (
-    <select
-      value={designStyle || ''}
-      onChange={(e) => setDesignStyle(e.target.value || null)}
-      disabled={disabled}
-      className={`h-7 min-w-[7rem] text-xs font-medium rounded-lg pl-2.5 pr-7 border cursor-pointer appearance-none bg-no-repeat bg-[length:10px] bg-[right_0.4rem_center] ${borderCl} ${selectCl} ${disabled ? 'opacity-60' : ''}`}
-      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
-      title="Design style for generation"
-    >
-      <option value="">Style: Auto</option>
-      {Object.entries(DESIGN_STYLES).map(([key, { label }]) => (
-        <option key={key} value={key}>Style: {label}</option>
-      ))}
-    </select>
+    <span className={`h-7 flex items-center text-xs ${cl}`}>
+      New backend coming soon
+    </span>
   );
 }
 
@@ -179,7 +146,7 @@ async function runSlashCommands(commands, ctx) {
       } else if (cmd === 'retry') {
         setChatMessages((prev) => [...prev, { role: 'status', message: BACKEND_UNAVAILABLE, details: [], icon: 'ph-warning' }]);
       } else if (cmd === 'web-search' && arg) {
-        const results = await webSearch(arg);
+        const results = await webSearch();
         setChatMessages((prev) => [...prev, {
           role: 'status',
           message: `Web search: ${arg}`,
@@ -248,8 +215,6 @@ function AppBody({
   chatMessages,
   chatInput,
   setChatInput,
-  provider,
-  setProvider,
   error,
   deployUrl,
   sandboxStarting,
@@ -297,8 +262,6 @@ function AppBody({
   loadingSharedProjects,
   blogSlug,
   sharedProjectsCount,
-  designStyle,
-  setDesignStyle,
 }) {
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
@@ -685,13 +648,7 @@ function AppBody({
                         >
                           <i className="ph ph-paperclip text-base" />
                         </motion.button>
-                        <DesignStyleSelector designStyle={designStyle} setDesignStyle={setDesignStyle} isLight={isLight} borderCl={borderCl} disabled={isGenerating} />
-                        <ModelSelectDropdown
-                          provider={provider}
-                          setProvider={setProvider}
-                          isLight={isLight}
-                          borderCl={borderCl}
-                        />
+                        <BackendComingSoon isLight={isLight} borderCl={borderCl} />
                         <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} disabled={isGenerating || isEditing} />
                         <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                           {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
@@ -966,14 +923,8 @@ function AppBody({
                     >
                       <i className="ph ph-paperclip text-base" />
                     </motion.button>
-                    <DesignStyleSelector designStyle={designStyle} setDesignStyle={setDesignStyle} isLight={isLight} borderCl={borderCl} disabled={isGenerating} />
                     <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} disabled={isGenerating || isEditing} />
-                    <ModelSelectDropdown
-                      provider={provider}
-                      setProvider={setProvider}
-                      isLight={isLight}
-                      borderCl={borderCl}
-                    />
+                    <BackendComingSoon isLight={isLight} borderCl={borderCl} />
                     <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                       {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                     </span>
@@ -1129,12 +1080,7 @@ function App() {
   const [sharedProjects, setSharedProjects] = useState([]);
   const [loadingSharedProjects, setLoadingSharedProjects] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState(null);
-  const [e2bBadgeDismissed, setE2bBadgeDismissed] = useState(false);
   const [htmlMode, setHtmlMode] = useState(() => localStorage.getItem('jasmine_html_mode') === 'true');
-  const [designStyle, setDesignStyle] = useState(() => {
-    const s = localStorage.getItem('jasmine_design_style');
-    return s && DESIGN_STYLES[s] ? s : null;
-  });
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [shareModalProject, setShareModalProject] = useState(null);
   const saveTimeoutRef = useRef(null);
@@ -1169,12 +1115,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('jasmine_html_mode', String(htmlMode));
   }, [htmlMode]);
-
-  useEffect(() => {
-    if (designStyle) localStorage.setItem('jasmine_design_style', designStyle);
-    else localStorage.removeItem('jasmine_design_style');
-  }, [designStyle]);
-
 
   const prevGenEditRef = useRef({ isGenerating: false, isEditing: false });
   useEffect(() => {
@@ -1421,120 +1361,7 @@ function App() {
 
 
   const generate = async () => {
-    if (firebaseConfigured && !user) {
-      setShowAuthModal(true);
-      setError('Sign in to generate');
-      return;
-    }
-    if (!prompt.trim()) {
-      setError('Enter a prompt to generate');
-      textareaRef.current?.focus();
-      return;
-    }
-
-    const key = provider === 'openai'
-      ? import.meta.env.VITE_OPENAI_API_KEY
-      : import.meta.env.VITE_GEMINI_API_KEY;
-    if (!key) {
-      const keyName = provider === 'openai' ? 'OPENAI' : 'GEMINI';
-      setError(`Add VITE_${keyName}_API_KEY to your .env file`);
-      return;
-    }
-
-    setIsGenerating(true);
-    setError('');
-    setStreamingRaw('');
-    setGeneratedHTML('');
-    setGeneratedProject(null);
-    setCurrentProjectId(null);
-    setChatMessages([{ role: 'user', content: prompt }]);
-    setPage('designer');
-    setRightTab('files');
-
-    try {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-
-      // Backend removed - no sandbox/preview.
-      // Streaming updates caused 20+ rebuilds per project, 504 timeouts, and port errors.
-      const onChunk = (chunk) => setStreamingRaw(chunk);
-
-      let searchContext = [];
-      const decideProvider = provider;
-      const searchQuery = await decideSearchQuery(prompt, decideProvider, key, apiBase);
-      if (searchQuery) {
-        try {
-          searchContext = await webSearch(searchQuery, apiBase);
-          if (searchContext?.length > 0) {
-            setChatMessages((prev) => [...prev, { role: 'status', message: 'Searching web for context', details: [searchQuery], icon: 'ph-magnifying-glass', detailLabel: 'query' }]);
-          }
-        } catch (e) {
-          console.warn('[Jasmine] AI-requested search failed:', e?.message);
-        }
-      }
-
-      const sysPrompt = getSystemPromptForGeneration(designStyle || null, htmlMode);
-      const generateFn =
-        provider === 'openai'
-          ? (k, p, onC, cf, sc) => generateWithOpenAI(k, p, onC, cf, sc, sysPrompt)
-          : (k, p, onC, cf, sc) => generateWithGemini(k, p, onC, cf, sc, sysPrompt);
-      const genKey = key;
-      let result = await generateFn(genKey, prompt, onChunk, contextFiles, searchContext);
-
-      const project = extractNextProject(result);
-      if (project?.files) {
-        const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-        const replaced = {};
-        for (const [path, content] of Object.entries(project.files)) {
-          replaced[path] = await replaceImagePlaceholders(String(content), apiBase, geminiKey);
-        }
-        project.files = replaced;
-      }
-      if (project) setGeneratedProject(project);
-      setGeneratedHTML(result);
-
-      if (project?.files && !htmlMode) {
-        applyPackageFixes(project.files);
-        ensurePackageDependencies(project.files);
-      }
-
-      console.log('[Jasmine] generate complete', project ? Object.keys(project.files).length + ' files' : 'no project');
-      trackGeneration({ provider, fileCount: project?.files ? Object.keys(project.files).length : 0, hasContextFiles: contextFiles?.length > 0, hasSearchContext: searchContext?.length > 0 });
-      const msg = 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".';
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: msg }]);
-      const commands = extractSlashCommands(result);
-      if (commands.length > 0) {
-        runSlashCommands(commands, {
-          deployUrl,
-          netlifyUrl,
-          generatedProject: project,
-          setChatMessages,
-          setError,
-          downloadProject: async () => {
-            try {
-              await downloadProjectAsZip(project, result);
-            } catch (e) {
-              setError(e?.message || 'Download failed');
-            }
-          },
-        });
-      }
-      if (firebaseConfigured && user && project?.files) {
-        const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }];
-        try {
-          await saveProject({ files: project.files, html: result, chatMessages: finalMessages });
-          refreshProjects();
-        } catch (e) {
-          setProjects((prev) => {
-            const entry = { id: `temp-${Date.now()}`, name: prompt?.slice(0, 50) || 'Untitled', prompt, files: project.files, ...project };
-            return [entry, ...prev.filter((p) => !p.id?.startsWith('temp-'))];
-          });
-        }
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsGenerating(false);
-    }
+    setError('New backend coming soon.');
   };
 
   const handleKeyDown = (e) => {
@@ -1564,78 +1391,7 @@ function App() {
   const sendChatMessage = async () => {
     const msg = chatInput.trim();
     if (!msg || isEditing) return;
-    const editKey = provider === 'openai' ? import.meta.env.VITE_OPENAI_API_KEY : import.meta.env.VITE_GEMINI_API_KEY;
-    if (!editKey) { setError('API key required'); return; }
-
-    setChatMessages((prev) => [...prev, { role: 'user', content: msg }]);
-    setChatInput('');
-    setIsEditing(true);
-    setError('');
-    setStreamingRaw('');
-    setRightTab(htmlMode ? 'preview' : 'files');
-
-    const currentCode = (generatedProject?.files && projectToRaw(generatedProject)) || generatedHTML || streamingRaw;
-    if (!currentCode) {
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'Generate first.' }]);
-      setIsEditing(false);
-      return;
-    }
-
-    try {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      const editSysPrompt = htmlMode ? HTML_EDIT_SYSTEM_PROMPT : undefined;
-      const editFn =
-        provider === 'openai'
-          ? (k, c, m, onC, cf) => editWithOpenAI(k, c, m, onC, cf, editSysPrompt)
-          : (k, c, m, onC, cf) => editWithGemini(k, c, m, onC, cf, editSysPrompt);
-      const keyForEdit = editKey;
-      const result = await editFn(keyForEdit, currentCode, msg, (chunk) => setStreamingRaw(chunk), contextFiles);
-      const project = extractNextProject(result, generatedProject?.files || null);
-      if (project?.files) {
-        const editApiBase = import.meta.env.VITE_API_URL || '';
-        const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-        const replaced = {};
-        for (const [path, content] of Object.entries(project.files)) {
-          replaced[path] = await replaceImagePlaceholders(String(content), apiBase, geminiKey);
-        }
-        const mergedFiles = { ...(generatedProject?.files || {}), ...replaced };
-        if (!htmlMode) {
-          applyPackageFixes(mergedFiles);
-          ensurePackageDependencies(mergedFiles);
-        }
-        setGeneratedProject({ files: mergedFiles });
-      }
-      setGeneratedHTML(result);
-      console.log('[Jasmine] edit complete', project?.files ? Object.keys(project.files).length + ' files' : '');
-      if (project?.files) trackEdit({ provider, fileCount: Object.keys(project.files).length });
-      const summary = extractEditSummary(result);
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: summary || (htmlMode ? 'Done. Preview updated.' : 'Done. Check the Files tab.') }]);
-      setRightTab(htmlMode ? 'preview' : 'files');
-      const commands = extractSlashCommands(result);
-      if (commands.length > 0) {
-        const proj = project?.files ? { files: project.files } : generatedProject;
-        runSlashCommands(commands, {
-          deployUrl,
-          netlifyUrl,
-          generatedProject: proj,
-          setChatMessages,
-          setError,
-          downloadProject: async () => {
-            try {
-              await downloadProjectAsZip(proj, result || generatedHTML || streamingRaw);
-            } catch (e) {
-              setError(e?.message || 'Download failed');
-            }
-          },
-        });
-      }
-      if (firebaseConfigured && user) debouncedSave();
-    } catch (err) {
-      setError(err.message);
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
-    } finally {
-      setIsEditing(false);
-    }
+    setError('New backend coming soon.');
   };
 
   const hasOutput = generatedHTML || streamingRaw || isGenerating || (generatedProject?.files && Object.keys(generatedProject.files).length > 0);
@@ -1753,10 +1509,8 @@ function App() {
     chatMessages,
     chatInput,
     setChatInput,
-    provider,
-    setProvider,
-    error,
-    deployUrl,
+  error,
+  deployUrl,
     sandboxStarting,
     previewRetryKey,
     setPreviewRetryKey,
@@ -1806,8 +1560,6 @@ function App() {
     blogSlug,
     htmlMode,
     setHtmlMode,
-    designStyle,
-    setDesignStyle,
   };
 
   if (WAITLIST_ENABLED && isRoot) {
@@ -1895,14 +1647,6 @@ function App() {
           onGoogle={signInWithGoogle}
           theme={theme}
         />
-      )}
-      {!e2bBadgeDismissed && (
-        <div className="fixed bottom-4 left-4 z-50 flex items-center border border-zinc-200 bg-white shadow-lg">
-          <E2BBadge
-            showClose
-            onClose={() => setE2bBadgeDismissed(true)}
-          />
-        </div>
       )}
     </div>
   );

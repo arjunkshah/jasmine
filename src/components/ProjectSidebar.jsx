@@ -132,19 +132,6 @@ export default function ProjectSidebar({
                         Share
                       </button>
                     )}
-                    {p.files && Object.keys(p.files).length > 0 && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSpinUpSandbox(p);
-                        }}
-                        className="px-2 py-1 text-xs text-jasmine-400 hover:text-jasmine-300 flex items-center gap-1 rounded"
-                        title="Open in sandbox"
-                      >
-                        <i className="ph ph-rocket-launch"></i>
-                        Sandbox
-                      </button>
-                    )}
                     {onDeleteProject && (
                       <button
                         onClick={(e) => {

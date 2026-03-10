@@ -1,471 +1,9 @@
-import { SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT, HTML_SYSTEM_PROMPT, HTML_EDIT_SYSTEM_PROMPT, enhanceUserPrompt } from './systemPrompt.js';
+/**
+ * Parsing and project utilities. No AI generation — new backend coming.
+ */
 import { fixPhosphorIcons, applyPackageFixes } from './lib/package-fixes.js';
 import { fixUnterminatedStringsInContent } from './lib/fix-unterminated.js';
 export { fixPhosphorIcons, applyPackageFixes };
-
-/** Detect if user pasted a build/syntax error — if so, prepend instruction to use ---EDIT:--- only. */
-function maybePrependErrorFixInstruction(userMessage) {
-  if (!userMessage || typeof userMessage !== 'string') return userMessage;
-  const hasError = /ERROR:|Transform failed|Expected.*but found|:\d+:\d+:/.test(userMessage);
-  const hasFileLine = /src\/[^\s]+\.(jsx?|tsx?|css):\d+/.test(userMessage);
-  if (hasError && hasFileLine) {
-    return `[USER PASTED A BUILD ERROR — Fix ONLY the exact line/location in the error. Use ---EDIT:path--- with ---SEARCH---/---REPLACE---. Do NOT output full ---FILE:path--- blocks. One-line fix only.]\n\n${userMessage}`;
-  }
-  return userMessage;
-}
-
-function buildContextBlock(files, searchContext = null) {
-  const parts = [];
-  if (searchContext?.length) {
-    const searchBlock = searchContext.map((r) => `- ${r.title}\n  ${r.link}\n  ${r.snippet || ''}`).join('\n\n');
-    parts.push(`\n\nWEB SEARCH CONTEXT (use for current info, trends, references):\n\n${searchBlock}\n\n`);
-  }
-  if (files?.length) {
-    const blocks = files.map((f) => `---FILE:${f.name}---\n${typeof f.content === 'string' ? f.content : ''}`).join('\n\n');
-    parts.push(`\n\nADDITIONAL CONTEXT (user-uploaded files — use for reference):\n\n${blocks}\n\n`);
-  }
-  return parts.join('');
-}
-
-/** Ask the AI if it needs to search the web for this prompt. Returns search query or null. (No backend: always returns null.) */
-export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '', gatewayModel = 'kimi-k2.5') {
-  if (!prompt?.trim()) return null;
-  if (provider === 'ai-gateway') return null;
-  const msg = `User wants to build: "${prompt.slice(0, 200)}". Do you need to search the web for current info (trends, references, examples)? Reply with exactly SEARCH:query (one short query, e.g. "2024 web design trends") or NO_SEARCH.`;
-  if (provider === 'openai' && apiKey) {
-    try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: msg }],
-          stream: false,
-          temperature: 0.2,
-          max_tokens: 80,
-        }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      const text = (data.choices?.[0]?.message?.content || '').trim().toUpperCase();
-      const m = text.match(/SEARCH:\s*(.+)/);
-      return m ? m[1].trim().slice(0, 100) : null;
-    } catch (e) {
-      console.warn('[Jasmine] decideSearchQuery (openai) failed:', e?.message);
-      return null;
-    }
-  }
-  if (!apiKey) return null;
-  try {
-    if (provider === 'groq') {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'moonshotai/kimi-k2-instruct-0905',
-          messages: [{ role: 'user', content: msg }],
-          stream: false,
-          temperature: 0.2,
-          max_tokens: 80,
-        }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      const text = (data.choices?.[0]?.message?.content || '').trim().toUpperCase();
-      const m = text.match(/SEARCH:\s*(.+)/);
-      return m ? m[1].trim().slice(0, 100) : null;
-    }
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: msg }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 80 },
-        }),
-      }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().toUpperCase();
-    const m = text.match(/SEARCH:\s*(.+)/);
-    return m ? m[1].trim().slice(0, 100) : null;
-  } catch (e) {
-    console.warn('[Jasmine] decideSearchQuery failed:', e?.message);
-    return null;
-  }
-}
-
-/** Web search — no backend. Returns empty array. */
-export async function webSearch(query, apiBase = '') {
-  return [];
-}
-
-/** Groq model IDs: Kimi = moonshotai/kimi-k2-instruct-0905, Gemini (stand-in) = llama-3.3-70b-versatile */
-export const GROQ_MODEL_KIMI = 'moonshotai/kimi-k2-instruct-0905';
-export const GROQ_MODEL_GEMINI = 'llama-3.3-70b-versatile';
-
-export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT, model = GROQ_MODEL_KIMI) {
-  const contextBlock = buildContextBlock(contextFiles, searchContext);
-  const userContent = enhanceUserPrompt(prompt) + contextBlock;
-
-  return tryWithClientKeys(apiKey, async (key) => {
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: model || GROQ_MODEL_KIMI,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userContent },
-      ],
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 16384,
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Groq API error: ${response.status}`);
-  }
-
-  return streamResponse(response, onChunk);
-  });
-}
-
-export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT, model = GROQ_MODEL_KIMI) {
-  const contextBlock = buildContextBlock(contextFiles);
-  const msg = maybePrependErrorFixInstruction(userMessage);
-  const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: model || GROQ_MODEL_KIMI,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt },
-      ],
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 16384,
-    }),
-  });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Groq API error: ${response.status}`);
-  }
-  return streamResponse(response, onChunk);
-}
-
-export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
-  const contextBlock = buildContextBlock(contextFiles);
-  const msg = maybePrependErrorFixInstruction(userMessage);
-  const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 16384 },
-      }),
-    }
-  );
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Gemini API error: ${response.status}`);
-  }
-  return streamGeminiResponse(response, onChunk);
-}
-
-/** Parse comma-separated keys for client-side rotation. */
-function parseClientKeys(raw) {
-  if (!raw || typeof raw !== 'string') return [];
-  return raw.split(',').map((k) => k.trim()).filter(Boolean);
-}
-
-/** Try keys in sequence on 429. */
-async function tryWithClientKeys(keys, fetchFn) {
-  const keyList = parseClientKeys(keys);
-  const effectiveKeys = keyList.length ? keyList : [keys];
-  let lastErr;
-  for (const key of effectiveKeys) {
-    try {
-      return await fetchFn(key);
-    } catch (e) {
-      lastErr = e;
-      const is429 = e?.message?.includes('429') || /rate limit|quota exceeded|resource exhausted/i.test(String(e?.message));
-      if (!is429) throw e;
-    }
-  }
-  throw lastErr;
-}
-
-export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
-  const contextBlock = buildContextBlock(contextFiles, searchContext);
-  const userContent = enhanceUserPrompt(prompt) + contextBlock;
-
-  return tryWithClientKeys(apiKey, async (key) => {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts: [{ text: userContent }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 32000,
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Gemini API error: ${response.status}`);
-  }
-
-  return streamGeminiResponse(response, onChunk);
-  });
-}
-
-/** Generate via OpenAI API (gpt-4o, etc.). Uses VITE_OPENAI_API_KEY. Multi-key: key1,key2 */
-export async function generateWithOpenAI(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
-  const contextBlock = buildContextBlock(contextFiles, searchContext);
-  const userContent = enhanceUserPrompt(prompt) + contextBlock;
-
-  return tryWithClientKeys(apiKey, async (key) => {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userContent },
-      ],
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 16384,
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `OpenAI API error: ${response.status}`);
-  }
-
-  return streamResponse(response, onChunk);
-  });
-}
-
-/** Edit via OpenAI API. */
-export async function editWithOpenAI(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT) {
-  const contextBlock = buildContextBlock(contextFiles);
-  const msg = maybePrependErrorFixInstruction(userMessage);
-  const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt },
-      ],
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 16384,
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `OpenAI API error: ${response.status}`);
-  }
-
-  return streamResponse(response, onChunk);
-}
-
-async function streamResponse(response, onChunk) {
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let full = '';
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const data = line.slice(6).trim();
-      if (data === '[DONE]') break;
-
-      try {
-        const json = JSON.parse(data);
-        const content = json.choices?.[0]?.delta?.content;
-        if (content) {
-          full += content;
-          onChunk(full);
-        }
-      } catch {}
-    }
-  }
-
-  return full;
-}
-
-async function streamGeminiResponse(response, onChunk) {
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let full = '';
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const data = line.slice(6).trim();
-      if (!data || data === '[DONE]') continue;
-
-      try {
-        const json = JSON.parse(data);
-        const parts = json.candidates?.[0]?.content?.parts;
-        if (parts) {
-          for (const part of parts) {
-            if (part.text) {
-              full += part.text;
-              onChunk(full);
-            }
-          }
-        }
-      } catch {}
-    }
-  }
-
-  return full;
-}
-
-export function extractHTML(text) {
-  const htmlMatch = text.match(/<!DOCTYPE html>[\s\S]*<\/html>/i);
-  if (htmlMatch) return htmlMatch[0];
-
-  const codeBlockMatch = text.match(/```(?:html)?\s*\n([\s\S]*?)\n```/);
-  if (codeBlockMatch) return codeBlockMatch[1];
-
-  if (text.includes('<html') && text.includes('</html>')) {
-    const start = text.indexOf('<');
-    const end = text.lastIndexOf('>') + 1;
-    return text.slice(start, end);
-  }
-
-  return text;
-}
-
-/** Known package versions — used when adding deps from imports. */
-const KNOWN_PACKAGE_VERSIONS = {
-  'react-router-dom': '^6.20.0',
-  'lucide-react': '^0.460.0',
-  '@phosphor-icons/react': '^2.1.6',
-  'react-intersection-observer': '^9.5.3',
-  'framer-motion': '^11.0.0',
-  'clsx': '^2.1.0',
-  'tailwind-merge': '^2.2.0',
-  'date-fns': '^3.0.0',
-  'recharts': '^2.12.0',
-  'react-hot-toast': '^2.4.1',
-  'sonner': '^1.4.0',
-  'vaul': '^0.9.0',
-  '@radix-ui/react-dialog': '^1.0.5',
-  '@radix-ui/react-dropdown-menu': '^2.0.6',
-  '@radix-ui/react-tabs': '^1.0.4',
-  '@radix-ui/react-tooltip': '^1.0.7',
-  'class-variance-authority': '^0.7.0',
-};
-
-/** Normalize import to base package name (e.g. "lucide-react/icons" → "lucide-react"). */
-function toBasePackage(spec) {
-  if (spec.startsWith('@')) {
-    const parts = spec.split('/');
-    return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : spec;
-  }
-  return spec.split('/')[0] || spec;
-}
-
-/** Extract npm package names from import/require statements. Skips relative paths and built-ins. */
-function extractImportedPackages(files) {
-  const packages = new Set();
-  const re = /(?:from|import)\s+['"]([^'"]+)['"]|require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-  const skipPrefixes = ['.', '/', '@/', '~'];
-  const skipExact = new Set(['react', 'react-dom']);
-  for (const content of Object.values(files || {})) {
-    if (typeof content !== 'string') continue;
-    let m;
-    re.lastIndex = 0;
-    while ((m = re.exec(content)) !== null) {
-      const raw = (m[1] || m[2] || '').trim();
-      if (!raw) continue;
-      if (skipPrefixes.some((p) => raw === p || raw.startsWith(p))) continue;
-      if (skipExact.has(raw)) continue;
-      packages.add(toBasePackage(raw));
-    }
-  }
-  return packages;
-}
-
-/** Ensure package.json has all dependencies used in imports. Mutates files in place. */
-export function ensurePackageDependencies(files) {
-  if (!files || typeof files !== 'object') return files;
-  const raw = files['package.json'];
-  if (!raw || typeof raw !== 'string') return files;
-  try {
-    const pkg = JSON.parse(raw);
-    const deps = { ...(pkg.dependencies || {}) };
-    const imported = extractImportedPackages(files);
-    let changed = false;
-    for (const name of imported) {
-      if (!deps[name]) {
-        deps[name] = KNOWN_PACKAGE_VERSIONS[name] ?? '*';
-        changed = true;
-      }
-    }
-    if (changed) {
-      pkg.dependencies = deps;
-      files['package.json'] = JSON.stringify(pkg, null, 2);
-    }
-  } catch (_) {}
-  return files;
-}
-
-export { fixUnterminatedStringsInContent } from './lib/fix-unterminated.js';
 
 /** Remove slash-command lines that the AI mistakenly put inside file content. */
 function stripSlashCommandsFromContent(content) {
@@ -478,7 +16,7 @@ function stripSlashCommandsFromContent(content) {
     .trimEnd();
 }
 
-/** Extract slash commands from AI output. Returns [{ cmd, arg }] e.g. [{ cmd: 'web-search', arg: 'React trends' }]. */
+/** Extract slash commands from AI output. Returns [{ cmd, arg }]. */
 export function extractSlashCommands(text) {
   if (!text || typeof text !== 'string') return [];
   const commands = [];
@@ -487,15 +25,13 @@ export function extractSlashCommands(text) {
     const trimmed = line.trim();
     const m = trimmed.match(/^\/(\w+)(?:\s+(.+))?$/);
     if (m) {
-      const cmd = m[1].toLowerCase();
-      const arg = (m[2] || '').trim();
-      commands.push({ cmd, arg });
+      commands.push({ cmd: m[1].toLowerCase(), arg: (m[2] || '').trim() });
     }
   }
   return commands;
 }
 
-/** Extract summary from edit response (text before first ---FILE:--- or ---EDIT:---). Never show raw edit blocks in chat. */
+/** Extract summary from edit response (text before first ---FILE:--- or ---EDIT:---). */
 export function extractEditSummary(text) {
   if (!text || typeof text !== 'string') return null;
   const fileIdx = text.indexOf('---FILE:');
@@ -505,7 +41,7 @@ export function extractEditSummary(text) {
   return summary.length > 0 ? summary : null;
 }
 
-/** Extract the file currently being streamed (last ---FILE:--- block, may be partial). Returns { path, content } or null. */
+/** Extract the file currently being streamed. Returns { path, content } or null. */
 export function extractStreamingFile(text) {
   if (!text || typeof text !== 'string') return null;
   const lastIdx = text.lastIndexOf('---FILE:');
@@ -523,7 +59,7 @@ export function extractStreamingFile(text) {
   return path ? { path, content } : null;
 }
 
-/** Parse ---EDIT:path--- blocks with ---SEARCH---/---REPLACE--- for minimal edits. Returns { edits: [{ path, search, replace }] } or null. */
+/** Parse ---EDIT:path--- blocks with ---SEARCH---/---REPLACE---. */
 export function extractEdits(text) {
   if (!text || typeof text !== 'string') return [];
   const edits = [];
@@ -578,7 +114,7 @@ export function extractNextProject(text, existingFiles = null) {
   return null;
 }
 
-/** Convert project files to ---FILE:path--- format for edit API. */
+/** Convert project files to ---FILE:path--- format. */
 export function projectToRaw(project) {
   if (!project?.files || typeof project.files !== 'object') return '';
   return Object.entries(project.files)
@@ -586,7 +122,7 @@ export function projectToRaw(project) {
     .join('\n\n');
 }
 
-/** List HTML page files in project (index.html, about.html, contact.html, etc.). */
+/** List HTML page files in project. */
 export function getHtmlPages(project) {
   if (!project?.files || typeof project.files !== 'object') return [];
   return Object.keys(project.files).filter((p) => /\.html?$/i.test(p)).sort((a, b) => {
@@ -596,7 +132,7 @@ export function getHtmlPages(project) {
   });
 }
 
-/** Get HTML string for iframe srcdoc (HTML mode). Inlines page + all CSS + all JS for preview. No sandbox needed. */
+/** Get HTML string for iframe srcdoc (HTML mode). */
 export function getHtmlPreviewContent(project, page = null) {
   if (!project?.files || typeof project.files !== 'object') return '';
   const files = project.files;
@@ -604,10 +140,8 @@ export function getHtmlPreviewContent(project, page = null) {
   const pageKey = page || htmlPages[0] || 'index.html';
   let html = files[pageKey] ?? '';
   if (typeof html !== 'string' || !html.trim()) return '';
-  // Collect all CSS and JS from project
   const cssFiles = Object.entries(files).filter(([p]) => /\.css$/i.test(p));
   const jsFiles = Object.entries(files).filter(([p]) => /\.js$/i.test(p) && !p.includes('node_modules'));
-  // Inline CSS: replace <link href="*.css"> with <style>
   for (const [path, content] of cssFiles) {
     if (typeof content !== 'string') continue;
     const name = path.split('/').pop();
@@ -615,7 +149,6 @@ export function getHtmlPreviewContent(project, page = null) {
     const safeContent = content.replace(/<\/style>/gi, '<\\/style>');
     html = html.replace(regex, `<style>${safeContent}</style>`);
   }
-  // Inline JS: replace <script src="*.js"> with <script>
   for (const [path, content] of jsFiles) {
     if (typeof content !== 'string') continue;
     const name = path.split('/').pop();
@@ -628,37 +161,13 @@ export function getHtmlPreviewContent(project, page = null) {
 
 const IMAGE_PLACEHOLDER_REGEX = /\{\{IMAGE:([^}]+)\}\}/g;
 
-const FIX_ERRORS_PROMPT = `You are a code reviewer. Review this Vite + React project and fix ALL errors.
-
-## DEPENDENCIES (CRITICAL)
-Scan EVERY file for import/require statements. For each npm package (not relative paths like ./ or ../):
-- If package.json dependencies does NOT include it, ADD it with a sensible version.
-- Use common versions: vite ^4.3.9, @vitejs/plugin-react ^4.0.0, react-router-dom ^6.20.0, lucide-react ^0.460.0, @phosphor-icons/react ^2.1.6, react-intersection-observer ^9.5.3, framer-motion ^11.0.0, recharts ^2.12.0, date-fns ^3.0.0, clsx ^2.1.0, tailwind-merge ^2.2.0, @radix-ui/* ^1.0.0. Prefer lucide-react for icons. NEVER use vite ^5 or ^6 — use vite ^4.3.9 only. For unknown packages use * (accept any version).
-- NEVER remove a dependency that is imported. ALWAYS add missing ones. Add ANY package — we install everything (unknown packages get *).
-
-## OTHER FIXES
-1. **Unterminated literals** — Unclosed strings, template literals, JSX tags, brackets. Self-closing JSX: always use /> never / (e.g. <X prop /> not <X prop /).
-2. **File not found / phantom imports** — Every import must have a corresponding file. Create the file or remove the import. Check path casing.
-3. **main.jsx casing** — React, ReactDOM, createRoot, getElementById, App — exact casing. Import from './App.jsx'.
-4. **Styling** — Invalid Tailwind (dark-950 → zinc-950). Phosphor: HomeIcon → HouseIcon.
-5. **Missing exports** — Every imported component must exist with export default or export { X }.
-6. **package.json** — Valid JSON, no trailing commas.
-7. **Responsive** — min-w-0, overflow-hidden on flex children.
-8. **Phosphor icons** — Each icon imported ONCE. Never: import { UserIcon, UserIcon, UserIcon }. Use: import { UserIcon } and reference it multiple times in JSX. NEVER use: HomeIcon, MailIcon, etc. Use: HouseIcon, EnvelopeIcon, UsersIcon, MagnifyingGlassIcon, ListIcon, XIcon. Valid: HouseIcon, UserIcon, UsersIcon, CheckIcon, StarIcon, ArrowRightIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, MagnifyingGlassIcon, ListIcon, XIcon, GearIcon.
-9. **Invalid RegExp** — ONLY valid flags: g, i, m, s, u, y. Remove x, e, duplicates. Invalid flags cause SyntaxError.
-10. **src/index.css** — If missing, add with @tailwind base; @tailwind components; @tailwind utilities. NO // comments (use /* */). NO truncated @apply (e.g. w-1/ → w-1/2). Fix unclosed /*.
-11. **Tailwind v3 ONLY** — Use tailwindcss ^3.3.0 with postcss + autoprefixer. NEVER use tailwindcss ^4 or @tailwindcss/vite. index.css must use @tailwind base/components/utilities, NOT @import "tailwindcss". Remove @tailwindcss/vite from vite.config.
-12. **Vite v4 ONLY** — Use vite ^4.3.9 and @vitejs/plugin-react ^4.0.0 in devDependencies. NEVER use vite ^5, ^6, or ^7 — causes "Cannot find module dep-*.js" in preview.
-
-Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. NEVER output conversational text like "Looking at the error", "Let me check", "Let me fix this" — output ONLY ---FILE:path--- blocks (or NO_CHANGES_NEEDED). If nothing to fix, output: NO_CHANGES_NEEDED.`;
-
-/** Post-generation fix. No backend — returns null. */
-export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey, apiBase = '', gatewayModel = 'gemini-3-flash') {
-  return null;
+/** Web search — no backend. Returns empty array. */
+export async function webSearch() {
+  return [];
 }
 
-/** Replace {{IMAGE:prompt}} placeholders with placeholder URLs. No backend. */
-export async function replaceImagePlaceholders(text, apiBase = '', _unused = '') {
+/** Replace {{IMAGE:prompt}} placeholders with placeholder URLs. */
+export async function replaceImagePlaceholders(text) {
   if (!text || typeof text !== 'string') return text;
   const matches = [...text.matchAll(IMAGE_PLACEHOLDER_REGEX)];
   if (matches.length === 0) return text;
@@ -672,3 +181,65 @@ export async function replaceImagePlaceholders(text, apiBase = '', _unused = '')
   return result;
 }
 
+/** Known package versions for ensurePackageDependencies. */
+const KNOWN_PACKAGE_VERSIONS = {
+  'react-router-dom': '^6.20.0', 'lucide-react': '^0.460.0', '@phosphor-icons/react': '^2.1.6',
+  'react-intersection-observer': '^9.5.3', 'framer-motion': '^11.0.0', 'clsx': '^2.1.0',
+  'tailwind-merge': '^2.2.0', 'date-fns': '^3.0.0', 'recharts': '^2.12.0', 'react-hot-toast': '^2.4.1',
+  'sonner': '^1.4.0', 'vaul': '^0.9.0', '@radix-ui/react-dialog': '^1.0.5',
+  '@radix-ui/react-dropdown-menu': '^2.0.6', '@radix-ui/react-tabs': '^1.0.4', '@radix-ui/react-tooltip': '^1.0.7',
+  'class-variance-authority': '^0.7.0',
+};
+
+function toBasePackage(spec) {
+  if (spec.startsWith('@')) {
+    const parts = spec.split('/');
+    return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : spec;
+  }
+  return spec.split('/')[0] || spec;
+}
+
+function extractImportedPackages(files) {
+  const packages = new Set();
+  const re = /(?:from|import)\s+['"]([^'"]+)['"]|require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+  const skipPrefixes = ['.', '/', '@/', '~'];
+  const skipExact = new Set(['react', 'react-dom']);
+  for (const content of Object.values(files || {})) {
+    if (typeof content !== 'string') continue;
+    let m;
+    re.lastIndex = 0;
+    while ((m = re.exec(content)) !== null) {
+      const raw = (m[1] || m[2] || '').trim();
+      if (!raw || skipPrefixes.some((p) => raw === p || raw.startsWith(p))) continue;
+      if (skipExact.has(raw)) continue;
+      packages.add(toBasePackage(raw));
+    }
+  }
+  return packages;
+}
+
+/** Ensure package.json has all dependencies used in imports. */
+export function ensurePackageDependencies(files) {
+  if (!files || typeof files !== 'object') return files;
+  const raw = files['package.json'];
+  if (!raw || typeof raw !== 'string') return files;
+  try {
+    const pkg = JSON.parse(raw);
+    const deps = { ...(pkg.dependencies || {}) };
+    const imported = extractImportedPackages(files);
+    let changed = false;
+    for (const name of imported) {
+      if (!deps[name]) {
+        deps[name] = KNOWN_PACKAGE_VERSIONS[name] ?? '*';
+        changed = true;
+      }
+    }
+    if (changed) {
+      pkg.dependencies = deps;
+      files['package.json'] = JSON.stringify(pkg, null, 2);
+    }
+  } catch (_) {}
+  return files;
+}
+
+export { fixUnterminatedStringsInContent } from './lib/fix-unterminated.js';
