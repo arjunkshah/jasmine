@@ -9,9 +9,10 @@ import { parseKeys, isRateLimited } from '../lib/api-keys.js';
 
 const GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 const MODEL_MAP = {
-  'gpt-5.4': 'openai/gpt-5.4',
+  'gpt-5.4': 'gpt-5.4',
   'gemini-3.1-pro': 'google/gemini-3.1-pro-preview',
   'gemini-3-pro': 'google/gemini-3-pro-preview',
   'gemini-3-flash': 'google/gemini-3-flash-preview',
@@ -52,11 +53,7 @@ export default async function handler(req, res) {
 
   const gatewayKeys = parseKeys('AI_GATEWAY_API_KEY');
   const openrouterKeys = parseKeys('OPENROUTER_API_KEY');
-  if (!gatewayKeys.length && !openrouterKeys.length) {
-    return res.status(503).json({
-      error: 'AI_GATEWAY_API_KEY or OPENROUTER_API_KEY required. Add in Vercel → Settings → Environment Variables. For multi-key: AI_GATEWAY_API_KEY=key1,key2,key3',
-    });
-  }
+  const openaiKeys = parseKeys('OPENAI_API_KEY');
 
   const { prompt, model: modelId, systemPrompt, contextFiles, searchContext } = req.body || {};
   if (!prompt || typeof prompt !== 'string') {
@@ -82,10 +79,24 @@ export default async function handler(req, res) {
 
   const body = { model, messages, stream: true, temperature: 0.7, max_tokens: 16384 };
 
-  const providers = [
-    ...gatewayKeys.map((k) => ({ type: 'gateway', key: k })),
-    ...openrouterKeys.map((k) => ({ type: 'openrouter', key: k })),
-  ];
+  // GPT 5.4: use OpenAI API first (OPENAI_API_KEY), then gateway/OpenRouter
+  const isGpt54 = model === 'gpt-5.4';
+  const providers = isGpt54 && openaiKeys.length
+    ? [
+        ...openaiKeys.map((k) => ({ type: 'openai', key: k })),
+        ...gatewayKeys.map((k) => ({ type: 'gateway', key: k })),
+        ...openrouterKeys.map((k) => ({ type: 'openrouter', key: k })),
+      ]
+    : [
+        ...gatewayKeys.map((k) => ({ type: 'gateway', key: k })),
+        ...openrouterKeys.map((k) => ({ type: 'openrouter', key: k })),
+      ];
+
+  if (!providers.length) {
+    return res.status(503).json({
+      error: 'AI_GATEWAY_API_KEY, OPENROUTER_API_KEY, or OPENAI_API_KEY (for gpt-5.4) required. Add in Vercel → Settings → Environment Variables.',
+    });
+  }
 
   let response = null;
   let lastError = null;
@@ -93,8 +104,9 @@ export default async function handler(req, res) {
   outer: for (let attempt = 0; attempt <= 2; attempt++) {
     for (const { type, key } of providers) {
       try {
-        const url = type === 'gateway' ? `${GATEWAY_URL}/chat/completions` : OPENROUTER_URL;
-        response = await fetchStream(url, key, body);
+        const url = type === 'openai' ? OPENAI_URL : type === 'gateway' ? `${GATEWAY_URL}/chat/completions` : OPENROUTER_URL;
+        const reqBody = type === 'openai' || !isGpt54 ? body : { ...body, model: 'openai/gpt-5.4' };
+        response = await fetchStream(url, key, reqBody);
         break outer;
       } catch (e) {
         lastError = e;

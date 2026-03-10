@@ -152,7 +152,7 @@ function ModelSelectDropdown({ provider, setProvider, gatewayModel, setGatewayMo
       <option value="gemini-3-flash">Gemini 3 Flash (gateway)</option>
       <option value="gemini-3.1-pro">Gemini 3.1 Pro (gateway)</option>
       <option value="gemini-3-pro">Gemini 3 Pro (gateway)</option>
-      <option value="gpt-5.4">GPT 5.4 (gateway)</option>
+      <option value="gpt-5.4">GPT 5.4 (OpenAI)</option>
     </select>
   );
 }
