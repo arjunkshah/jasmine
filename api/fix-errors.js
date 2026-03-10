@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing project.files' });
   }
 
-  const model = modelId || 'gemini-3-pro';
+  const model = modelId || 'gemini-3-flash';
   const raw = projectToRaw({ files: project.files });
   const prompt = `${FIX_PROMPT}\n\nCURRENT PROJECT:\n${raw.slice(0, 25000)}`;
 

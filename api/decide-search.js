@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   const msg = `User wants to build: "${String(prompt).slice(0, 200)}". Do you need to search the web for current info (trends, references, examples)? Reply with exactly SEARCH:query (one short query, e.g. "2024 web design trends") or NO_SEARCH.`;
 
   try {
-    const text = await chatWithGateway(modelId || 'gemini-3.1-pro', [{ role: 'user', content: msg }], { temperature: 0.2, max_tokens: 80 });
+    const text = await chatWithGateway(modelId || 'gemini-3-flash', [{ role: 'user', content: msg }], { temperature: 0.2, max_tokens: 80 });
     if (!text) return res.json({ query: null });
     const m = String(text).trim().toUpperCase().match(/SEARCH:\s*(.+)/);
     const query = m ? m[1].trim().slice(0, 100) : null;

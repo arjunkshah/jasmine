@@ -92,7 +92,7 @@ export async function decideSearchQuery(prompt, provider, apiKey, apiBase = '', 
       return m ? m[1].trim().slice(0, 100) : null;
     }
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,10 +133,11 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
   const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
+  return tryWithClientKeys(apiKey, async (key) => {
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${key}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -157,6 +158,7 @@ export async function generateWithGroq(apiKey, prompt, onChunk, contextFiles = [
   }
 
   return streamResponse(response, onChunk);
+  });
 }
 
 export async function editWithGroq(apiKey, currentCode, userMessage, onChunk, contextFiles = [], systemPrompt = EDIT_SYSTEM_PROMPT, model = GROQ_MODEL_KIMI) {
@@ -189,7 +191,7 @@ export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, 
   const msg = maybePrependErrorFixInstruction(userMessage);
   const prompt = `EDIT REQUEST: ${msg}\n\nCURRENT PROJECT (only modify what's needed):\n${currentCode.slice(0, 12000)}${contextBlock}\n\nMake minimal targeted edits. For small changes (color, text, one line): use ---EDIT:path--- with ---SEARCH---/---REPLACE---. For larger changes or new files: use ---FILE:path---. NEVER output full files for tiny edits.`;
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -207,12 +209,36 @@ export async function editWithGemini(apiKey, currentCode, userMessage, onChunk, 
   return streamGeminiResponse(response, onChunk);
 }
 
+/** Parse comma-separated keys for client-side rotation. */
+function parseClientKeys(raw) {
+  if (!raw || typeof raw !== 'string') return [];
+  return raw.split(',').map((k) => k.trim()).filter(Boolean);
+}
+
+/** Try keys in sequence on 429. */
+async function tryWithClientKeys(keys, fetchFn) {
+  const keyList = parseClientKeys(keys);
+  const effectiveKeys = keyList.length ? keyList : [keys];
+  let lastErr;
+  for (const key of effectiveKeys) {
+    try {
+      return await fetchFn(key);
+    } catch (e) {
+      lastErr = e;
+      const is429 = e?.message?.includes('429') || /rate limit|quota exceeded|resource exhausted/i.test(String(e?.message));
+      if (!is429) throw e;
+    }
+  }
+  throw lastErr;
+}
+
 export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
+  return tryWithClientKeys(apiKey, async (key) => {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -233,6 +259,7 @@ export async function generateWithGemini(apiKey, prompt, onChunk, contextFiles =
   }
 
   return streamGeminiResponse(response, onChunk);
+  });
 }
 
 /** Generate via Vercel AI Gateway (gemini-3-pro, gpt-5.4). No client API key — uses server AI_GATEWAY_API_KEY. */
@@ -245,7 +272,7 @@ export async function generateWithGateway(apiBase, modelId, prompt, onChunk, con
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt: userContent,
-      model: modelId || 'gemini-3.1-pro',
+      model: modelId || 'gemini-3-flash',
       systemPrompt,
       contextFiles: contextFiles || [],
       searchContext: searchContext || [],
@@ -260,15 +287,16 @@ export async function generateWithGateway(apiBase, modelId, prompt, onChunk, con
   return streamResponse(response, onChunk);
 }
 
-/** Generate via OpenAI API (gpt-4o, etc.). Uses VITE_OPENAI_API_KEY. */
+/** Generate via OpenAI API (gpt-4o, etc.). Uses VITE_OPENAI_API_KEY. Multi-key: key1,key2 */
 export async function generateWithOpenAI(apiKey, prompt, onChunk, contextFiles = [], searchContext = null, systemPrompt = SYSTEM_PROMPT) {
   const contextBlock = buildContextBlock(contextFiles, searchContext);
   const userContent = enhanceUserPrompt(prompt) + contextBlock;
 
+  return tryWithClientKeys(apiKey, async (key) => {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -289,6 +317,7 @@ export async function generateWithOpenAI(apiKey, prompt, onChunk, contextFiles =
   }
 
   return streamResponse(response, onChunk);
+  });
 }
 
 /** Edit via OpenAI API. */
@@ -334,7 +363,7 @@ export async function editWithGateway(apiBase, modelId, currentCode, userMessage
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt,
-      model: modelId || 'gemini-3.1-pro',
+      model: modelId || 'gemini-3-flash',
       systemPrompt,
       contextFiles,
     }),
@@ -697,11 +726,11 @@ Scan EVERY file for import/require statements. For each npm package (not relativ
 Output ONLY the changed files in ---FILE:path--- format. Each file complete. No explanations. NEVER output conversational text like "Looking at the error", "Let me check", "Let me fix this" — output ONLY ---FILE:path--- blocks (or NO_CHANGES_NEEDED). If nothing to fix, output: NO_CHANGES_NEEDED.`;
 
 /** Post-generation: use the OTHER model to review and fix errors. Runs up to 2 passes. Returns merged files or null. */
-export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey, apiBase = '', gatewayModel = 'gemini-3.1-pro') {
+export async function fixProjectErrors(project, primaryProvider, groqKey, geminiKey, apiBase = '', gatewayModel = 'gemini-3-flash') {
   if (!project?.files || Object.keys(project.files).length === 0) return null;
 
   if (primaryProvider === 'ai-gateway') {
-    const otherModel = gatewayModel === 'gemini-3.1-pro' ? 'gpt-5.4' : 'gemini-3.1-pro';
+    const otherModel = gatewayModel === 'gemini-3-flash' ? 'gpt-5.4' : 'gemini-3-flash';
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000);

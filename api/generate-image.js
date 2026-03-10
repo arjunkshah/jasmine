@@ -1,13 +1,15 @@
 /**
- * Image generation — multiple providers in order:
- * 1. OpenRouter (OPENROUTER_API_KEY) — google/gemini-2.5-flash-image-generation
- * 2. Vercel AI Gateway (AI_GATEWAY_API_KEY)
- * 3. OpenAI DALL-E 3 (OPENAI_API_KEY)
+ * Image generation — multiple providers in order, multi-key rotation on 429:
+ * 1. OpenRouter (OPENROUTER_API_KEY=key1,key2)
+ * 2. Vercel AI Gateway (AI_GATEWAY_API_KEY=key1,key2)
+ * 3. OpenAI DALL-E 3 (OPENAI_API_KEY=key1,key2)
  * 4. Replicate Flux (REPLICATE_API_TOKEN)
- * 5. Gemini REST/SDK (GEMINI_API_KEY)
+ * 5. Gemini REST/SDK (GEMINI_API_KEY=key1,key2)
  * On total failure: returns placeholder URL (200) instead of 500.
  */
 export const config = { maxDuration: 60 };
+
+import { parseKeys, isRateLimited } from '../lib/api-keys.js';
 
 const OPENROUTER_IMAGE_MODELS = [
   'google/gemini-2.5-flash-image-generation',
@@ -39,9 +41,11 @@ function extractImage(response) {
   return null;
 }
 
-/** Try OpenRouter image models (modalities: image). */
-async function tryOpenRouter(apiKey, text) {
-  for (const model of OPENROUTER_IMAGE_MODELS) {
+/** Try OpenRouter image models (modalities: image). Tries each key on 429. */
+async function tryOpenRouter(keys, text) {
+  const keyList = Array.isArray(keys) ? keys : keys ? [keys] : [];
+  for (const apiKey of keyList) {
+    for (const model of OPENROUTER_IMAGE_MODELS) {
     try {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -59,7 +63,10 @@ async function tryOpenRouter(apiKey, text) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+        const ex = new Error(err?.error?.message || `HTTP ${res.status}`);
+        ex.status = res.status;
+        ex.body = err;
+        throw ex;
       }
       const data = await res.json();
       const images = data.choices?.[0]?.message?.images;
@@ -72,14 +79,17 @@ async function tryOpenRouter(apiKey, text) {
         }
       }
     } catch (e) {
-      console.warn('[generate-image] OpenRouter', model, 'failed:', e?.message);
+      if (!isRateLimited(e?.status, e?.message)) console.warn('[generate-image] OpenRouter', model, 'failed:', e?.message);
+    }
     }
   }
   return null;
 }
 
 /** Try Vercel AI Gateway image models (modalities: text, image). */
-async function tryGateway(apiKey, text) {
+async function tryGateway(keys, text) {
+  const keyList = Array.isArray(keys) ? keys : keys ? [keys] : [];
+  for (const apiKey of keyList) {
   for (const model of GATEWAY_IMAGE_MODELS) {
     try {
       const res = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
@@ -97,7 +107,10 @@ async function tryGateway(apiKey, text) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+        const ex = new Error(err?.error?.message || `HTTP ${res.status}`);
+        ex.status = res.status;
+        ex.body = err;
+        throw ex;
       }
       const data = await res.json();
       const images = data.choices?.[0]?.message?.images;
@@ -110,14 +123,17 @@ async function tryGateway(apiKey, text) {
         }
       }
     } catch (e) {
-      console.warn('[generate-image] Gateway', model, 'failed:', e?.message);
+      if (!isRateLimited(e?.status, e?.message)) console.warn('[generate-image] Gateway', model, 'failed:', e?.message);
+    }
     }
   }
   return null;
 }
 
 /** Try OpenAI DALL-E 3. */
-async function tryOpenAI(apiKey, text) {
+async function tryOpenAI(keys, text) {
+  const keyList = Array.isArray(keys) ? keys : keys ? [keys] : [];
+  for (const apiKey of keyList) {
   try {
     const res = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -136,13 +152,17 @@ async function tryOpenAI(apiKey, text) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      const ex = new Error(err?.error?.message || `HTTP ${res.status}`);
+      ex.status = res.status;
+      ex.body = err;
+      throw ex;
     }
     const data = await res.json();
     const b64 = data.data?.[0]?.b64_json;
     if (b64) return { base64: b64, mimeType: 'image/png' };
   } catch (e) {
-    console.warn('[generate-image] OpenAI DALL-E 3 failed:', e?.message);
+    if (!isRateLimited(e?.status, e?.message)) console.warn('[generate-image] OpenAI DALL-E 3 failed:', e?.message);
+  }
   }
   return null;
 }
@@ -254,23 +274,28 @@ export default async function handler(req, res) {
   if (!prompt || typeof prompt !== 'string') {
     return sendJson(res, 400, { error: 'Missing prompt' });
   }
-  const openrouterKey = (process.env.OPENROUTER_API_KEY || '').trim();
-  const gatewayKey = (process.env.AI_GATEWAY_API_KEY || '').trim();
-  const openaiKey = (process.env.OPENAI_API_KEY || '').trim();
+  const openrouterKeys = parseKeys('OPENROUTER_API_KEY');
+  const gatewayKeys = parseKeys('AI_GATEWAY_API_KEY');
+  const openaiKeys = parseKeys('OPENAI_API_KEY');
   const replicateKey = (process.env.REPLICATE_API_TOKEN || '').trim();
-  const geminiKey = (typeof clientApiKey === 'string' ? clientApiKey : '').trim()
-    || (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+  const geminiKeys = (typeof clientApiKey === 'string' ? [clientApiKey.trim()].filter(Boolean) : [])
+    .concat(parseKeys('GEMINI_API_KEY'))
+    .concat(parseKeys('VITE_GEMINI_API_KEY'))
+    .filter(Boolean);
 
   const text = prompt.trim();
   let img = null;
 
-  if (openrouterKey) img = await tryOpenRouter(openrouterKey, text);
-  if (!img && gatewayKey) img = await tryGateway(gatewayKey, text);
-  if (!img && openaiKey) img = await tryOpenAI(openaiKey, text);
+  if (openrouterKeys.length) img = await tryOpenRouter(openrouterKeys, text);
+  if (!img && gatewayKeys.length) img = await tryGateway(gatewayKeys, text);
+  if (!img && openaiKeys.length) img = await tryOpenAI(openaiKeys, text);
   if (!img && replicateKey) img = await tryReplicate(replicateKey, text);
-  if (!img && geminiKey) {
-    img = await tryRestApi(geminiKey, text);
-    if (!img) img = await trySdk(geminiKey, text);
+  if (!img && geminiKeys.length) {
+    for (const key of geminiKeys) {
+      img = await tryRestApi(key, text);
+      if (!img) img = await trySdk(key, text);
+      if (img) break;
+    }
   }
 
   if (img) {
@@ -281,7 +306,7 @@ export default async function handler(req, res) {
   }
 
   // No provider configured
-  if (!openrouterKey && !gatewayKey && !openaiKey && !replicateKey && !geminiKey) {
+  if (!openrouterKeys.length && !gatewayKeys.length && !openaiKeys.length && !replicateKey && !geminiKeys.length) {
     return sendJson(res, 503, {
       error: 'Add OPENROUTER_API_KEY, AI_GATEWAY_API_KEY, OPENAI_API_KEY, REPLICATE_API_TOKEN, or GEMINI_API_KEY in env.',
     });

@@ -147,12 +147,12 @@ function ModelSelectDropdown({ provider, setProvider, gatewayModel, setGatewayMo
       className={`h-7 min-w-[6.5rem] text-xs font-medium rounded-lg pl-2.5 pr-7 border cursor-pointer appearance-none bg-no-repeat bg-[length:10px] bg-[right_0.4rem_center] ${borderCl} ${selectCl}`}
       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
     >
-      <option value="gemini">Gemini 3.1 Pro (direct)</option>
+      <option value="gemini">Gemini 3 Flash (direct)</option>
       <option value="openai">GPT (direct)</option>
+      <option value="gemini-3-flash">Gemini 3 Flash (gateway)</option>
       <option value="gemini-3.1-pro">Gemini 3.1 Pro (gateway)</option>
       <option value="gemini-3-pro">Gemini 3 Pro (gateway)</option>
       <option value="gpt-5.4">GPT 5.4 (gateway)</option>
-      <option value="gemini-3-flash">Gemini 3 Flash (gateway)</option>
     </select>
   );
 }
@@ -1311,8 +1311,8 @@ function App() {
   const [gatewayModel, setGatewayModel] = useState(() => {
     const p = localStorage.getItem('jasmine_provider');
     const m = localStorage.getItem('jasmine_gateway_model');
-    if (p === 'groq') return 'gemini-3.1-pro';
-    return m || 'gemini-3.1-pro';
+    if (p === 'groq') return 'gemini-3-flash';
+    return m || 'gemini-3-flash';
   });
   const [error, setError] = useState('');
   const [streamingRaw, setStreamingRaw] = useState('');
@@ -1623,7 +1623,7 @@ function App() {
     setStreamingRaw('');
     setChatMessages(full.chatMessages?.length ? full.chatMessages : [{ role: 'user', content: full.prompt || '' }, { role: 'assistant', content: 'Loaded.' }]);
     setProvider(full.provider || 'gemini');
-    setGatewayModel(full.gatewayModel || 'gemini-3.1-pro');
+    setGatewayModel(full.gatewayModel || 'gemini-3-flash');
     setCurrentProjectId(full.id);
     setPage('designer');
     setRightTab('files');

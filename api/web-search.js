@@ -1,8 +1,10 @@
 /**
- * Web search API — Serper (primary) or Tavily.
- * Env: SERPER_API_KEY or TAVILY_API_KEY
+ * Web search API — Serper (primary), Tavily, or Brave. Multi-key rotation on 429.
+ * Env: SERPER_API_KEY=key1,key2 or TAVILY_API_KEY or BRAVE_API_KEY
  */
 export const config = { maxDuration: 30 };
+
+import { parseKeys, isRateLimited } from '../lib/api-keys.js';
 
 function sendJson(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -19,14 +21,14 @@ async function searchSerper(query, apiKey) {
     },
     body: JSON.stringify({ q: query, num: 8 }),
   });
-  if (!res.ok) throw new Error(`Serper ${res.status}`);
+  if (!res.ok) {
+    const e = new Error(`Serper ${res.status}`);
+    e.status = res.status;
+    throw e;
+  }
   const data = await res.json();
   const organic = data.organic || [];
-  return organic.map((o) => ({
-    title: o.title,
-    link: o.link,
-    snippet: o.snippet,
-  }));
+  return organic.map((o) => ({ title: o.title, link: o.link, snippet: o.snippet }));
 }
 
 async function searchTavily(query, apiKey) {
@@ -40,14 +42,31 @@ async function searchTavily(query, apiKey) {
       max_results: 8,
     }),
   });
-  if (!res.ok) throw new Error(`Tavily ${res.status}`);
+  if (!res.ok) {
+    const e = new Error(`Tavily ${res.status}`);
+    e.status = res.status;
+    throw e;
+  }
   const data = await res.json();
   const results = data.results || [];
-  return results.map((r) => ({
-    title: r.title,
-    link: r.url,
-    snippet: r.content,
-  }));
+  return results.map((r) => ({ title: r.title, link: r.url, snippet: r.content }));
+}
+
+async function searchBrave(query, apiKey) {
+  const res = await fetch(
+    `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=8`,
+    {
+      headers: { 'X-Subscription-Token': apiKey },
+    }
+  );
+  if (!res.ok) {
+    const e = new Error(`Brave ${res.status}`);
+    e.status = res.status;
+    throw e;
+  }
+  const data = await res.json();
+  const results = data.web?.results || [];
+  return results.map((r) => ({ title: r.title, link: r.url, snippet: r.description }));
 }
 
 export default async function handler(req, res) {
@@ -68,28 +87,31 @@ export default async function handler(req, res) {
     return sendJson(res, 400, { error: 'Missing q or query' });
   }
 
-  const serperKey = (process.env.SERPER_API_KEY || '').trim();
-  const tavilyKey = (process.env.TAVILY_API_KEY || '').trim();
+  const serperKeys = parseKeys('SERPER_API_KEY');
+  const tavilyKeys = parseKeys('TAVILY_API_KEY');
+  const braveKeys = parseKeys('BRAVE_API_KEY');
 
-  if (serperKey) {
-    try {
-      const results = await searchSerper(searchQuery, serperKey);
-      return sendJson(res, 200, { success: true, results });
-    } catch (e) {
-      console.warn('[web-search] Serper failed:', e?.message);
-    }
-  }
+  const providers = [
+    ...serperKeys.map((k) => ({ name: 'Serper', fn: searchSerper, key: k })),
+    ...tavilyKeys.map((k) => ({ name: 'Tavily', fn: searchTavily, key: k })),
+    ...braveKeys.map((k) => ({ name: 'Brave', fn: searchBrave, key: k })),
+  ];
 
-  if (tavilyKey) {
-    try {
-      const results = await searchTavily(searchQuery, tavilyKey);
-      return sendJson(res, 200, { success: true, results });
-    } catch (e) {
-      console.warn('[web-search] Tavily failed:', e?.message);
+  for (let attempt = 0; attempt <= 2; attempt++) {
+    for (const { name, fn, key } of providers) {
+      try {
+        const results = await fn(searchQuery, key);
+        return sendJson(res, 200, { success: true, results });
+      } catch (e) {
+        if (!isRateLimited(e?.status, e?.message)) {
+          console.warn(`[web-search] ${name} failed:`, e?.message);
+        }
+      }
     }
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
   }
 
   return sendJson(res, 503, {
-    error: 'SERPER_API_KEY or TAVILY_API_KEY required for web search. Add in Vercel env. Serper: 2500 free/mo at serper.dev',
+    error: 'SERPER_API_KEY, TAVILY_API_KEY, or BRAVE_API_KEY required. Multi-key: SERPER_API_KEY=key1,key2. Serper: 2500 free/mo at serper.dev. Brave: brave.com/search/api',
   });
 }
