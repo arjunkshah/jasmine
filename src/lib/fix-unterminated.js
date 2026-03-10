@@ -51,10 +51,10 @@ export function fixUnterminatedStringsInContent(content) {
     (m, inner, tail) => inner + ' }}' + tail
   );
 
-  // --- Truncated self-closing JSX: <ComponentName / or <Component attr="x" / at end of line (missing >)
+  // --- Truncated self-closing JSX: <br / or <Component attr / (missing >) — at EOL or mid-line (e.g. <br / <span)
   out = out.replace(
-    /(<[^>\n]*\s+\/)(\s*)(\n|$)/gm,
-    (_, tag, sp, tail) => tag + '>' + sp + tail
+    /(<[^>\n]*\s+\/)(?!\s*>)/g,
+    (_, tag) => tag + '>'
   );
 
   // --- Lines ending with unclosed " or ' or ` (odd delimiter count) ---

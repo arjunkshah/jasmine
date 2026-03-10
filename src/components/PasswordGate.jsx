@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const WEBSITE_PASSWORD = 'iwillwin';
+const WEBSITE_PASSWORD = import.meta.env.VITE_WEBSITE_PASSWORD || 'iwillwin';
 
 export default function PasswordGate({ onUnlock }) {
   const [password, setPassword] = useState('');

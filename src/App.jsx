@@ -27,7 +27,7 @@ import { fetchApiCompressed } from './lib/compress-api';
 const EASE = [0.22, 1, 0.36, 1];
 
 /** Set to true to show waitlist on / and password gate on /website. Set to false to go straight to the website. */
-const WAITLIST_ENABLED = false;
+const WAITLIST_ENABLED = true;
 
 function FilePreviewChip({ f, i, onRemove, isLight, compact }) {
   const chipCl = isLight ? 'bg-[#f6f4ec] text-text-secondary border border-[rgba(220,211,195,0.9)]' : 'bg-white/10 text-text-secondary border border-white/10';
