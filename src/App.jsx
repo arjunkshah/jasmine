@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, ensurePackageDependencies, applyPackageFixes, getHtmlPreviewContent, projectToRaw, webSearch } from './api';
+import { getSystemPromptForGeneration, enhanceUserPrompt } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
 import BlogPage from './pages/BlogPage';
@@ -1361,7 +1362,124 @@ function App() {
 
 
   const generate = async () => {
-    setError('New backend coming soon.');
+    if (firebaseConfigured && !user) {
+      setShowAuthModal(true);
+      setError('Sign in to generate');
+      return;
+    }
+    if (!prompt.trim()) {
+      setError('Enter a prompt to generate');
+      textareaRef.current?.focus();
+      return;
+    }
+
+    setIsGenerating(true);
+    setError('');
+    setStreamingRaw('');
+    setGeneratedHTML('');
+    setGeneratedProject(null);
+    setCurrentProjectId(null);
+    setChatMessages([{ role: 'user', content: prompt }]);
+    setPage('designer');
+    setRightTab('files');
+
+    try {
+      const sysPrompt = getSystemPromptForGeneration(null, htmlMode);
+      const userContent = enhanceUserPrompt(prompt);
+      const apiBase = import.meta.env.VITE_API_URL || '';
+
+      const res = await fetch(`${apiBase}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: userContent,
+          systemInstruction: sysPrompt,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `API error: ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let full = '';
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (!data || data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            const text = parsed.text;
+            if (text) {
+              full += text;
+              setStreamingRaw(full);
+            }
+          } catch (_) {}
+        }
+      }
+
+      const result = full;
+      const project = extractNextProject(result);
+      if (project?.files) {
+        const replaced = {};
+        for (const [path, content] of Object.entries(project.files)) {
+          replaced[path] = await replaceImagePlaceholders(String(content));
+        }
+        project.files = replaced;
+      }
+      if (project) setGeneratedProject(project);
+      setGeneratedHTML(result);
+      if (project?.files && !htmlMode) {
+        applyPackageFixes(project.files);
+        ensurePackageDependencies(project.files);
+      }
+      trackGeneration({ provider: 'gemini', fileCount: project?.files ? Object.keys(project.files).length : 0, hasContextFiles: contextFiles?.length > 0, hasSearchContext: 0 });
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }]);
+      const commands = extractSlashCommands(result);
+      if (commands.length > 0) {
+        runSlashCommands(commands, {
+          deployUrl,
+          netlifyUrl,
+          generatedProject: project,
+          setChatMessages,
+          setError,
+          downloadProject: async () => {
+            try {
+              await downloadProjectAsZip(project, result);
+            } catch (e) {
+              setError(e?.message || 'Download failed');
+            }
+          },
+        });
+      }
+      if (firebaseConfigured && user && project?.files) {
+        const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }];
+        try {
+          await saveProject({ files: project.files, html: result, chatMessages: finalMessages });
+          refreshProjects();
+        } catch (e) {
+          setProjects((prev) => {
+            const entry = { id: `temp-${Date.now()}`, name: prompt?.slice(0, 50) || 'Untitled', prompt, files: project.files, ...project };
+            return [entry, ...prev.filter((p) => !p.id?.startsWith('temp-'))];
+          });
+        }
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleKeyDown = (e) => {
