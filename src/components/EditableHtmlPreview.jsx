@@ -3,7 +3,7 @@ import { getHtmlPages, getHtmlPreviewContent } from '../api';
 
 /**
  * HTML preview: displays generated HTML with Open in new tab and Refresh.
- * When project has multiple HTML pages, shows a page selector.
+ * Uses doc.write (like jasmine-studio) for reliable CDN script loading.
  */
 export default function EditableHtmlPreview({ html: htmlProp, project, theme }) {
   const [injectKey, setInjectKey] = useState(0);
@@ -15,13 +15,26 @@ export default function EditableHtmlPreview({ html: htmlProp, project, theme }) 
       setSelectedPage(pages[0]);
     }
   }, [pages.join(','), selectedPage]);
+
+  const html = project ? getHtmlPreviewContent(project, selectedPage) : htmlProp || '';
+
+  const [blobUrl, setBlobUrl] = useState(null);
+  useEffect(() => {
+    if (!html) {
+      setBlobUrl(null);
+      return;
+    }
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    setBlobUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [html, selectedPage, injectKey]);
+
   const isLight = theme === 'light';
   const borderCl = isLight ? 'border-[rgba(220,211,195,0.9)]' : 'border-white/[0.06]';
   const btnCl = isLight
     ? 'bg-[#f6f4ec] hover:bg-[#e9dfcf] border-[rgba(220,211,195,0.9)] text-text-primary'
     : 'bg-white/[0.06] hover:bg-white/[0.1] border-white/[0.08] text-text-primary';
-
-  const html = project ? getHtmlPreviewContent(project, selectedPage) : htmlProp || '';
 
   const openInNewTab = useCallback(() => {
     if (!html) return;
@@ -71,7 +84,7 @@ export default function EditableHtmlPreview({ html: htmlProp, project, theme }) 
       <div className="flex-1 min-h-0 relative">
         <iframe
           key={injectKey}
-          srcDoc={html || ''}
+          src={blobUrl || 'about:blank'}
           title="HTML Preview"
           className={`absolute inset-0 w-full h-full border-0 ${isLight ? 'bg-white' : 'bg-white'}`}
           sandbox="allow-scripts allow-same-origin"

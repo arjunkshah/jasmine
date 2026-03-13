@@ -82,7 +82,7 @@ VITE + REACT STACK:
 - Tailwind CSS for ALL styling. Standard classes only: bg-white, text-zinc-900, etc.
 
 REQUIRED FILES for a full project:
-1. index.html — MUST be a STANDALONE, SELF-CONTAINED preview. Do NOT link to local files like "/src/main.jsx". Use CDNs: react@18, react-dom@18, babel, tailwind, lucide-react, framer-motion@10. Use <script type="text/babel" data-presets="react">. Access globals: const { useState, useEffect } = React; const { motion, AnimatePresence } = FramerMotion; const { ArrowRight, Menu } = LucideReact. Do NOT use "import" inside the script tag. The index.html is the ONLY file used for live preview — it must work independently.
+1. index.html — MUST be FIRST. STANDALONE preview for iframe. Do NOT link to /src/main.jsx. Use CDNs: react@18, react-dom@18, @babel/standalone, cdn.tailwindcss.com, lucide-react, framer-motion@10. Use <script type="text/babel" data-presets="react">. Access globals: React, ReactDOM, FramerMotion, LucideReact. No "import" inside script. Must render in iframe without a server.
 2. src/index.css — @tailwind base/components/utilities, font @import, base styles
 3. src/App.jsx — Main app, imports all components
 4. src/components/*.jsx — Header, Hero, Features, Footer, etc.

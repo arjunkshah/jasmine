@@ -19,13 +19,17 @@ export default async function handler(req, res) {
 
     const ai = new GoogleGenAI({ apiKey });
 
+    const contents = history && Array.isArray(history) && history.length > 0
+      ? [...history, { role: 'user', parts: [{ text: prompt }] }]
+      : prompt;
+
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
     const responseStream = await ai.models.generateContentStream({
       model: "gemini-3-flash-preview",
-      contents: prompt,
+      contents,
       config: {
         systemInstruction: systemInstruction,
         temperature: temperature || 0.7,

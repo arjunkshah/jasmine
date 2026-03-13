@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { extractNextProject, extractEditSummary, extractSlashCommands, replaceImagePlaceholders, ensurePackageDependencies, applyPackageFixes, getHtmlPreviewContent, projectToRaw, webSearch } from './api';
-import { getSystemPromptForGeneration, enhanceUserPrompt } from './systemPrompt.js';
+import { extractNextProject, extractEditSummary, extractSlashCommands, extractEdits, replaceImagePlaceholders, ensurePackageDependencies, applyPackageFixes, getHtmlPreviewContent, projectToRaw, webSearch } from './api';
+import { getSystemPromptForGeneration, buildSystemPrompt, enhanceUserPrompt } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
 import BlogPage from './pages/BlogPage';
@@ -1505,8 +1505,108 @@ function App() {
 
   const sendChatMessage = async () => {
     const msg = chatInput.trim();
-    if (!msg || isEditing) return;
-    setError('New backend coming soon.');
+    if (!msg || isEditing || isGenerating) return;
+    const project = generatedProject || extractNextProject(streamingRaw || generatedHTML);
+    if (!project?.files || Object.keys(project.files).length === 0) {
+      setError('Generate a project first, then ask for edits.');
+      return;
+    }
+
+    setChatMessages((prev) => [...prev, { role: 'user', content: msg }]);
+    setChatInput('');
+    setError('');
+    setIsEditing(true);
+    setStreamingRaw('');
+
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    const history = chatMessages.map((m) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }],
+    }));
+    const editPrompt = `${msg}\n\nCurrent project:\n${projectToRaw(project)}`;
+    const sysPrompt = buildSystemPrompt({
+      isEdit: true,
+      editContext: { primaryFiles: Object.keys(project.files).slice(0, 10) },
+    });
+
+    try {
+      const res = await fetch(`${apiBase}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: editPrompt,
+          systemInstruction: sysPrompt,
+          temperature: 0.7,
+          history,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `API error: ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let full = '';
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (!data || data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.text) {
+              full += parsed.text;
+              setStreamingRaw(full);
+            }
+          } catch (_) {}
+        }
+      }
+
+      const result = full;
+      const edits = extractEdits(result);
+      const nextProject = extractNextProject(result, project.files);
+      const merged = { ...project.files };
+      if (nextProject?.files) {
+        for (const [path, content] of Object.entries(nextProject.files)) {
+          merged[path] = content;
+        }
+      }
+      for (const { path, search, replace } of edits) {
+        const base = merged[path] ?? '';
+        if (base.includes(search)) merged[path] = base.replace(search, replace);
+      }
+      const finalProject = { files: merged };
+      setGeneratedProject(finalProject);
+      setGeneratedHTML(result);
+      if (merged && !htmlMode) {
+        applyPackageFixes(merged);
+        ensurePackageDependencies(merged);
+      }
+      const summary = extractEditSummary(result) || "I've updated the project.";
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: summary }]);
+      trackEdit({ provider: 'gemini', fileCount: Object.keys(merged).length });
+      if (firebaseConfigured && user && finalProject?.files) {
+        const finalMessages = [...chatMessages, { role: 'user', content: msg }, { role: 'assistant', content: summary }];
+        try {
+          await saveProject({ files: finalProject.files, html: result, chatMessages: finalMessages });
+          refreshProjects();
+        } catch (_) {}
+      }
+    } catch (err) {
+      setError(err.message);
+      setChatMessages((prev) => prev.slice(0, -1));
+    } finally {
+      setIsEditing(false);
+    }
   };
 
   const hasOutput = generatedHTML || streamingRaw || isGenerating || (generatedProject?.files && Object.keys(generatedProject.files).length > 0);
