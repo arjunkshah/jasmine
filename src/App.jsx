@@ -791,7 +791,7 @@ function AppBody({
 
                   {rightTab === 'preview' && (
                     <div className="absolute inset-0 flex flex-col overflow-hidden">
-                      {htmlMode && getHtmlPreviewContent(generatedProject) ? (
+                      {getHtmlPreviewContent(generatedProject) ? (
                         <EditableHtmlPreview
                           project={generatedProject}
                           theme={theme}
@@ -826,10 +826,7 @@ function AppBody({
                           <div className="text-center max-w-md">
                             <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
                             <p className="text-text-primary font-semibold mb-2">Project generated</p>
-                            <p className="text-sm text-text-muted mb-4">
-                              Sandbox is starting… Preview will appear here.
-                            </p>
-                            <p className="text-xs text-text-muted">{Object.keys(generatedProject.files).length} files</p>
+                            <p className="text-xs text-text-muted">{Object.keys(generatedProject.files).length} files — switch to Files to view code</p>
                           </div>
                         </div>
                       ) : (

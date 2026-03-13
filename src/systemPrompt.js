@@ -73,18 +73,19 @@ Each file must follow:
 (file contents)
 \`\`\`
 
-VITE + REACT STACK (our sandbox):
+VITE + REACT STACK:
 - Do NOT create package.json, vite.config.js, tailwind.config.js, postcss.config.js — they already exist.
-- Output: src/App.jsx, src/index.css, src/components/Header.jsx, src/components/Hero.jsx, etc.
+- Output: index.html (standalone preview), src/App.jsx, src/index.css, src/components/Header.jsx, src/components/Hero.jsx, etc.
 - Use lucide-react for icons: import { ArrowRight, Menu } from 'lucide-react'
 - Use framer-motion: import { motion, useInView } from 'framer-motion'
 - Use react-intersection-observer: import { useInView } from 'react-intersection-observer' (or from framer-motion)
 - Tailwind CSS for ALL styling. Standard classes only: bg-white, text-zinc-900, etc.
 
 REQUIRED FILES for a full project:
-1. src/index.css — @tailwind base/components/utilities, font @import, base styles
-2. src/App.jsx — Main app, imports all components
-3. src/components/*.jsx — Header, Hero, Features, Footer, etc.
+1. index.html — MUST be a STANDALONE, SELF-CONTAINED preview. Do NOT link to local files like "/src/main.jsx". Use CDNs: react@18, react-dom@18, babel, tailwind, lucide-react, framer-motion@10. Use <script type="text/babel" data-presets="react">. Access globals: const { useState, useEffect } = React; const { motion, AnimatePresence } = FramerMotion; const { ArrowRight, Menu } = LucideReact. Do NOT use "import" inside the script tag. The index.html is the ONLY file used for live preview — it must work independently.
+2. src/index.css — @tailwind base/components/utilities, font @import, base styles
+3. src/App.jsx — Main app, imports all components
+4. src/components/*.jsx — Header, Hero, Features, Footer, etc.
 
 --------------------------------------------------
 INCREMENTAL UPDATES (EDIT MODE)

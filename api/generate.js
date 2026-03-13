@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const { prompt, systemInstruction, temperature, history } = req.body || {};
 
   try {
-    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(500).json({ error: "No API key configured on server. Please select an API key." });
     }
