@@ -62,6 +62,15 @@ Use Framer Motion (framer-motion). Animations must be "cinematic":
 - Subtle parallax or scroll-triggered reveals (useInView from react-intersection-observer).
 
 --------------------------------------------------
+SCALE & COMPLEXITY (MANDATORY)
+--------------------------------------------------
+
+Every generation MUST be a fully fleshed-out, production-grade application.
+1. AT LEAST 5 DISTINCT PAGES: Multi-page routing (e.g., Home, Dashboard, Settings, Profile, Analytics, etc.).
+2. MULTIPLE SECTIONS PER PAGE: Do not make empty or sparse pages. Each page must have rich sections (Immersive Heros, Bento Grids, Data Tables, Testimonials, Footers).
+3. FREAKING BRILLIANT DESIGN: Award-winning UI. Micro-interactions, perfect padding, beautiful typography, flawless layout.
+
+--------------------------------------------------
 OUTPUT FORMAT (CRITICAL)
 --------------------------------------------------
 
@@ -73,19 +82,26 @@ Each file must follow:
 (file contents)
 \`\`\`
 
-VITE + REACT STACK:
-- Do NOT create package.json, vite.config.js, tailwind.config.js, postcss.config.js — they already exist.
-- Output: index.html (standalone preview), src/App.jsx, src/index.css, src/components/Header.jsx, src/components/Hero.jsx, etc.
-- Use lucide-react for icons: import { ArrowRight, Menu } from 'lucide-react'
-- Use framer-motion: import { motion, useInView } from 'framer-motion'
-- Use react-intersection-observer: import { useInView } from 'react-intersection-observer' (or from framer-motion)
-- Tailwind CSS for ALL styling. Standard classes only: bg-white, text-zinc-900, etc.
+REQUIRED FILES:
+1. index.html: This MUST be a STANDALONE, SELF-CONTAINED preview. Do NOT link to local files like "/src/main.jsx". Use the CDN approach below.
+2. src/App.jsx, src/index.css: These are for the "real" project structure.
+3. src/pages/ and src/components/: You MUST generate at least 5 page components and multiple reusable UI components.
 
-REQUIRED FILES for a full project:
-1. index.html — MUST be FIRST. STANDALONE preview for iframe. Do NOT link to /src/main.jsx. Use CDNs: react@18, react-dom@18, @babel/standalone, cdn.tailwindcss.com, lucide-react, framer-motion@10. Use <script type="text/babel" data-presets="react">. Access globals: React, ReactDOM, FramerMotion, LucideReact. No "import" inside script. Must render in iframe without a server.
-2. src/index.css — @tailwind base/components/utilities, font @import, base styles
-3. src/App.jsx — Main app, imports all components
-4. src/components/*.jsx — Header, Hero, Features, Footer, etc.
+--------------------------------------------------
+PREVIEW COMPATIBILITY (FOR index.html)
+--------------------------------------------------
+
+Your "index.html" is the ONLY file used for the live preview. It must work independently of the src/ directory.
+1. Use these CDNs: react@18, react-dom@18, babel, tailwind, lucide, framer-motion@10.
+2. Use: <script type="text/babel" data-presets="react">
+3. Access globals: const { useState, useEffect, useMemo, useRef } = React; const { motion, AnimatePresence } = FramerMotion;
+4. IMPORTANT: Do NOT use "import" statements inside the index.html script tag. Use the global variables provided by the CDNs.
+5. IMPORTANT: Ensure the index.html contains a complete, working version of the UI.
+6. CRITICAL: All script src URLs must be complete and valid. Never truncate or malform URLs. Close all tags properly.
+
+VITE + REACT (src/ files):
+- Do NOT create package.json, vite.config.js, tailwind.config.js, postcss.config.js — they already exist.
+- Use lucide-react, framer-motion, react-intersection-observer. Tailwind CSS for ALL styling.
 
 --------------------------------------------------
 INCREMENTAL UPDATES (EDIT MODE)
@@ -176,8 +192,22 @@ export function getSystemPromptForGeneration(designStyle = null, htmlMode = fals
   return buildSystemPrompt({ conversationContext: "", isEdit: false, designStyle });
 }
 
-/** HTML mode: plain HTML/CSS/JS — instant preview. Kept for compatibility. */
-export const HTML_SYSTEM_PROMPT = `You are an expert web developer. Generate production-quality HTML, CSS, JS. Use {{IMAGE:prompt}} for images. Output ---FILE:index.html---, ---FILE:styles.css---, ---FILE:script.js---.`;
+/** HTML mode: plain HTML/CSS/JS — instant preview. Lots of pages and sections. */
+export const HTML_SYSTEM_PROMPT = `You are an expert web developer. Generate production-quality HTML, CSS, JS.
+
+SCALE & COMPLEXITY (MANDATORY):
+1. AT LEAST 5 DISTINCT PAGES: index.html, about.html, services.html, pricing.html, contact.html (or equivalent).
+2. MULTIPLE SECTIONS PER PAGE: Each page must have rich sections — Hero, Features, Testimonials, CTA, Footer. No sparse pages.
+3. Use {{IMAGE:prompt}} for images.
+
+OUTPUT FORMAT:
+---FILE:path---
+\`\`\`(language)
+(content)
+\`\`\`
+
+REQUIRED FILES: index.html, about.html, services.html, pricing.html, contact.html, styles.css, script.js.
+index.html: <link href="styles.css"> and <script src="script.js"></script>. Self-contained.`;
 
 /** HTML mode edit prompt. */
 export const HTML_EDIT_SYSTEM_PROMPT = `Edit the HTML/CSS/JS project. Output ---FILE:path--- or ---EDIT:path---. Use {{IMAGE:prompt}} for images.`;

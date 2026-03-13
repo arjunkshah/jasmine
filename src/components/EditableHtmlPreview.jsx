@@ -1,13 +1,14 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { getHtmlPages, getHtmlPreviewContent } from '../api';
 
 /**
  * HTML preview: displays generated HTML with Open in new tab and Refresh.
- * Uses doc.write (like jasmine-studio) for reliable CDN script loading.
+ * Uses doc.write (like jasmine-studio) for reliable rendering.
  */
 export default function EditableHtmlPreview({ html: htmlProp, project, theme }) {
   const [injectKey, setInjectKey] = useState(0);
   const [selectedPage, setSelectedPage] = useState('index.html');
+  const iframeRef = useRef(null);
   const pages = project ? getHtmlPages(project) : [];
 
   useEffect(() => {
@@ -18,16 +19,14 @@ export default function EditableHtmlPreview({ html: htmlProp, project, theme }) 
 
   const html = project ? getHtmlPreviewContent(project, selectedPage) : htmlProp || '';
 
-  const [blobUrl, setBlobUrl] = useState(null);
   useEffect(() => {
-    if (!html) {
-      setBlobUrl(null);
-      return;
+    if (!html || !iframeRef.current) return;
+    const doc = iframeRef.current.contentDocument;
+    if (doc) {
+      doc.open();
+      doc.write(html);
+      doc.close();
     }
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    setBlobUrl(url);
-    return () => URL.revokeObjectURL(url);
   }, [html, selectedPage, injectKey]);
 
   const isLight = theme === 'light';
@@ -83,8 +82,8 @@ export default function EditableHtmlPreview({ html: htmlProp, project, theme }) 
       </div>
       <div className="flex-1 min-h-0 relative">
         <iframe
+          ref={iframeRef}
           key={injectKey}
-          src={blobUrl || 'about:blank'}
           title="HTML Preview"
           className={`absolute inset-0 w-full h-full border-0 ${isLight ? 'bg-white' : 'bg-white'}`}
           sandbox="allow-scripts allow-same-origin"

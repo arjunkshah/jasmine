@@ -826,7 +826,8 @@ function AppBody({
                           <div className="text-center max-w-md">
                             <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
                             <p className="text-text-primary font-semibold mb-2">Project generated</p>
-                            <p className="text-xs text-text-muted">{Object.keys(generatedProject.files).length} files — switch to Files to view code</p>
+                            <p className="text-sm text-text-muted mb-4">Switch to Files to view code. Use Download to run locally.</p>
+                            <p className="text-xs text-text-muted">{Object.keys(generatedProject.files).length} files</p>
                           </div>
                         </div>
                       ) : (
