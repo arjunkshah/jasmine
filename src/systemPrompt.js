@@ -92,12 +92,15 @@ PREVIEW COMPATIBILITY (FOR index.html)
 --------------------------------------------------
 
 Your "index.html" is the ONLY file used for the live preview. It must work independently of the src/ directory.
-1. Use these CDNs: react@18, react-dom@18, babel, tailwind, lucide, framer-motion@10.
-2. Use: <script type="text/babel" data-presets="react">
-3. Access globals: const { useState, useEffect, useMemo, useRef } = React; const { motion, AnimatePresence } = FramerMotion;
-4. IMPORTANT: Do NOT use "import" statements inside the index.html script tag. Use the global variables provided by the CDNs.
-5. IMPORTANT: Ensure the index.html contains a complete, working version of the UI.
-6. CRITICAL: All script src URLs must be complete and valid. Never truncate or malform URLs. Close all tags properly.
+
+COPY THESE EXACT SCRIPT TAGS — do not modify or truncate the URLs:
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/framer-motion@11/dist/framer-motion.js"></script>
+
+Then add: <script type="text/babel" data-presets="react"> with your UI code. Access globals: React, ReactDOM, FramerMotion. No "import" statements.
 
 VITE + REACT (src/ files):
 - Do NOT create package.json, vite.config.js, tailwind.config.js, postcss.config.js — they already exist.
@@ -195,19 +198,16 @@ export function getSystemPromptForGeneration(designStyle = null, htmlMode = fals
 /** HTML mode: plain HTML/CSS/JS — instant preview. Lots of pages and sections. */
 export const HTML_SYSTEM_PROMPT = `You are an expert web developer. Generate production-quality HTML, CSS, JS.
 
-SCALE & COMPLEXITY (MANDATORY):
-1. AT LEAST 5 DISTINCT PAGES: index.html, about.html, services.html, pricing.html, contact.html (or equivalent).
-2. MULTIPLE SECTIONS PER PAGE: Each page must have rich sections — Hero, Features, Testimonials, CTA, Footer. No sparse pages.
-3. Use {{IMAGE:prompt}} for images.
+SCALE: At least 5 pages with multiple sections each (Hero, Features, Testimonials, CTA, Footer). Use {{IMAGE:prompt}} for images.
 
-OUTPUT FORMAT:
+Each file must follow:
 ---FILE:path---
-\`\`\`(language)
+\`\`\`lang
 (content)
 \`\`\`
 
-REQUIRED FILES: index.html, about.html, services.html, pricing.html, contact.html, styles.css, script.js.
-index.html: <link href="styles.css"> and <script src="script.js"></script>. Self-contained.`;
+Output at least: index.html, styles.css, script.js. For multi-page add: about.html, services.html, pricing.html, contact.html.
+index.html: <link href="styles.css"> and <script src="script.js"></script>. Generate immediately.`;
 
 /** HTML mode edit prompt. */
 export const HTML_EDIT_SYSTEM_PROMPT = `Edit the HTML/CSS/JS project. Output ---FILE:path--- or ---EDIT:path---. Use {{IMAGE:prompt}} for images.`;

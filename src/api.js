@@ -5,6 +5,26 @@ import { fixPhosphorIcons, applyPackageFixes } from './lib/package-fixes.js';
 import { fixUnterminatedStringsInContent } from './lib/fix-unterminated.js';
 export { fixPhosphorIcons, applyPackageFixes };
 
+/** Fix truncated/malformed CDN script src in index.html. Prevents "Unexpected token '<'" from wrong URLs. */
+function fixCdnsInHtml(html) {
+  if (!html || typeof html !== 'string') return html;
+  const fixes = [
+    [/unment\.js|react\.development\.js/i, 'https://unpkg.com/react@18/umd/react.development.js'],
+    [/umm\.development\.js|react-dom\.development\.js/i, 'https://unpkg.com/react-dom@18/umd/react-dom.development.js'],
+    [/babel\.min\.js|babel\/standalone/i, 'https://unpkg.com/@babel/standalone/babel.min.js'],
+    [/tailwindcss|cdn\.tailwind/i, 'https://cdn.tailwindcss.com'],
+    [/framer-motion/i, 'https://unpkg.com/framer-motion@11/dist/framer-motion.js'],
+  ];
+  return html.replace(/<script\s+([^>]*?)src=["']([^"']+)["']([^>]*)>/gi, (m, before, url, after) => {
+    const isBroken = !url.startsWith('https://') || /unment|umm\.development|smin\.js/.test(url);
+    if (!isBroken) return m;
+    for (const [pattern, full] of fixes) {
+      if (pattern.test(url)) return `<script ${before}src="${full}"${after}>`;
+    }
+    return m;
+  });
+}
+
 /** Remove slash-command lines that the AI mistakenly put inside file content. */
 function stripSlashCommandsFromContent(content) {
   if (!content || typeof content !== 'string') return content;
@@ -96,6 +116,7 @@ export function extractNextProject(text, existingFiles = null) {
       let content = match[2].trim();
       content = stripSlashCommandsFromContent(content);
       content = fixUnterminatedStringsInContent(content);
+      if (/^index\.html$/i.test(path)) content = fixCdnsInHtml(content);
       if (path && content) files[path] = content;
     }
     if (existingFiles && edits.length > 0) {
