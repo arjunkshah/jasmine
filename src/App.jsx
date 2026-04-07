@@ -83,50 +83,6 @@ function AttachedFilesSection({ contextFiles, setContextFiles, isLight }) {
   );
 }
 
-function HtmlModeToggle({ htmlMode, setHtmlMode, isLight, disabled }) {
-  const trackCl = isLight ? 'bg-neutral-200' : 'bg-white/10';
-  const thumbCl = isLight ? 'bg-white shadow-sm' : 'bg-neutral-700';
-  const activeTextCl = isLight ? 'text-neutral-900' : 'text-white';
-  const inactiveTextCl = 'text-text-muted';
-
-  return (
-    <div className={`relative flex rounded-full p-0.5 ${trackCl} h-8 min-w-[11rem] shrink-0 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
-      <motion.div
-        className={`absolute left-0.5 top-0.5 bottom-0.5 w-[calc(50%-4px)] rounded-full ${thumbCl}`}
-        animate={{ x: htmlMode ? 'calc(100% + 4px)' : 0 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      />
-      <button
-        type="button"
-        onClick={() => setHtmlMode(false)}
-        disabled={disabled}
-        className={`relative z-10 flex-1 min-w-0 px-3 py-1.5 text-xs font-medium h-full flex items-center justify-center rounded-full transition-colors whitespace-nowrap leading-none ${!htmlMode ? activeTextCl : inactiveTextCl}`}
-        title="Vite + React — full project"
-      >
-        Vite + React
-      </button>
-      <button
-        type="button"
-        onClick={() => setHtmlMode(true)}
-        disabled={disabled}
-        className={`relative z-10 flex-1 min-w-0 px-3 py-1.5 text-xs font-medium h-full flex items-center justify-center rounded-full transition-colors whitespace-nowrap leading-none ${htmlMode ? activeTextCl : inactiveTextCl}`}
-        title="HTML — single file, instant"
-      >
-        HTML
-      </button>
-    </div>
-  );
-}
-
-function BackendComingSoon({ isLight, borderCl }) {
-  const cl = isLight ? 'text-text-secondary' : 'text-text-muted';
-  return (
-    <span className={`h-7 flex items-center text-xs ${cl}`}>
-      New backend coming soon
-    </span>
-  );
-}
-
 async function parseJsonResponse(res) {
   const text = await res.text();
   try {
@@ -238,8 +194,6 @@ function AppBody({
   netlifyDeploying,
   netlifyUrl,
   githubUrl,
-  htmlMode,
-  setHtmlMode,
   onThemeToggle,
   themeForToggle,
   onOpenCommandPalette,
@@ -587,7 +541,7 @@ function AppBody({
                     <p className="text-text-secondary text-center mb-4 text-base">
                       The World's Best Frontend Engineer
                     </p>
-                    {(deployUrl || sandboxStarting) && !htmlMode && (
+                    {(deployUrl || sandboxStarting) && (
                       <div className="mb-6 flex items-center justify-center gap-2">
                         {sandboxStarting ? (
                           <span className="text-sm text-text-muted flex items-center gap-2">
@@ -649,8 +603,6 @@ function AppBody({
                         >
                           <i className="ph ph-paperclip text-base" />
                         </motion.button>
-                        <BackendComingSoon isLight={isLight} borderCl={borderCl} />
-                        <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} disabled={isGenerating || isEditing} />
                         <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                           {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                         </span>
@@ -756,8 +708,7 @@ function AppBody({
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} disabled={isGenerating || isEditing} />
-                    {deployUrl && !htmlMode && (
+                    {deployUrl && (
                       <a href={deployUrl} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-lg ${ghostCl} text-text-muted hover:text-text-secondary`} title="Open preview">
                         <i className="ph ph-eye text-lg"></i>
                       </a>
@@ -821,7 +772,7 @@ function AppBody({
                             sandbox="allow-scripts allow-same-origin"
                           />
                         </div>
-                      ) : generatedProject?.files && !htmlMode ? (
+                      ) : generatedProject?.files ? (
                         <div className="flex-1 flex items-center justify-center p-8">
                           <div className="text-center max-w-md">
                             <i className="ph ph-rocket-launch text-4xl text-jasmine-400 mb-4 block"></i>
@@ -860,7 +811,7 @@ function AppBody({
                 <p className="text-text-secondary text-center mb-4 text-base">
                   The World's Best Frontend Engineer
                 </p>
-                {(deployUrl || sandboxStarting) && !htmlMode && (
+                {(deployUrl || sandboxStarting) && (
                   <div className="mb-6 flex items-center justify-center gap-2">
                     {sandboxStarting ? (
                       <span className="text-sm text-text-muted flex items-center gap-2">
@@ -922,8 +873,6 @@ function AppBody({
                     >
                       <i className="ph ph-paperclip text-base" />
                     </motion.button>
-                    <HtmlModeToggle htmlMode={htmlMode} setHtmlMode={setHtmlMode} isLight={isLight} disabled={isGenerating || isEditing} />
-                    <BackendComingSoon isLight={isLight} borderCl={borderCl} />
                     <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                       {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                     </span>
@@ -1079,7 +1028,6 @@ function App() {
   const [sharedProjects, setSharedProjects] = useState([]);
   const [loadingSharedProjects, setLoadingSharedProjects] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState(null);
-  const [htmlMode, setHtmlMode] = useState(() => localStorage.getItem('jasmine_html_mode') === 'true');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [shareModalProject, setShareModalProject] = useState(null);
   const saveTimeoutRef = useRef(null);
@@ -1110,10 +1058,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('jasmine_active_page', activePage);
   }, [activePage]);
-
-  useEffect(() => {
-    localStorage.setItem('jasmine_html_mode', String(htmlMode));
-  }, [htmlMode]);
 
   const prevGenEditRef = useRef({ isGenerating: false, isEditing: false });
   useEffect(() => {
@@ -1298,14 +1242,8 @@ function App() {
     setSidebarOpen(false);
     setError('');
     const hasFiles = full.files && Object.keys(full.files).length > 0 && !full._truncated;
-    const isHtmlProject = hasFiles && (full.files['index.html'] || full.files['index.htm']) && !full.files['package.json'];
     if (hasFiles) {
-      if (isHtmlProject) {
-        setHtmlMode(true);
-        setRightTab('preview');
-      } else {
-        setRightTab('files');
-      }
+      setRightTab('files');
     } else if (full._truncated) {
       setError('Project was too large to save. Files were truncated. Try generating again with fewer/smaller files.');
     }
@@ -1382,7 +1320,7 @@ function App() {
     setRightTab('files');
 
     try {
-      const sysPrompt = getSystemPromptForGeneration(null, htmlMode);
+      const sysPrompt = getSystemPromptForGeneration(null, false);
       const userContent = enhanceUserPrompt(prompt);
       const apiBase = import.meta.env.VITE_API_URL || '';
 
@@ -1438,7 +1376,7 @@ function App() {
       }
       if (project) setGeneratedProject(project);
       setGeneratedHTML(result);
-      if (project?.files && !htmlMode) {
+      if (project?.files) {
         applyPackageFixes(project.files);
         ensurePackageDependencies(project.files);
       }
@@ -1588,7 +1526,7 @@ function App() {
       const finalProject = { files: merged };
       setGeneratedProject(finalProject);
       setGeneratedHTML(result);
-      if (merged && !htmlMode) {
+      if (merged) {
         applyPackageFixes(merged);
         ensurePackageDependencies(merged);
       }
@@ -1696,7 +1634,6 @@ function App() {
     activePage,
     prompt,
     generatedProject,
-    htmlMode,
     firebaseConfigured,
     user,
     netlifyDeploying,
@@ -1774,8 +1711,6 @@ function App() {
   loadingSharedProjects,
   sharedProjectsCount: sharedProjects?.length ?? 0,
     blogSlug,
-    htmlMode,
-    setHtmlMode,
   };
 
   if (WAITLIST_ENABLED && isRoot) {
