@@ -2,21 +2,43 @@
  * Minimal project parsing utilities for the agoodbackend-style generation flow.
  */
 
-export function parseFilesFromRaw(text) {
+function extractFileBlocks(text) {
   if (!text || typeof text !== 'string') return [];
 
-  const files = [];
-  const fileRegex = /---FILE:(.*?)---\s*```(?:\w+)?\s*([\s\S]*?)(?:```|(?=---FILE:)|$)/g;
+  const headerRegex = /---FILE:(.*?)---/g;
+  const headers = [];
   let match;
 
-  while ((match = fileRegex.exec(text)) !== null) {
-    files.push({
+  while ((match = headerRegex.exec(text)) !== null) {
+    headers.push({
       path: match[1].trim(),
-      content: match[2].trim(),
+      start: match.index,
+      contentStart: headerRegex.lastIndex,
     });
   }
 
-  return files;
+  return headers.map((header, index) => {
+    const nextStart = headers[index + 1]?.start ?? text.length;
+    let content = text.slice(header.contentStart, nextStart).replace(/^\s*/, '');
+
+    if (content.startsWith('```')) {
+      const firstNewline = content.indexOf('\n');
+      content = firstNewline === -1 ? '' : content.slice(firstNewline + 1);
+    } else if (content.startsWith('`')) {
+      content = '';
+    }
+
+    content = content.replace(/\n?```[\t ]*$/, '');
+
+    return {
+      path: header.path,
+      content: content.trimEnd(),
+    };
+  }).filter((file) => file.path);
+}
+
+export function parseFilesFromRaw(text) {
+  return extractFileBlocks(text);
 }
 
 export function extractNextProject(text) {
@@ -26,7 +48,7 @@ export function extractNextProject(text) {
 }
 
 export function extractStreamingFile(text) {
-  const files = parseFilesFromRaw(text);
+  const files = extractFileBlocks(text);
   return files.length > 0 ? files[files.length - 1] : null;
 }
 

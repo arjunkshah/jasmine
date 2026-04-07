@@ -244,7 +244,7 @@ export default function FileExplorer({ files, streamingRaw, isStreaming, onSelec
     onSelectFile?.(path, content);
   };
 
-  const hasFiles = Object.keys(project).length > 0;
+  const hasFiles = Object.keys(displayProject).length > 0;
   const showRawStream = isStreaming && !hasFiles && (streamingRaw || '').trim().length > 0;
 
   const sidebarBorder = isLight ? 'border-zinc-200' : 'border-white/[0.06]';
