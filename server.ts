@@ -11,8 +11,9 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Gemini Proxy Endpoint
   app.post("/api/generate", async (req, res) => {
-    const { prompt, systemInstruction, temperature, history, model } = req.body;
+    const { prompt, systemInstruction, temperature, history } = req.body;
 
     try {
       const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
@@ -21,20 +22,17 @@ async function startServer() {
       }
 
       const ai = new GoogleGenAI({ apiKey });
-
-      const contents = history && Array.isArray(history) && history.length > 0
-        ? [...history, { role: "user", parts: [{ text: prompt }] }]
-        : prompt;
-
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
+      
+      // Use streaming for better UX
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
 
       const responseStream = await ai.models.generateContentStream({
-        model: model || "gemini-3-flash-preview",
-        contents,
+        model: "gemini-3-flash-preview",
+        contents: prompt,
         config: {
-          systemInstruction,
+          systemInstruction: systemInstruction,
           temperature: temperature || 0.7,
         },
       });
@@ -46,7 +44,7 @@ async function startServer() {
         }
       }
 
-      res.write("data: [DONE]\n\n");
+      res.write('data: [DONE]\n\n');
       res.end();
     } catch (error: any) {
       console.error("Gemini API Error:", error);
@@ -54,6 +52,7 @@ async function startServer() {
     }
   });
 
+  // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
