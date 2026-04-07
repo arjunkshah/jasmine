@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { prompt, systemInstruction, temperature, history } = req.body || {};
+  const { prompt, systemInstruction, temperature, history, model } = req.body || {};
 
   try {
     const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     res.setHeader("Connection", "keep-alive");
 
     const responseStream = await ai.models.generateContentStream({
-      model: "gemini-3-flash-preview",
+      model: model || "gemini-3-flash-preview",
       contents,
       config: {
         systemInstruction,

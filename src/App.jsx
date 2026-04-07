@@ -23,6 +23,14 @@ import { createProject, updateProject, listProjects, listSharedWithMe, getProjec
 import { trackGeneration, trackEdit, trackDeploy } from './lib/analytics';
 
 const EASE = [0.22, 1, 0.36, 1];
+const MODELS = [
+  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
+  { id: 'gemini-3.1-flash-preview', name: 'Gemini 3.1 Flash' },
+  { id: 'gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash Lite' },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3.0 Pro' },
+  { id: 'gemini-3-flash-preview', name: 'Gemini 3.0 Flash' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+];
 
 /** Set to true to show waitlist on / and password gate on /website. Set to false to go straight to the website. */
 const WAITLIST_ENABLED = true;
@@ -194,6 +202,8 @@ function AppBody({
   netlifyDeploying,
   netlifyUrl,
   githubUrl,
+  selectedModel,
+  setSelectedModel,
   onThemeToggle,
   themeForToggle,
   onOpenCommandPalette,
@@ -603,6 +613,18 @@ function AppBody({
                         >
                           <i className="ph ph-paperclip text-base" />
                         </motion.button>
+                        <select
+                          value={selectedModel}
+                          onChange={(e) => setSelectedModel(e.target.value)}
+                          disabled={isGenerating || isEditing}
+                          className={`text-[10px] uppercase tracking-widest px-3 py-2 rounded-lg border ${borderCl} ${isLight ? 'bg-[#fffaf0] text-text-primary' : 'bg-white/[0.04] text-text-primary'} focus:outline-none disabled:opacity-50`}
+                        >
+                          {MODELS.map((model) => (
+                            <option key={model.id} value={model.id} className="text-black">
+                              {model.name}
+                            </option>
+                          ))}
+                        </select>
                         <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                           {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                         </span>
@@ -873,6 +895,18 @@ function AppBody({
                     >
                       <i className="ph ph-paperclip text-base" />
                     </motion.button>
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      disabled={isGenerating || isEditing}
+                      className={`text-[10px] uppercase tracking-widest px-3 py-2 rounded-lg border ${borderCl} ${isLight ? 'bg-[#fffaf0] text-text-primary' : 'bg-white/[0.04] text-text-primary'} focus:outline-none disabled:opacity-50`}
+                    >
+                      {MODELS.map((model) => (
+                        <option key={model.id} value={model.id} className="text-black">
+                          {model.name}
+                        </option>
+                      ))}
+                    </select>
                     <span className="text-[11px] text-text-muted tracking-[0.02em] uppercase font-medium">
                       {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
                     </span>
@@ -1031,6 +1065,7 @@ function App() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [shareModalProject, setShareModalProject] = useState(null);
   const [modelHistory, setModelHistory] = useState([]);
+  const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('jasmine_model') || MODELS[0].id);
   const saveTimeoutRef = useRef(null);
 
   const textareaRef = useRef(null);
@@ -1072,6 +1107,9 @@ function App() {
   useEffect(() => {
     localStorage.setItem('jasmine_provider', provider);
   }, [provider]);
+  useEffect(() => {
+    localStorage.setItem('jasmine_model', selectedModel);
+  }, [selectedModel]);
   useEffect(() => {
     localStorage.setItem('jasmine_show_landing', String(showLanding));
   }, [showLanding]);
@@ -1333,6 +1371,7 @@ function App() {
           prompt,
           systemInstruction: JASMINE_SYSTEM_PROMPT,
           temperature: 0.7,
+          model: selectedModel,
         }),
       });
 
@@ -1491,6 +1530,7 @@ function App() {
           systemInstruction: JASMINE_SYSTEM_PROMPT,
           temperature: 0.7,
           history,
+          model: selectedModel,
         }),
       });
 
@@ -1705,6 +1745,8 @@ function App() {
     netlifyDeploying,
     netlifyUrl,
     githubUrl,
+    selectedModel,
+    setSelectedModel,
     themeForToggle: theme,
     onOpenCommandPalette: () => setCommandPaletteOpen(true),
     retrySandbox,
