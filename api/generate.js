@@ -1,3 +1,4 @@
+/* global process */
 import { GoogleGenAI } from "@google/genai";
 
 export const config = {
@@ -9,19 +10,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { prompt, systemInstruction, temperature, history } = req.body || {};
+  const { prompt, systemInstruction, temperature } = req.body || {};
 
   try {
-    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(500).json({ error: "No API key configured on server. Please select an API key." });
     }
 
     const ai = new GoogleGenAI({ apiKey });
-
-    const contents = history && Array.isArray(history) && history.length > 0
-      ? [...history, { role: 'user', parts: [{ text: prompt }] }]
-      : prompt;
 
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
@@ -29,9 +26,9 @@ export default async function handler(req, res) {
 
     const responseStream = await ai.models.generateContentStream({
       model: "gemini-3-flash-preview",
-      contents,
+      contents: prompt,
       config: {
-        systemInstruction: systemInstruction,
+        systemInstruction,
         temperature: temperature || 0.7,
       },
     });
