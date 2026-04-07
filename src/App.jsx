@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { extractNextProject, extractSlashCommands, replaceImagePlaceholders, ensurePackageDependencies, applyPackageFixes, getHtmlPreviewContent, webSearch, parseFilesFromRaw } from './api';
+import { extractNextProject, getHtmlPreviewContent, parseFilesFromRaw } from './api';
 import { JASMINE_SYSTEM_PROMPT } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
@@ -19,8 +19,7 @@ import CommandPalette from './components/CommandPalette';
 import EditableHtmlPreview from './components/EditableHtmlPreview';
 import ShareModal from './components/ShareModal';
 import { useAuth } from './contexts/AuthContext';
-import { createProject, updateProject, listProjects, listSharedWithMe, getProject, deleteProject } from './lib/projects';
-import { trackGeneration, trackEdit, trackDeploy } from './lib/analytics';
+import { listProjects, listSharedWithMe, getProject, deleteProject } from './lib/projects';
 
 const EASE = [0.22, 1, 0.36, 1];
 const MODELS = [
@@ -91,79 +90,6 @@ function AttachedFilesSection({ contextFiles, setContextFiles, isLight }) {
   );
 }
 
-async function parseJsonResponse(res) {
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(text?.slice(0, 100) || `Request failed: ${res.status}`);
-  }
-}
-
-/** Execute slash commands parsed from AI output. */
-async function runSlashCommands(commands, ctx) {
-  const { deployUrl, netlifyUrl, generatedProject, setChatMessages, setError, downloadProject } = ctx;
-  const BACKEND_UNAVAILABLE = 'Preview/sandbox backend removed. Use /download to get your project.';
-  for (const { cmd, arg } of commands) {
-    try {
-      if (['sandbox-state', 'create', 'apply', 'deploy', 'fix-errors', 'netlify-deploy', 'generate-image', 'health', 'create-and-apply'].includes(cmd)) {
-        setChatMessages((prev) => [...prev, { role: 'status', message: BACKEND_UNAVAILABLE, details: [], icon: 'ph-warning' }]);
-      } else if (cmd === 'retry') {
-        setChatMessages((prev) => [...prev, { role: 'status', message: BACKEND_UNAVAILABLE, details: [], icon: 'ph-warning' }]);
-      } else if (cmd === 'web-search' && arg) {
-        const results = await webSearch();
-        setChatMessages((prev) => [...prev, {
-          role: 'status',
-          message: `Web search: ${arg}`,
-          details: results?.slice(0, 5).map((r) => r.title || r.link) || [],
-          icon: 'ph-magnifying-glass',
-        }]);
-      } else if (cmd === 'download' && downloadProject) {
-        await downloadProject();
-        setChatMessages((prev) => [...prev, { role: 'status', message: 'Download started', details: [], icon: 'ph-download-simple' }]);
-      } else if (cmd === 'open-preview') {
-        const url = deployUrl || netlifyUrl;
-        if (url) {
-          window.open(url, '_blank', 'noopener');
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'Opened preview in new tab', details: [url], icon: 'ph-browser' }]);
-        } else {
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'No preview URL. Use /download to get your project.', details: [], icon: 'ph-warning' }]);
-        }
-      } else if (cmd === 'copy-url') {
-        const url = deployUrl || netlifyUrl;
-        if (url) {
-          try {
-            await navigator.clipboard.writeText(url);
-            setChatMessages((prev) => [...prev, { role: 'status', message: 'URL copied to clipboard', details: [url], icon: 'ph-copy' }]);
-          } catch {
-            setError('Clipboard access denied');
-          }
-        } else {
-          setChatMessages((prev) => [...prev, { role: 'status', message: 'No preview URL. Use /download to get your project.', details: [], icon: 'ph-warning' }]);
-        }
-      } else if (cmd === 'list-files' && generatedProject?.files) {
-        const paths = Object.keys(generatedProject.files).sort();
-        setChatMessages((prev) => [...prev, {
-          role: 'status',
-          message: `${paths.length} files`,
-          details: paths,
-          icon: 'ph-file-code',
-        }]);
-      } else if (cmd === 'help') {
-        const cmds = ['/web-search <query>', '/download', '/list-files', '/open-preview', '/copy-url', '/help'];
-        setChatMessages((prev) => [...prev, {
-          role: 'status',
-          message: 'Available commands',
-          details: cmds,
-          icon: 'ph-list',
-        }]);
-      }
-    } catch (e) {
-      console.warn('[Jasmine] slash command failed:', cmd, e?.message);
-      setError(e?.message || `Command /${cmd} failed`);
-    }
-  }
-}
 
 function AppBody({
   theme,
@@ -1066,7 +992,6 @@ function App() {
   const [shareModalProject, setShareModalProject] = useState(null);
   const [modelHistory, setModelHistory] = useState([]);
   const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('jasmine_model') || MODELS[0].id);
-  const saveTimeoutRef = useRef(null);
 
   const textareaRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -1221,44 +1146,6 @@ function App() {
       });
     }
   }, [firebaseConfigured, user, projects.length, loadingProjects]);
-
-  const saveProject = useCallback(
-    async (data) => {
-      if (!firebaseConfigured || !user) return;
-      const payload = {
-        name: data.name || prompt?.slice(0, 50) || 'Untitled',
-        prompt: data.prompt ?? prompt,
-        files: data.files ?? generatedProject?.files ?? {},
-        html: data.html ?? generatedHTML,
-        chatMessages: data.chatMessages ?? chatMessages,
-        provider: data.provider ?? provider,
-      };
-      try {
-        if (currentProjectId) {
-          await updateProject(currentProjectId, payload);
-          setProjects((prev) =>
-            prev.map((p) => (p.id === currentProjectId ? { ...p, ...payload } : p))
-          );
-        } else if (payload.files && Object.keys(payload.files).length > 0) {
-          const id = await createProject(user.uid, payload);
-          setCurrentProjectId(id);
-          setProjects((prev) => [{ id, ...payload }, ...prev]);
-        }
-      } catch (e) {
-        console.warn('[Jasmine] saveProject failed:', e?.message);
-        setError(`Save failed: ${e?.message || 'Unknown error'}. Check Firestore rules and indexes.`);
-      }
-    },
-    [firebaseConfigured, user, currentProjectId, prompt, generatedProject, generatedHTML, chatMessages, provider]
-  );
-
-  const debouncedSave = useCallback(() => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      saveProject({});
-      saveTimeoutRef.current = null;
-    }, 1500);
-  }, [saveProject]);
 
   const loadProject = useCallback(async (project) => {
     let full;
@@ -1424,50 +1311,11 @@ function App() {
         ? { files: Object.fromEntries(parsedFiles.map((file) => [file.path, file.content])) }
         : extractNextProject(result);
       if (project?.files) {
-        const replaced = {};
-        for (const [path, content] of Object.entries(project.files)) {
-          replaced[path] = await replaceImagePlaceholders(String(content));
-        }
-        project.files = replaced;
         setGeneratedProject(project);
       }
       setGeneratedHTML(result);
-      if (project?.files) {
-        applyPackageFixes(project.files);
-        ensurePackageDependencies(project.files);
-      }
-      trackGeneration({ provider: 'gemini', fileCount: project?.files ? Object.keys(project.files).length : 0, hasContextFiles: contextFiles?.length > 0, hasSearchContext: 0 });
       setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it.' }]);
       setModelHistory((prev) => [...prev, { role: 'assistant', content: result }]);
-      const commands = extractSlashCommands(result);
-      if (commands.length > 0) {
-        runSlashCommands(commands, {
-          deployUrl,
-          netlifyUrl,
-          generatedProject: project,
-          setChatMessages,
-          setError,
-          downloadProject: async () => {
-            try {
-              await downloadProjectAsZip(project, result);
-            } catch (e) {
-              setError(e?.message || 'Download failed');
-            }
-          },
-        });
-      }
-      if (firebaseConfigured && user && project?.files) {
-        const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it.' }];
-        try {
-          await saveProject({ files: project.files, html: result, chatMessages: finalMessages });
-          refreshProjects();
-        } catch (e) {
-          setProjects((prev) => {
-            const entry = { id: `temp-${Date.now()}`, name: prompt?.slice(0, 50) || 'Untitled', prompt, files: project.files, ...project };
-            return [entry, ...prev.filter((p) => !p.id?.startsWith('temp-'))];
-          });
-        }
-      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1585,21 +1433,9 @@ function App() {
       const finalProject = { files: merged };
       setGeneratedProject(finalProject);
       setGeneratedHTML(result);
-      if (merged) {
-        applyPackageFixes(merged);
-        ensurePackageDependencies(merged);
-      }
       const summary = "I've updated the project.";
       setChatMessages((prev) => [...prev, { role: 'assistant', content: summary }]);
       setModelHistory((prev) => [...prev, { role: 'assistant', content: result }]);
-      trackEdit({ provider: 'gemini', fileCount: Object.keys(merged).length });
-      if (firebaseConfigured && user && finalProject?.files) {
-        const finalMessages = [...chatMessages, { role: 'user', content: msg }, { role: 'assistant', content: summary }];
-        try {
-          await saveProject({ files: finalProject.files, html: result, chatMessages: finalMessages });
-          refreshProjects();
-        } catch (_) {}
-      }
     } catch (err) {
       setError(err.message);
       setChatMessages((prev) => prev.slice(0, -1));
