@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Group, Panel, Separator } from 'react-resizable-panels';
-import { extractNextProject, extractEditSummary, extractSlashCommands, extractEdits, replaceImagePlaceholders, ensurePackageDependencies, applyPackageFixes, getHtmlPreviewContent, projectToRaw, webSearch } from './api';
-import { getSystemPromptForGeneration, buildSystemPrompt, enhanceUserPrompt } from './systemPrompt.js';
+import { extractNextProject, extractSlashCommands, replaceImagePlaceholders, ensurePackageDependencies, applyPackageFixes, getHtmlPreviewContent, webSearch, parseFilesFromRaw } from './api';
+import { JASMINE_SYSTEM_PROMPT } from './systemPrompt.js';
 import { downloadProjectAsZip } from './downloadZip';
 import LandingPage from './pages/LandingPage';
 import BlogPage from './pages/BlogPage';
@@ -1030,6 +1030,7 @@ function App() {
   const [currentProjectId, setCurrentProjectId] = useState(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [shareModalProject, setShareModalProject] = useState(null);
+  const [modelHistory, setModelHistory] = useState([]);
   const saveTimeoutRef = useRef(null);
 
   const textareaRef = useRef(null);
@@ -1235,6 +1236,7 @@ function App() {
     setGeneratedHTML(full.html || '');
     setStreamingRaw('');
     setChatMessages(full.chatMessages?.length ? full.chatMessages : [{ role: 'user', content: full.prompt || '' }, { role: 'assistant', content: 'Loaded.' }]);
+    setModelHistory([]);
     setProvider(full.provider === 'ai-gateway' || full.provider === 'groq' ? 'gemini' : (full.provider || 'gemini'));
     setCurrentProjectId(full.id);
     setPage('designer');
@@ -1276,6 +1278,7 @@ function App() {
     setGeneratedHTML('');
     setStreamingRaw('');
     setChatMessages([]);
+    setModelHistory([]);
     setPage('home');
     setSidebarOpen(false);
   }, [setPage]);
@@ -1316,20 +1319,19 @@ function App() {
     setGeneratedProject(null);
     setCurrentProjectId(null);
     setChatMessages([{ role: 'user', content: prompt }]);
+    setModelHistory([{ role: 'user', content: prompt }]);
     setPage('designer');
     setRightTab('files');
 
     try {
-      const sysPrompt = getSystemPromptForGeneration(null, false);
-      const userContent = enhanceUserPrompt(prompt);
       const apiBase = import.meta.env.VITE_API_URL || '';
 
       const res = await fetch(`${apiBase}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: userContent,
-          systemInstruction: sysPrompt,
+          prompt,
+          systemInstruction: JASMINE_SYSTEM_PROMPT,
           temperature: 0.7,
         }),
       });
@@ -1343,6 +1345,7 @@ function App() {
       const decoder = new TextDecoder();
       let full = '';
       let buffer = '';
+      let currentMergedFiles = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -1360,28 +1363,43 @@ function App() {
             if (text) {
               full += text;
               setStreamingRaw(full);
+              const currentFiles = parseFilesFromRaw(full);
+              if (currentFiles.length > 0) {
+                currentFiles.forEach((file) => {
+                  const idx = currentMergedFiles.findIndex((f) => f.path === file.path);
+                  if (idx !== -1) currentMergedFiles[idx] = file;
+                  else currentMergedFiles.push(file);
+                });
+                setGeneratedProject({
+                  files: Object.fromEntries(currentMergedFiles.map((file) => [file.path, file.content])),
+                });
+              }
             }
           } catch (_) {}
         }
       }
 
       const result = full;
-      const project = extractNextProject(result);
+      const parsedFiles = parseFilesFromRaw(result);
+      const project = parsedFiles.length > 0
+        ? { files: Object.fromEntries(parsedFiles.map((file) => [file.path, file.content])) }
+        : extractNextProject(result);
       if (project?.files) {
         const replaced = {};
         for (const [path, content] of Object.entries(project.files)) {
           replaced[path] = await replaceImagePlaceholders(String(content));
         }
         project.files = replaced;
+        setGeneratedProject(project);
       }
-      if (project) setGeneratedProject(project);
       setGeneratedHTML(result);
       if (project?.files) {
         applyPackageFixes(project.files);
         ensurePackageDependencies(project.files);
       }
       trackGeneration({ provider: 'gemini', fileCount: project?.files ? Object.keys(project.files).length : 0, hasContextFiles: contextFiles?.length > 0, hasSearchContext: 0 });
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }]);
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it.' }]);
+      setModelHistory((prev) => [...prev, { role: 'assistant', content: result }]);
       const commands = extractSlashCommands(result);
       if (commands.length > 0) {
         runSlashCommands(commands, {
@@ -1400,7 +1418,7 @@ function App() {
         });
       }
       if (firebaseConfigured && user && project?.files) {
-        const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it — e.g. "Make the header darker" or "Add a pricing section".' }];
+        const finalMessages = [...chatMessages, { role: 'assistant', content: 'I\'ve generated your project. Ask me to edit it.' }];
         try {
           await saveProject({ files: project.files, html: result, chatMessages: finalMessages });
           refreshProjects();
@@ -1452,29 +1470,25 @@ function App() {
     }
 
     setChatMessages((prev) => [...prev, { role: 'user', content: msg }]);
+    setModelHistory((prev) => [...prev, { role: 'user', content: msg }]);
     setChatInput('');
     setError('');
     setIsEditing(true);
     setStreamingRaw('');
 
     const apiBase = import.meta.env.VITE_API_URL || '';
-    const history = chatMessages.map((m) => ({
+    const history = modelHistory.map((m) => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }],
     }));
-    const editPrompt = `${msg}\n\nCurrent project:\n${projectToRaw(project)}`;
-    const sysPrompt = buildSystemPrompt({
-      isEdit: true,
-      editContext: { primaryFiles: Object.keys(project.files).slice(0, 10) },
-    });
 
     try {
       const res = await fetch(`${apiBase}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: editPrompt,
-          systemInstruction: sysPrompt,
+          prompt: msg,
+          systemInstruction: JASMINE_SYSTEM_PROMPT,
           temperature: 0.7,
           history,
         }),
@@ -1489,6 +1503,7 @@ function App() {
       const decoder = new TextDecoder();
       let full = '';
       let buffer = '';
+      let currentMergedFiles = Object.entries(project.files).map(([path, content]) => ({ path, content }));
 
       while (true) {
         const { done, value } = await reader.read();
@@ -1505,24 +1520,28 @@ function App() {
             if (parsed.text) {
               full += parsed.text;
               setStreamingRaw(full);
+              const currentFiles = parseFilesFromRaw(full);
+              if (currentFiles.length > 0) {
+                currentFiles.forEach((file) => {
+                  const idx = currentMergedFiles.findIndex((f) => f.path === file.path);
+                  if (idx !== -1) currentMergedFiles[idx] = file;
+                  else currentMergedFiles.push(file);
+                });
+                setGeneratedProject({
+                  files: Object.fromEntries(currentMergedFiles.map((file) => [file.path, file.content])),
+                });
+              }
             }
           } catch (_) {}
         }
       }
 
       const result = full;
-      const edits = extractEdits(result);
-      const nextProject = extractNextProject(result, project.files);
       const merged = { ...project.files };
-      if (nextProject?.files) {
-        for (const [path, content] of Object.entries(nextProject.files)) {
-          merged[path] = content;
-        }
-      }
-      for (const { path, search, replace } of edits) {
-        const base = merged[path] ?? '';
-        if (base.includes(search)) merged[path] = base.replace(search, replace);
-      }
+      const parsedFiles = parseFilesFromRaw(result);
+      parsedFiles.forEach((file) => {
+        merged[file.path] = file.content;
+      });
       const finalProject = { files: merged };
       setGeneratedProject(finalProject);
       setGeneratedHTML(result);
@@ -1530,8 +1549,9 @@ function App() {
         applyPackageFixes(merged);
         ensurePackageDependencies(merged);
       }
-      const summary = extractEditSummary(result) || "I've updated the project.";
+      const summary = "I've updated the project.";
       setChatMessages((prev) => [...prev, { role: 'assistant', content: summary }]);
+      setModelHistory((prev) => [...prev, { role: 'assistant', content: result }]);
       trackEdit({ provider: 'gemini', fileCount: Object.keys(merged).length });
       if (firebaseConfigured && user && finalProject?.files) {
         const finalMessages = [...chatMessages, { role: 'user', content: msg }, { role: 'assistant', content: summary }];
@@ -1543,6 +1563,7 @@ function App() {
     } catch (err) {
       setError(err.message);
       setChatMessages((prev) => prev.slice(0, -1));
+      setModelHistory((prev) => prev.slice(0, -1));
     } finally {
       setIsEditing(false);
     }

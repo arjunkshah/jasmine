@@ -79,6 +79,25 @@ export function extractStreamingFile(text) {
   return path ? { path, content } : null;
 }
 
+/** Parse files exactly the way agoodbackend streams them. */
+export function parseFilesFromRaw(text) {
+  if (!text || typeof text !== 'string') return [];
+  const files = [];
+  const fileRegex = /---FILE:(.*?)---\s*```(?:\w+)?\s*([\s\S]*?)(?:```|(?=---FILE:)|$)/g;
+  let match;
+
+  while ((match = fileRegex.exec(text)) !== null) {
+    const path = match[1].trim();
+    let content = match[2].trim();
+    content = stripSlashCommandsFromContent(content);
+    content = fixUnterminatedStringsInContent(content);
+    if (/^index\.html$/i.test(path)) content = fixCdnsInHtml(content);
+    files.push({ path, content });
+  }
+
+  return files;
+}
+
 /** Parse ---EDIT:path--- blocks with ---SEARCH---/---REPLACE---. */
 export function extractEdits(text) {
   if (!text || typeof text !== 'string') return [];
